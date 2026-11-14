@@ -41,13 +41,19 @@ Think of Earth Verdict as a **data-detective workspace**: **a 3D globe on the le
 This repo is at day zero right now, so here is the direction we're building toward over the hackathon:
 
 1. **First: get the core loop alive end-to-end.**
-   A working Python / FastAPI backend talking to a MapLibre 3D globe and chat panel, powered initially by **NASA POWER** (instant, global MERRA-2 & CERES data from 1981 onward). Type a claim → watch the globe fly → get an honest verdict.
-2. **Make the statistics trustworthy (and easy to compare).**
-   Combine outlier-resistant methods (**Sen's slope** and **Mann–Kendall** with autocorrelation correction) right alongside classic **linear regression (t-test)** and 95% confidence intervals—so when a single extreme year skews a naive trend line, users can actually see why. For regional maps, apply multiple-testing correction so random 5% grid cells don't light up as false alarms.
-3. **Bring in a "second witness" and NASA satellite missions.**
-   Model reanalysis isn't a thermometer on the ground. We plan to pull direct weather-station records from **NOAA NCEI** (many stretching back over a century—Kyiv goes back to 1881) right next to NASA's gridded data, and connect named satellite missions like **OMI** (urban NO₂), **GPM**, **GLDAS**, and **GRACE** via the **Giovanni Time Series API** (proxied and cached on our backend).
-4. **Watchable detective cases.**
-   Include built-in demo investigations that play out step by step—covering confirmed shifts, refuted claims, "too early to tell" cases, and mirror trends where the same driver pushes one region up and another down.
+   A Python / FastAPI backend talking to a MapLibre 3D globe and chat panel, powered initially by **NASA POWER** (instant, global MERRA-2 & CERES data from 1981 onward). Type a claim → see exactly what will be checked (variable, place, season, period) → watch the globe fly → get an honest verdict. The assistant picks only from a short, curated list of variables, and every field can also be filled in by hand.
+2. **Bring in a "second witness".**
+   Model reanalysis isn't a thermometer on the ground. Next to NASA's gridded data we show the nearest weather-station record from **NOAA NCEI** (many stretch back over a century; Kyiv goes back to 1881). If the two sources disagree, the verdict says so instead of picking a side.
+3. **Make the statistics trustworthy, and show the work.**
+   **Mann–Kendall** with autocorrelation correction and **Sen's slope** decide the verdict; classic **linear regression (t-test)** and 95% confidence intervals sit right next to them. A **robustness test** re-runs the check on shifted time windows, so a trend that only appears for one hand-picked period doesn't get called real. When the record is too short, we estimate how many more years it would take to know. A "How we checked this" panel lays it all out.
+4. **Connect to NASA missions through Giovanni.**
+   Selected variables from **GPM**, **GLDAS**, **GRACE** and **OMI** via the **Giovanni Time Series API** (proxied and cached on our backend), each with a plain-language definition based on Giovanni's own glossary.
+5. **Answer "where", not just "whether".**
+   Trend maps with false-discovery-rate correction, and side-by-side cases where the same variable rises in one region and falls in another.
+6. **Watchable detective cases.**
+   Built-in demo investigations that play out step by step and work offline: a confirmed shift, a claim that isn't supported yet, and one where a robust method changes the answer.
+
+**What sets it apart:** we don't just find trends, we check whether you can trust them: two independent sources, an open protocol, and a test against cherry-picked time periods.
 
 ---
 
