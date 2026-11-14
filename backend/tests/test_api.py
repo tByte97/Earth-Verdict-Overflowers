@@ -145,6 +145,11 @@ def test_grid_layer():
     assert r.status_code == 200
     gj = r.json()
     assert gj["type"] == "FeatureCollection" and len(gj["features"]) > 100
+    assert gj["variable_id"] == "precip" and gj["start_year"] == 1981 and gj["end_year"] == 2025
+    a, b = gj["pair"]["a"], gj["pair"]["b"]
+    assert a["slope_per_decade"] > 0 > b["slope_per_decade"] and gj["pair"]["significance"] in ("fdr", "raw")
+    djf = client.get("/api/grid", params={"variable_id": "air_temp", "season": "DJF"}).json()
+    assert djf["start_year"] == 1982 and djf["variable_id"] == "air_temp"
 
 
 def test_places_short_query_is_empty():
@@ -157,6 +162,10 @@ def test_live_check_reuses_nearby_cmip6(fake_sources):
     assert sc is not None and sc["synthetic"] is False
     assert [p["id"] for p in sc["paths"]] == ["ssp126", "ssp245", "ssp585"]
     assert sc["baseline_value"] is not None
+    for p in sc["paths"]:
+        assert p["windows"][1] == "2041-2060"
+        assert p["median_value"] == [round(sc["baseline_value"] + d, 2) for d in p["median"]]
+        assert [a["year"] for a in p["analogs"]] == p["years"]
     assert any(p["source"] == "NASA NCCS" for p in r.json()["provenance"])
 
 
@@ -213,7 +222,8 @@ def test_region_file_gives_scenarios_for_any_cell(fake_sources, monkeypatch, tmp
              for sid, b in (("ssp126", 1.0), ("ssp245", 1.5), ("ssp585", 2.0))}
     data = {"name": "t", "bbox": [44, 29.75, 44.75, 30.5], "grid": {"lat": lats, "lon": lons},
             "models": ["A", "B", "C"], "baseline_period": "1995-2014", "retrieved": "2026-11-15",
-            "catalog_url": "https://example.test", "horizons": {"years": [2030, 2050, 2070, 2100]},
+            "catalog_url": "https://example.test", "horizons": {"years": [2030, 2050, 2070, 2100], "windows": {"2030": "2021-2040", "2050": "2041-2060",
+                                                                         "2070": "2061-2080", "2100": "2091-2100"}},
             "variables": {"tas": {"JJA": block}, "pr": {"JJA": block}}}
     (tmp_path / "region-t.json").write_text(_json.dumps(data))
     monkeypatch.setattr(sc, "CMIP6_DIR", tmp_path)
@@ -223,6 +233,40 @@ def test_region_file_gives_scenarios_for_any_cell(fake_sources, monkeypatch, tmp
     assert out["synthetic"] is False and out["source"].startswith("NASA NEX-GDDP-CMIP6 (3-model")
     assert out["paths"][0]["median"] == [1.11, 2.11, 3.11, 4.11]
     assert out["paths"][2]["high"][0] == 2.61
+    assert out["paths"][0]["windows"] == ["2021-2040", "2041-2060", "2061-2080", "2091-2100"]
     assert sc.nearby_scenarios("air_temp", "JJA", 10.0, 10.0) is None
     assert sc.nearby_scenarios("snow_depth", "JJA", 44.4, 30.1) is None
+    r = client.post("/api/check", json=spec(place={"place_id": "pt:44.40,30.10", "name": "Point", "lat": 44.4, "lon": 30.1}))
+    assert r.status_code == 200, r.text
+    assert r.json()["scenarios"]["paths"][0]["analogs"][0]["year"] == 2030
     sc._load.cache_clear()
+
+
+def test_scenario_analogs_pick_closest_year_or_beyond_record():
+    from app.scenarios import add_observed_context
+    scen = {"baseline_value": 20.0, "paths": [{"years": [2050, 2100], "median": [1.4, 9.0],
+                                               "low": [1.0, 5.0], "high": [2.0, 12.0]}]}
+    out = add_observed_context(scen, [2000, 2001, 2002, 2003], [19.0, 21.5, None, 21.3], 2)
+    p = out["paths"][0]
+    assert p["median_value"] == [21.4, 29.0] and p["high_value"] == [22.0, 32.0]
+    tie, far = p["analogs"]
+    assert tie == {"year": 2050, "analog_year": 2003, "analog_value": 21.3, "analog_rank": 2, "beyond_record": False}
+    assert far == {"year": 2100, "analog_year": None, "analog_value": None, "analog_rank": None, "beyond_record": True}
+
+
+def test_steps_carry_structured_fields():
+    import json
+    from pathlib import Path
+    r = json.loads((Path(__file__).resolve().parents[2] / "data/cases/kyiv-summer-heat.json").read_text())
+    st = {s["id"]: s for s in r["steps"]}
+    assert r["case"]["place"]["name"] == "Kyiv"
+    assert st["raw"]["n_months"] == sum(m["value"] is not None for m in st["raw"]["monthly"]) == 540
+    assert st["season"]["months"] == [6, 7, 8] and st["season"]["aggregation"] == "mean"
+    assert st["season"]["years_dropped"] == [y["year"] for y in r["series"] if y["value"] is None]
+    assert st["random_check"]["alpha"] == 0.05 and st["random_check"]["methods_agree"] is True
+    assert st["random_check"]["fields"] == ["mk.p", "ols.p"]
+    for s in r["steps"]:            # every path resolves in the result
+        for path in s["fields"]:
+            node = r
+            for key in path.split("."):
+                node = node[key]

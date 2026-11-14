@@ -2,33 +2,68 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CheckResult, Place } from '../types';
+import { roundCoord, type PickedPoint } from './place';
 import './globe.css';
 
 export type Station = NonNullable<CheckResult['witness']>['station'];
-export interface PickedPoint { lat: number; lon: number }
 
-// NASA POWER is gridded at 0.5° x 0.625°; snapping to 0.25° keeps picked points from creating
-// a distinct backend cache key for every pixel while staying within the grid resolution.
-const snap = (value: number) => Math.round(value * 4) / 4;
-const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: snap(lat), lon: snap(lon) });
+const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: roundCoord(lat), lon: roundCoord(lon) });
 
 const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
+// City lights seen from orbit; a fixed composite date keeps the layer stable.
+const BLACK_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png';
+// Coastlines only: the GIBS borders layer cuts Crimea off from Ukraine, and its labels use outdated names.
+const COASTLINES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Coastlines/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png';
+
+// Zoom band in which the globe unrolls into a flat Web Mercator map.
+const GLOBE_UNTIL = 3.2, FLAT_FROM = 4.8;
+const byZoom = (...stops: (number | string)[]) => ['interpolate', ['linear'], ['zoom'], ...stops] as maplibregl.ExpressionSpecification;
 
 // The background layer stays visible when tiles fail, so the globe and markers work offline.
 const style: maplibregl.StyleSpecification = {
   version: 8,
-  projection: { type: 'globe' },
+  projection: { type: byZoom(GLOBE_UNTIL, 'vertical-perspective', FLAT_FROM, 'mercator') },
+  // The atmosphere glow belongs to the globe; it fades out as the map flattens.
+  sky: { 'atmosphere-blend': byZoom(0, 1, GLOBE_UNTIL, 0.7, FLAT_FROM, 0) },
   sources: {
     bluemarble: {
       type: 'raster', tiles: [BLUE_MARBLE], tileSize: 256, maxzoom: 8,
-      attribution: 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a> · Blue Marble',
+      attribution: 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a> · Blue Marble, VIIRS Black Marble 2016, coastlines',
     },
+    blackmarble: { type: 'raster', tiles: [BLACK_MARBLE], tileSize: 256, maxzoom: 8 },
+    coastlines: { type: 'raster', tiles: [COASTLINES], tileSize: 256, maxzoom: 9 },
   },
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#1c3a4a' } },
-    { id: 'bluemarble', type: 'raster', source: 'bluemarble' },
+    // Muted daytime imagery keeps markers and future data layers in front.
+    { id: 'bluemarble', type: 'raster', source: 'bluemarble', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.7 } },
+    // Night lights only from far away; they fade out before the map flattens.
+    { id: 'blackmarble', type: 'raster', source: 'blackmarble', paint: { 'raster-opacity': byZoom(2.4, 0.8, 3.8, 0) } },
+    { id: 'coastlines', type: 'raster', source: 'coastlines' },
   ],
 };
+
+const ORBIT_ZOOM = 2, LOCAL_ZOOM = 4.75;
+const easeIn = (t: number) => t ** 3;
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (2 - 2 * t) ** 3 / 2);
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Camera path to a new case: rise to orbit, turn the planet under it, then descend to the local view.
+// `stillWanted` turns false when a newer flight, a view button or the user takes over the camera.
+async function flyToCase(map: maplibregl.Map, center: [number, number], stillWanted: () => boolean) {
+  if (reducedMotion()) { map.jumpTo({ center, zoom: LOCAL_ZOOM }); return; }
+  // Listen after starting: easeTo stops the previous animation, whose moveend fires synchronously.
+  const leg = (options: maplibregl.EaseToOptions) => new Promise<void>(resolve => {
+    map.easeTo({ ...options, essential: true });
+    map.once('moveend', () => resolve());
+  });
+  if (map.getZoom() > ORBIT_ZOOM + 0.4) await leg({ zoom: ORBIT_ZOOM, pitch: 0, bearing: 0, duration: 1100, easing: easeIn });
+  if (!stillWanted()) return;
+  await leg({ center, zoom: ORBIT_ZOOM, duration: 1000, easing: easeInOut });
+  if (!stillWanted()) return;
+  await leg({ center, zoom: LOCAL_ZOOM, duration: 1600, easing: easeOut });
+}
 
 const coords = (lat: number, lon: number) => `${Math.abs(lat)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon)}° ${lon >= 0 ? 'E' : 'W'}`;
 
@@ -55,11 +90,16 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   activePlace.current = place;
   const pick = useRef(onPick);
   pick.current = onPick;
+  const flight = useRef(0);
+  // The place shown on first load is centred by the load handler, not flown to.
+  const shownPlace = useRef(place?.place_id);
 
   useEffect(() => {
     let instance: maplibregl.Map;
     try {
-      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: false } });
+      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
+        // On touch screens one finger scrolls the page; two fingers move the globe.
+        cooperativeGestures: window.matchMedia('(pointer: coarse)').matches });
     } catch {
       setUnavailable(true);
       return;
@@ -68,9 +108,14 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     resize.observe(container.current!);
     instance.once('load', () => {
       instance.resize();
+      // MapLibre opens compact attribution expanded; start collapsed so it stays one icon on phones.
+      const attribution = container.current?.querySelector('.maplibregl-compact');
+      attribution?.classList.remove('maplibregl-compact-show');
+      attribution?.removeAttribute('open');
       if (activePlace.current) instance.setCenter([activePlace.current.lon, activePlace.current.lat]);
     });
     instance.once('idle', () => setReady(true));
+    instance.on('movestart', event => { if (event.originalEvent) flight.current++; });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
     instance.on('click', event => {
       if (event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker')) return;
@@ -82,9 +127,16 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
 
   useEffect(() => {
     if (!place || !map.current) return;
-    const marker = new maplibregl.Marker({ element: markerElement('place', [place.name, coords(place.lat, place.lon)]) })
+    // A picked point's name already is its coordinates.
+    const lines = place.place_id.startsWith('pt:') ? [place.name] : [place.name, coords(place.lat, place.lon)];
+    const marker = new maplibregl.Marker({ element: markerElement('place', lines) })
       .setLngLat([place.lon, place.lat]).addTo(map.current);
-    map.current.flyTo({ center: [place.lon, place.lat], zoom: 1.4, duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900 });
+    // A picked point keeps the camera where the user clicked; a new case flies there.
+    if (place.place_id !== shownPlace.current && !place.place_id.startsWith('pt:')) {
+      const id = ++flight.current;
+      void flyToCase(map.current, [place.lon, place.lat], () => flight.current === id);
+    }
+    shownPlace.current = place.place_id;
     return () => { marker.remove(); };
   }, [place]);
 
@@ -98,9 +150,9 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   return <div className="globe" data-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'} aria-busy={!ready && !unavailable}>
     {unavailable && <div className="map-loading" role="status">The interactive globe is unavailable in this browser. You can still choose a place and inspect every result in the panel.</div>}
     {!unavailable && <div className="globe-view-controls" aria-label="Map view">
-      <button type="button" onClick={() => map.current?.flyTo({ zoom: 1.4, duration: 600 })}>Globe view</button>
+      <button type="button" onClick={() => { flight.current++; map.current?.flyTo({ zoom: 1.4, duration: 600 }); }}>Globe view</button>
       {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
-      <button type="button" disabled={!place} onClick={() => place && map.current?.flyTo({ center: [place.lon, place.lat], zoom: 8.5, duration: 600 })}>Local view</button>
+      <button type="button" disabled={!place} onClick={() => { flight.current++; if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
     </div>}
     <div ref={container} className="globe-map" />
     {onPick && !unavailable && <p className="globe-hint">{ready ? 'Click the globe to pick coordinates' : 'Loading imagery…'}</p>}

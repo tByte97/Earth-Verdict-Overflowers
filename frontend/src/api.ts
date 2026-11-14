@@ -6,10 +6,11 @@ import type { CaseSpec, CheckResult, Place, Variable } from './types';
 
 export { demoCases } from './data';
 // Explicit opt-in; connection failure never silently falls back to synthetic data.
-export const isLive = new URLSearchParams(window.location.search).get('source') === 'live';
+// A deployment built with VITE_DEFAULT_SOURCE=live talks to its backend unless ?source=saved is given.
+export const isLive = (new URLSearchParams(window.location.search).get('source') ?? import.meta.env.VITE_DEFAULT_SOURCE) === 'live';
 
-async function request(path: string, init?: RequestInit, signal?: AbortSignal): Promise<unknown> {
-  const timeout = AbortSignal.timeout(20_000);
+export async function request(path: string, init?: RequestInit, signal?: AbortSignal, timeoutMs = 20_000): Promise<unknown> {
+  const timeout = AbortSignal.timeout(timeoutMs);
   const response = await fetch(`/api${path}`, { ...init, signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
   const data: unknown = await response.json().catch(() => null);
   const error = ErrorResponseSchema.safeParse(data);
