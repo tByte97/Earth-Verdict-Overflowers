@@ -2,6 +2,8 @@
 
 **Fact-checking claims about our planet, backed by real NASA data.**
 
+Frontend development: [verdict card setup, demo mode and backend integration](frontend/README.md).
+
 > NASA Space Apps Challenge 2026 · Challenge: *Be An Earth System Trend Detective!* · Team **Overflowers**
 
 Hi! If you just landed on this repo — welcome. It's the beginning of the **NASA Space Apps 2026** hackathon weekend (Nov 14–15, 2026), and we're just kicking off the build here. After spending our prep time digging through NASA's datasets, APIs, and statistical pitfalls (and testing ideas in a separate throwaway prototype), we're starting cleanly from scratch in this repository to build **Earth Verdict**.
