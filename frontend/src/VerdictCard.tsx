@@ -28,7 +28,8 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
   const sourceDetails = useRef<HTMLDetailsElement>(null);
   const agreement = agreements[r.witness?.agreement ?? 'no_station'];
   const [label, icon] = verdicts[r.verdict];
-  const fields = numericFields(r);
+  // The raw monthly record (hundreds of values) is shown by the raw step's mini chart, not as table rows.
+  const fields = numericFields(r).filter(([path]) => !/^steps\.\d+\.monthly\./.test(path));
   const historical = fields.filter(([path]) => !/^(scenarios|extrapolation)\./.test(path));
   const future = fields.filter(([path]) => /^(scenarios|extrapolation)\./.test(path));
   function openSources(index?: number | MethodKind) {

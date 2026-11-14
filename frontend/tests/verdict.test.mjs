@@ -39,7 +39,8 @@ test('first view is concise; every supplied number survives in the exact-value d
       if (typeof value === 'number' || value === null) return [[prefix, value]];
       return value && typeof value === 'object' ? Object.entries(value).flatMap(([key, child]) => leaves(child, prefix ? `${prefix}.${key}` : key)) : [];
     }
-    const values = new Map(leaves(fixtures[0].result));
+    // The raw monthly record is drawn by the raw step's mini chart instead of 500+ table rows.
+    const values = new Map(leaves(fixtures[0].result).filter(([path]) => !/^steps\.\d+\.monthly\./.test(path)));
     const rows = await page.locator('.numeric-table tbody tr').evaluateAll(items => items.map(row => [row.querySelector('code').textContent, row.querySelector('td').textContent]));
     assert.equal(rows.length, values.size);
     rows.forEach(([path, cell]) => values.get(path) === null ? assert.match(cell, /\(null\)$/) : assert.equal(cell, String(values.get(path))));

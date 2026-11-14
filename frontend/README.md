@@ -201,9 +201,14 @@ table, robustness windows, exact values and data sources stay the detailed view.
 
 - Each step shows its `title`, `value` and `detail` exactly as returned. A missing step is
   reported as "Step not supplied by the backend" instead of being skipped.
-- Mini visuals use existing fields only: the season's months from `case.season`, a sparkline
-  of `series`, the robustness windows, and `series` with `witness.series` (gaps stay gaps).
-  The trend step has no mini chart until `sen.band` is available.
+- Mini visuals draw backend fields only: the raw step's `monthly` record, the season step's
+  `months`, a sparkline of `series`, `series` with the `sen.band` fan, the robustness windows,
+  and `series` with `witness.series` (gaps stay gaps). Nothing is fitted in the browser.
+- Under each step, the paths in its `fields` are shown with their exact values. The chance
+  step shows the threshold `alpha` and whether the methods agree (`methods_agree`,
+  `methods_reason`); the season step lists `years_dropped` when there are any.
+- The raw monthly record (`steps.N.monthly`) is left out of the exact-value table, since the
+  raw step's mini chart shows it.
 - Each step's source button is chosen by step `id` (NASA POWER, NOAA NCEI or backend
   statistics) and opens the matching record in **Data sources**.
 - Mini visuals are small inline SVGs; Chart.js is kept for the full-size charts.
