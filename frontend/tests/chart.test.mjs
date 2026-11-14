@@ -39,23 +39,29 @@ test('station gaps stay gaps in the exact-value table and tooltips, never zero o
   try {
     const r = cases['kyiv-summer-heat'];
     const station = new Map(r.witness.series.map(point => [point.year, point.value]));
+    const band = new Map(r.sen.band.map(point => [point.year, point]));
     const gaps = r.witness.series.filter(point => point.value === null).map(point => point.year);
     assert.deepEqual(gaps, [2007, 2008, 2009, 2025]);
     const rows = await tableRows(page);
-    assert.deepEqual(rows, r.series.map(point => [String(point.year), String(point.value), station.get(point.year) === null ? 'no station measurement' : String(station.get(point.year))]));
-    assert.match(await hoverYear(page, 2008), /2008\nNASA POWER: 20\.64 °C\nStation: no station measurement/);
+    assert.deepEqual(rows, r.series.map(point => {
+      const { low, mid, high } = band.get(point.year);
+      const measured = station.get(point.year);
+      return [String(point.year), String(point.value), String(mid), `${low} to ${high}`, measured === null ? 'no station measurement' : String(measured)];
+    }));
+    const { low, mid, high } = band.get(2008);
+    assert.equal(await hoverYear(page, 2008), `2008\nNASA POWER: 20.64 °C\nTrend: ${mid} °C · 95% band ${low} to ${high} °C\nStation: no station measurement`);
     assert.match(await hoverYear(page, 2006), /Station: 18\.74 °C/);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
 
-test('legend and captions carry units, period, station and the 95% range from JSON', async () => {
+test('legend and captions carry units, period, station, the 95% band and the baseline from JSON', async () => {
   const { page, errors } = await open('kyiv-summer-heat');
   try {
     const chart = await page.getByTestId('series-chart').innerText();
     assert.match(chart, /Yearly summer \(Jun–Aug\) values, 1981–2025 · JJA · absolute values in °C/);
     assert.match(chart, /Trend \(Sen’s slope\): \+0\.6512 °C \/ decade over 1981–2025 · JJA/);
-    assert.match(chart, /95% range for this rate: \+0\.4189 to \+0\.8952 °C \/ decade/);
+    assert.match(chart, /Shaded band: 95% uncertainty of the trend slope \(\+0\.4189 to \+0\.8952 °C \/ decade\), not the range of individual years\./);
     assert.match(chart, /Ground station Kyiv, 6 km away \(°C\)\. Breaks in the line are years with no station measurement/);
     const stripes = page.locator('.stripes > div');
     assert.equal(await stripes.count(), cases['kyiv-summer-heat'].series.length);
@@ -70,7 +76,7 @@ test('a case without a station says so instead of drawing or zero-filling one', 
   try {
     assert.match(await page.getByTestId('series-chart').innerText(), /No ground station for this place\. Only the NASA POWER series is shown\./);
     const rows = await tableRows(page);
-    assert.ok(rows.every(row => row[2] === 'no station for this place'));
+    assert.ok(rows.every(row => row[4] === 'no station for this place'));
     assert.match(await hoverYear(page, 2000), /Station: none for this place/);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

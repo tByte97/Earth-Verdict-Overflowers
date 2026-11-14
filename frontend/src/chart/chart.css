@@ -77,8 +77,10 @@
   border-bottom:8px solid #3a6fc4;
   border-top:0;
 }
-.legend-range {
-  padding-left:26px;
+.key-band {
+  width:18px;
+  height:10px;
+  background:rgba(194,65,12,.22);
 }
 .chart-canvas {
   position:relative;
@@ -91,7 +93,7 @@
   gap:2px;
   padding:7px 10px;
   font-size:11px;
-  white-space:nowrap;
+  max-width:50%;
   background:var(--paper);
   border:1px solid var(--line);
   border-radius:8px;
