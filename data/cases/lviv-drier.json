@@ -1,0 +1,335 @@
+{
+ "case": {
+  "claim_text": "Lviv is getting drier, it rains less every year",
+  "variable_id": "precip",
+  "place": {
+   "place_id": "city:lviv",
+   "name": "Львів",
+   "lat": 49.84,
+   "lon": 24.03
+  },
+  "season": "year",
+  "start_year": 1981,
+  "end_year": 2025,
+  "claim_direction": "decrease"
+ },
+ "variable": {
+  "id": "precip",
+  "label": "Precipitation",
+  "units": "mm",
+  "definition": "How much rain and melted snow falls in total.",
+  "caveat": "Bias-corrected reanalysis; local showers can be missed."
+ },
+ "series": [
+  {
+   "year": 1981,
+   "value": 917.0
+  },
+  {
+   "year": 1982,
+   "value": 568.6
+  },
+  {
+   "year": 1983,
+   "value": 680.0
+  },
+  {
+   "year": 1984,
+   "value": 649.2
+  },
+  {
+   "year": 1985,
+   "value": 823.8
+  },
+  {
+   "year": 1986,
+   "value": 579.0
+  },
+  {
+   "year": 1987,
+   "value": 690.6
+  },
+  {
+   "year": 1988,
+   "value": 788.1
+  },
+  {
+   "year": 1989,
+   "value": 709.0
+  },
+  {
+   "year": 1990,
+   "value": 636.4
+  },
+  {
+   "year": 1991,
+   "value": 674.5
+  },
+  {
+   "year": 1992,
+   "value": 691.2
+  },
+  {
+   "year": 1993,
+   "value": 614.5
+  },
+  {
+   "year": 1994,
+   "value": 631.5
+  },
+  {
+   "year": 1995,
+   "value": 576.2
+  },
+  {
+   "year": 1996,
+   "value": 685.0
+  },
+  {
+   "year": 1997,
+   "value": 734.0
+  },
+  {
+   "year": 1998,
+   "value": 853.1
+  },
+  {
+   "year": 1999,
+   "value": 702.8
+  },
+  {
+   "year": 2000,
+   "value": 661.0
+  },
+  {
+   "year": 2001,
+   "value": 800.0
+  },
+  {
+   "year": 2002,
+   "value": 566.7
+  },
+  {
+   "year": 2003,
+   "value": 589.9
+  },
+  {
+   "year": 2004,
+   "value": 772.0
+  },
+  {
+   "year": 2005,
+   "value": 704.8
+  },
+  {
+   "year": 2006,
+   "value": 761.8
+  },
+  {
+   "year": 2007,
+   "value": 729.8
+  },
+  {
+   "year": 2008,
+   "value": 838.1
+  },
+  {
+   "year": 2009,
+   "value": 803.9
+  },
+  {
+   "year": 2010,
+   "value": 933.9
+  },
+  {
+   "year": 2011,
+   "value": 645.7
+  },
+  {
+   "year": 2012,
+   "value": 683.9
+  },
+  {
+   "year": 2013,
+   "value": 722.6
+  },
+  {
+   "year": 2014,
+   "value": 716.5
+  },
+  {
+   "year": 2015,
+   "value": 609.5
+  },
+  {
+   "year": 2016,
+   "value": 795.0
+  },
+  {
+   "year": 2017,
+   "value": 770.0
+  },
+  {
+   "year": 2018,
+   "value": 750.3
+  },
+  {
+   "year": 2019,
+   "value": 646.3
+  },
+  {
+   "year": 2020,
+   "value": 849.9
+  },
+  {
+   "year": 2021,
+   "value": 801.5
+  },
+  {
+   "year": 2022,
+   "value": 696.4
+  },
+  {
+   "year": 2023,
+   "value": 911.2
+  },
+  {
+   "year": 2024,
+   "value": 775.5
+  },
+  {
+   "year": 2025,
+   "value": 635.1
+  }
+ ],
+ "sen": {
+  "slope_per_year": 2.1807,
+  "slope_per_decade": 21.807,
+  "ci_low": -1.5692,
+  "ci_high": 45.5625,
+  "intercept": 656.835
+ },
+ "mk": {
+  "p": 0.00787,
+  "tau": 0.1879,
+  "z": 2.658,
+  "correction": "hamed_rao"
+ },
+ "ols": {
+  "slope_per_year": 1.79604,
+  "p": 0.101,
+  "r2": 0.0612,
+  "n_eff": 45.0
+ },
+ "robustness": [
+  {
+   "start_year": 1981,
+   "end_year": 2025,
+   "p": 0.00787,
+   "slope_per_decade": 21.807,
+   "significant": true
+  },
+  {
+   "start_year": 1984,
+   "end_year": 2025,
+   "p": 0.00747,
+   "slope_per_decade": 23.2036,
+   "significant": true
+  },
+  {
+   "start_year": 1987,
+   "end_year": 2025,
+   "p": 0.00986,
+   "slope_per_decade": 23.2036,
+   "significant": true
+  },
+  {
+   "start_year": 1981,
+   "end_year": 2022,
+   "p": 0.00231,
+   "slope_per_decade": 20.9892,
+   "significant": true
+  },
+  {
+   "start_year": 1984,
+   "end_year": 2022,
+   "p": 0.0145,
+   "slope_per_decade": 22.6154,
+   "significant": true
+  }
+ ],
+ "robustness_summary": {
+  "significant": 5,
+  "total": 5
+ },
+ "witness": null,
+ "verdict": "refuted",
+ "reason": "opposite_trend",
+ "years_to_wait": null,
+ "steps": [
+  {
+   "id": "raw",
+   "title": "Monthly data",
+   "value": "540 months",
+   "detail": "Monthly precipitation for Львів from NASA POWER, 1981–2025."
+  },
+  {
+   "id": "season",
+   "title": "Pick the season",
+   "value": "the whole year",
+   "detail": "Only the months the claim is about are kept (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)."
+  },
+  {
+   "id": "yearly",
+   "title": "One value per year",
+   "value": "45 years",
+   "detail": "The months of each year are added up into one number."
+  },
+  {
+   "id": "trend",
+   "title": "Overall direction",
+   "value": "+21.8 mm per 10 years",
+   "detail": "The typical change over time, robust to single extreme years (Sen's slope)."
+  },
+  {
+   "id": "random_check",
+   "title": "Could it be chance?",
+   "value": "p = 0.008",
+   "detail": "Very unlikely to appear by chance if nothing were changing."
+  },
+  {
+   "id": "robustness",
+   "title": "Does the choice of years matter?",
+   "value": "5 of 5 periods agree",
+   "detail": "We repeat the check with the start and end shifted by a few years."
+  },
+  {
+   "id": "witness",
+   "title": "Ground station check",
+   "value": "No station",
+   "detail": "No nearby station with long enough records for this variable."
+  },
+  {
+   "id": "verdict",
+   "title": "Verdict",
+   "value": "Refuted",
+   "detail": "A clear, robust trend in the opposite direction."
+  }
+ ],
+ "scenarios": null,
+ "provenance": [
+  {
+   "what": "Precipitation",
+   "source": "NASA POWER",
+   "product": "PRECTOTCORR (MERRA-2, bias-corrected)",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=PRECTOTCORR&community=AG&latitude=49.84&longitude=24.03&start=1981&end=2025&format=JSON",
+   "retrieved_at": "2026-11-14",
+   "license": "Public domain (NASA)"
+  }
+ ],
+ "meta": {
+  "stub": true,
+  "stats_engine": "provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
+  "generated_at": "2026-11-14T14:04:44Z"
+ }
+}
