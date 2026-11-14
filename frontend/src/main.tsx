@@ -2,6 +2,8 @@ import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { demoCases, findPlaces, getVariables, isLive, runCheck } from './api';
 import { VerdictCard } from './VerdictCard';
+import { ErrorBoundary } from './ErrorBoundary';
+import { CaseSpecSchema } from './schema';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
 import './styles.css';
 
@@ -10,26 +12,36 @@ const seasons = [['year', 'Whole year'], ['DJF', 'Winter · Dec–Feb'], ['MAM',
 function App() {
   const initial = demoCases[0];
   const [demoId, setDemoId] = useState(initial.id);
-  const [spec, setSpec] = useState<CaseSpec>(initial.result.case);
+  const [spec, setSpec] = useState<CaseSpec>(isLive ? { claim_text: '', variable_id: '', place: { place_id: '', name: '', lat: 0, lon: 0 }, season: 'year', start_year: 1981, end_year: 2025, claim_direction: 'change' } : initial.result.case);
   const [result, setResult] = useState<CheckResult | null>(isLive ? null : initial.result);
   const [variables, setVariables] = useState<Variable[]>(isLive ? [] : [initial.result.variable]);
-  const [query, setQuery] = useState(initial.result.case.place.name);
+  const [query, setQuery] = useState(isLive ? '' : initial.result.case.place.name);
   const [places, setPlaces] = useState<Place[]>([]);
-  const [selectedPlace, setSelectedPlace] = useState(true);
+  const [selectedPlace, setSelectedPlace] = useState(!isLive);
   const [searchStatus, setSearchStatus] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<'initial' | 'edited' | 'loading' | 'success' | 'error'>(isLive ? 'initial' : 'success');
+  const [catalogueLoading, setCatalogueLoading] = useState(true);
   const [help, setHelp] = useState(false);
   const request = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    getVariables(controller.signal).then(setVariables).catch(e => { if (e.name !== 'AbortError') setError(`Cannot load variables: ${e.message}`); });
+    getVariables(controller.signal).then(values => {
+      if (controller.signal.aborted) return;
+      setVariables(values);
+      setSpec(current => ({ ...current, variable_id: values.some(value => value.id === current.variable_id) ? current.variable_id : values[0].id }));
+      setCatalogueLoading(false);
+    }).catch(e => {
+      if (controller.signal.aborted) return;
+      setError(`Cannot load variables: ${e.message}`); setCatalogueLoading(false); setPhase('error');
+    });
     return () => { controller.abort(); request.current?.abort(); };
   }, []);
 
   function edit(next: Partial<CaseSpec>) {
-    request.current?.abort(); setBusy(false); setError(''); setResult(null); setSpec(current => ({ ...current, ...next }));
+    request.current?.abort(); setBusy(false); setError(''); setResult(null); setPhase('edited'); setSpec(current => ({ ...current, ...next }));
   }
   useEffect(() => {
     if (selectedPlace || query.trim().length < 2) { setPlaces([]); setSearchStatus(''); return; }
@@ -45,19 +57,20 @@ function App() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!selectedPlace) { setError('Select a place from the search results first.'); return; }
-    if (!Number.isInteger(spec.start_year) || !Number.isInteger(spec.end_year) || spec.start_year > spec.end_year) { setError('Choose valid years: the start must not be after the end.'); return; }
+    if (!variables.some(variable => variable.id === spec.variable_id)) { setError('Select an available backend variable.'); setPhase('error'); return; }
+    if (!selectedPlace) { setPhase('error'); setError('Select a place from the search results first.'); return; }
+    if (!Number.isInteger(spec.start_year) || !Number.isInteger(spec.end_year) || spec.start_year > spec.end_year) { setPhase('error'); setError('Choose valid years: the start must not be after the end.'); return; }
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
-    setBusy(true); setResult(null); setError('');
-    try { const response = await runCheck(spec, demoId, controller.signal); if (!controller.signal.aborted) setResult(response); }
-    catch (e) { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'The check failed. Please try again.'); }
+    setBusy(true); setPhase('loading'); setResult(null); setError('');
+    try { const response = await runCheck(spec, demoId, controller.signal); if (!controller.signal.aborted) { setResult(response); setPhase('success'); } }
+    catch (e) { if (!controller.signal.aborted) { setError(e instanceof Error ? e.message : 'The check failed. Please try again.'); setPhase('error'); } }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
   function chooseDemo(id: string) {
     const next = demoCases.find(item => item.id === id)!;
     request.current?.abort(); setBusy(false); setDemoId(id); setSpec(next.result.case);
-    setQuery(next.result.case.place.name); setSelectedPlace(true); setError(''); setResult(next.result);
+    setQuery(next.result.case.place.name); setSelectedPlace(true); setError(''); setResult(next.result); setPhase('success');
   }
 
   return <>
@@ -76,19 +89,19 @@ function App() {
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
             {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); }}>{place.name}</button></li>)}</ul>}
-            <label>Variable<select required value={spec.variable_id} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">Loading variables…</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
-            <label>Season<select value={spec.season} onChange={e => edit({ season: /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
+            <label>Season<select value={spec.season} onChange={e => edit({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <fieldset><legend>Observation period</legend><div className="year-fields"><label>From<input type="number" required min="1" max="9999" value={Number.isNaN(spec.start_year) ? '' : spec.start_year} onChange={e => edit({ start_year: e.target.valueAsNumber })} /></label><span aria-hidden="true">—</span><label>To<input type="number" required min="1" max="9999" value={Number.isNaN(spec.end_year) ? '' : spec.end_year} onChange={e => edit({ end_year: e.target.valueAsNumber })} /></label></div></fieldset>
             <label>Claim direction<select value={spec.claim_direction} onChange={e => edit({ claim_direction: e.target.value as CaseSpec['claim_direction'] })}><option value="increase">Increasing</option><option value="decrease">Decreasing</option><option value="change">Changing in either direction</option></select></label>
             {error && <div className="error" role="alert">{error}</div>}
-            <button className="primary-button" type="submit" disabled={busy || !variables.length}>{busy ? 'Checking…' : 'Check claim'} <span aria-hidden="true">→</span></button>
+            <button className="primary-button" type="submit" disabled={busy || catalogueLoading || !variables.length}>{busy ? 'Checking…' : 'Check claim'} <span aria-hidden="true">→</span></button>
             <p className="field-help">{isLive ? 'Your backend performs the calculations.' : 'Saved cases return the team’s JSON unchanged. Custom periods require the calculation API.'}</p>
           </form>
         </aside>
         <section className="result-panel" aria-label="Check result" aria-busy={busy}>
           <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
-          <div aria-live="polite" aria-atomic="true" className="sr-only">{busy ? 'Check in progress.' : result ? `Result: ${result.verdict.replace('_', ' ')}.` : 'Parameters changed. Run a check to see the result.'}</div>
-          {result ? <VerdictCard key={JSON.stringify(result.case) + result.verdict} result={result} saved={!isLive} /> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+          <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
+          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
         </section>
       </div>
       <footer><span>Earth Verdict · Team Overflowers</span><p>Past observations describe evidence about change. They are not a forecast.</p></footer>
@@ -96,4 +109,4 @@ function App() {
   </>;
 }
 
-createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><ErrorBoundary><App /></ErrorBoundary></StrictMode>);

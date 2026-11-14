@@ -5,7 +5,7 @@ React + TypeScript + Vite. UI language: English, as required by the project spec
 
 ## Run locally
 
-Node.js 20.19+ (or a supported newer LTS) and pnpm:
+Node.js 20.19+ (or a supported newer LTS) and pnpm 10 (pnpm 9 also supports the build-script allowlist):
 
 ```sh
 cd frontend
@@ -52,7 +52,7 @@ snapshots and does not require a calculation server. Developers can explicitly o
 Vite proxies `/api` to `http://127.0.0.1:8000`; a production API installation needs its own
 route. Calculation endpoints are not implemented by this frontend issue. Network errors
 never fall back to saved results. Requests time out, and editing parameters aborts an
-in-flight request. The response shape is checked before rendering.
+in-flight request. The complete response shape is validated by Zod before rendering, including nested arrays and optional witness-rate comparisons. TypeScript types are inferred from the same schemas; there is no case-data cast. A React error boundary provides recovery if rendering still fails.
 
 ## Contract alignment
 
@@ -84,7 +84,7 @@ No optional `presentation` extension is invented or required.
 | Units and fitting period | Metric, method table, exact-value context columns |
 | Scenario baseline and future distinction | `Future illustrations · separate from the verdict` |
 | One-click provenance | Main `Data sources` button and source buttons on numeric rows |
-| Source mapping | Primary observations/statistics → primary source; `witness.*` → station; `scenarios.*` → future-scenario record |
+| Source mapping | Measured series/station fields → unambiguous recognised provider URLs; derived statistics, detection, extrapolation and scenarios → explicit method records. No matching on free-text `what`. |
 | Manual check without chat | Editable form and `Check claim` |
 | Brief tutorial | `How to use` |
 
@@ -98,15 +98,30 @@ pnpm build
 pnpm test:e2e
 ```
 
-Start `pnpm dev` in another terminal before browser tests. They use installed Microsoft
-Edge by default; set `BROWSER_EXECUTABLE` for another Chromium executable and
-`TEST_BASE_URL` for another server URL. Screenshots are saved to gitignored `test-results/`.
+Install the test browser once, then run the suite:
 
-Eleven browser tests cover the three canonical snapshots, all number preservation,
-manual form submission, API error/cancellation behaviour, unit/CI/r1 alignment, witness
-null gaps, source access, historical/future separation, tutorial interaction and layout
-on desktop/mobile. Additional verdict reasons and witness agreement states use intercepted
-test-only synthetic responses; these fixtures are not shipped to users.
+```sh
+pnpm test:install
+pnpm test:e2e
+```
+
+Playwright Test starts and stops its own Vite web server on port 4173 and uses its bundled
+Chromium. No running development server or installed Edge is required. `BROWSER_EXECUTABLE`
+is an optional override for debugging; `TEST_BASE_URL` opts into an explicitly managed
+external server. The normal path needs neither. Screenshots go to gitignored `test-results/`.
+
+The reviewed build configuration uses `pnpm.onlyBuiltDependencies: ["esbuild"]` in
+`package.json` instead of a frontend workspace root. Vite explicitly allows this repository
+root so canonical `../../data/cases` imports work independently of workspace detection.
+Google Fonts use HTML preconnect links and `display=swap`, with system-font fallbacks;
+there is no stylesheet `@import` chain.
+
+Browser tests cover canonical snapshots, numeric preservation, manual requests, errors
+and cancellation, missing estimates and interpolation, units/r1, station gaps, provenance,
+past/future separation, tutorial interaction, responsive layout and the review regressions:
+a backend-only variable catalogue, empty catalogues, malformed nested JSON, nullable source
+versions, optional witness rates, error-boundary recovery, unknown city aliases, null caveats,
+missing-station wording and distinct accessibility announcements.
 
 The five-second reading goal has been checked visually, not through a timed pupil study.
 The deployed app uses saved shared responses; arbitrary periods need the calculation API.
@@ -137,5 +152,17 @@ The canonical v2 snapshots show 60 total / 45 observed / 15 additional years for
 and 150 total / 44 observed / 106 additional years for winter snow. These are conditional
 estimates, not promises. Numbers remain traceable in the exact-value tables and raw JSON.
 
-No changes to `main.tsx` or the globe layout were made for this follow-up. The colleague
+The detection-consistency follow-up did not alter the globe layout. The later review fixes change only live-form initialization, lifecycle announcements and error-boundary wiring in `main.tsx`. The colleague
 working on #2 owns the globe-left / form-and-card-right integration.
+
+
+## PR review follow-up
+
+All ten points in review `5905235919` are tracked in `REVIEW.md`. Live mode starts with
+an empty claim/place and no demo variable; the initial variable is selected from the
+validated backend catalogue. Unknown or empty catalogues cannot submit a demo default.
+
+`schema.ts` follows the current `backend/app/models.py` and additionally accepts optional
+`Witness.rates` from `feat/witness-rate-check`, plus nullable optional `Provenance.version`.
+`witness: null` is the sole no-station representation; `agreement: "no_station"` inside a
+witness object is rejected. Invalid payloads produce a contract error, not a blank page.

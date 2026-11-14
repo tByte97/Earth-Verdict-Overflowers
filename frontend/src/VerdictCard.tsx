@@ -1,6 +1,6 @@
 import { useId, useRef } from 'react';
 import type { CheckResult } from './types';
-import { fieldContext, number, numericFields, period, safeUrl, sourceIndex } from './format';
+import { fieldContext, number, numericFields, period, safeUrl, sourceIndex, sourceMethod, type MethodKind } from './format';
 import { DetectionEstimate } from './DetectionEstimate';
 import { waitingExplanation } from './detection';
 
@@ -23,13 +23,14 @@ const agreements = {
 export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: boolean }) {
   const headingId = useId();
   const sourceId = useId();
+  const methodLabels: Record<MethodKind, string> = { statistics: 'Backend statistics', detection: 'Detection simulation', extrapolation: 'Trend extrapolation', scenario: r.scenarios?.synthetic ? 'Stylised scenario' : 'Model scenario' };
   const sourceDetails = useRef<HTMLDetailsElement>(null);
   const agreement = agreements[r.witness?.agreement ?? 'no_station'];
   const [label, icon] = verdicts[r.verdict];
   const fields = numericFields(r);
   const historical = fields.filter(([path]) => !/^(scenarios|extrapolation)\./.test(path));
   const future = fields.filter(([path]) => /^(scenarios|extrapolation)\./.test(path));
-  function openSources(index?: number) {
+  function openSources(index?: number | MethodKind) {
     if (sourceDetails.current) {
       sourceDetails.current.open = true;
       const target = index === undefined ? sourceDetails.current : document.getElementById(`${sourceId}-${index}`);
@@ -40,8 +41,9 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     return <div className="table-scroll numeric-table"><table><thead><tr><th>JSON field</th><th>Exact value</th><th>Units</th><th>Period / context</th><th>Source</th></tr></thead><tbody>{rows.map(([path, value]) => {
       const ctx = fieldContext(path, r);
       const index = sourceIndex(path, r);
+      const method = sourceMethod(path);
       const missing = path === 'years_to_wait' ? 'Not determined (null)' : path.startsWith('detection.years_needed.') ? 'No simulation estimate (null)' : 'Not supplied (null)';
-      return <tr key={path}><th><code>{path}</code></th><td>{value === null ? missing : String(value)}</td><td>{ctx.unit}</td><td>{ctx.context}</td><td>{index === undefined ? 'Not supplied' : <button type="button" className="text-button" onClick={() => openSources(index)}>{r.provenance[index].source}</button>}</td></tr>;
+      return <tr key={path}><th><code>{path}</code></th><td>{value === null ? missing : String(value)}</td><td>{ctx.unit}</td><td>{ctx.context}</td><td>{method ? <button type="button" className="text-button" onClick={() => openSources(method)}>{methodLabels[method]}</button> : index === undefined ? 'Source mapping unavailable' : <button type="button" className="text-button" onClick={() => openSources(index)}>{r.provenance[index].source}</button>}</td></tr>;
     })}</tbody></table></div>;
   }
   return <article className="verdict-card" aria-labelledby={headingId}>
@@ -59,8 +61,8 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
       <p>Estimated over {period(r)}</p>
       <button type="button" className="text-button" aria-controls={sourceId} onClick={() => openSources()}>Data sources <span aria-hidden="true">↗</span></button>
     </div>
-    <div className={`witness witness-${r.witness?.agreement ?? 'no_station'}`}><span className="witness-dot" aria-hidden="true" /><div><strong>{agreement[0]}</strong><p>{agreement[1]} {r.witness?.station.name}</p></div></div>
-    <p className="data-note">{r.variable.caveat}</p>
+    <div className={`witness witness-${r.witness?.agreement ?? 'no_station'}`}><span className="witness-dot" aria-hidden="true" /><div><strong>{agreement[0]}</strong><p>{agreement[1]}{r.witness ? ` Station: ${r.witness.station.name}.` : ''}</p></div></div>
+    {r.variable.caveat && <p className="data-note">{r.variable.caveat}</p>}
     {r.meta?.stub && <p className="data-note"><strong>Provisional statistics.</strong> Supplied by the team’s backend snapshot; results may change when the final statistics engine is ready.</p>}
     <details className="technical">
       <summary>How we checked this <span>Methods, uncertainty & full precision</span></summary>
@@ -103,13 +105,17 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
       <summary>Data sources <span>Provenance & reproducibility</span></summary>
       <div className="detail-body">
         {r.meta?.stub && <p className="caution">The observations come from the team’s shared data files. Statistical outputs are provisional (<code>meta.stub: true</code>). Stylised future curves are not observations.</p>}
+        <section className="source-record" id={`${sourceId}-statistics`}><h4>Backend statistics</h4><p>Calculated by {r.meta.stats_engine}. Statistical estimates and station-rate comparisons are derived from input observations, not raw provider readings.</p></section>
+        <section className="source-record" id={`${sourceId}-detection`}><h4>Detection simulation</h4><p>The backend simulates the trend test using the supplied residual variability, autocorrelation and rate. These conditional durations are not NASA POWER measurements or forecasts. Inputs remain in the exact-value table.</p></section>
+        <section className="source-record" id={`${sourceId}-extrapolation`}><h4>Trend extrapolation</h4><p>Backend-generated what-if values derived from the observed trend and its uncertainty; not provider observations or a forecast.</p></section>
+        <section className="source-record" id={`${sourceId}-scenario`}><h4>{methodLabels.scenario}</h4><p>{r.scenarios?.synthetic ? 'Stylised placeholder values, not measured data or CMIP6 output.' : r.scenarios?.source ?? 'No scenario data supplied.'}</p></section>
         {!r.provenance.length && <p>No provenance supplied by the backend. These values cannot yet be independently traced.</p>}
         {r.provenance.map((source, i) => <section className="source-record" key={i} id={`${sourceId}-${i}`}>
           <h4>{source.what}</h4><p><strong>{source.source}</strong> · {source.product}</p>
           <dl className="statistics"><div><dt>Version</dt><dd>{source.version ?? 'Not supplied'}</dd></div><div><dt>Retrieved / fixture created</dt><dd>{source.retrieved_at}</dd></div><div><dt>License</dt><dd>{source.license}</dd></div></dl>
           {safeUrl(source.url) ? <a href={safeUrl(source.url)} target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span></a> : <p>Source URL unavailable or unsafe.</p>}
         </section>)}
-        <p className="help-text">Primary-source observations feed the trend statistics and detection estimates. Witness fields trace to the ground station. Future-scenario provenance is separate and never used as evidence for the historical verdict.</p>
+        <p className="help-text">Observation rows link to unambiguous recognised provider URLs. Derived statistics, detection simulations, extrapolations and scenario values link to their own method records above. Unknown or ambiguous provider mappings are explicitly left unmapped; they are never guessed from descriptions.</p>
       </div>
     </details>
   </article>;
