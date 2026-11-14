@@ -63,7 +63,9 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   useEffect(() => {
     let instance: maplibregl.Map;
     try {
-      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches } });
+      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
+        // On touch screens one finger scrolls the page; two fingers move the globe.
+        cooperativeGestures: window.matchMedia('(pointer: coarse)').matches });
     } catch {
       setUnavailable(true);
       return;
