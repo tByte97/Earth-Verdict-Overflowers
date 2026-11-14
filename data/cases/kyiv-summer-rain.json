@@ -1,0 +1,846 @@
+{
+ "case": {
+  "claim_text": "Kyiv summers are getting rainier",
+  "variable_id": "precip",
+  "place": {
+   "place_id": "city:kyiv",
+   "name": "Київ",
+   "lat": 50.45,
+   "lon": 30.52
+  },
+  "season": "JJA",
+  "start_year": 1981,
+  "end_year": 2025,
+  "claim_direction": "increase"
+ },
+ "variable": {
+  "id": "precip",
+  "label": "Precipitation",
+  "units": "mm",
+  "definition": "How much rain and melted snow falls in total.",
+  "caveat": "Bias-corrected reanalysis; local showers can be missed."
+ },
+ "series": [
+  {
+   "year": 1981,
+   "value": 314.8
+  },
+  {
+   "year": 1982,
+   "value": 311.9
+  },
+  {
+   "year": 1983,
+   "value": 170.0
+  },
+  {
+   "year": 1984,
+   "value": 227.3
+  },
+  {
+   "year": 1985,
+   "value": 218.2
+  },
+  {
+   "year": 1986,
+   "value": 253.4
+  },
+  {
+   "year": 1987,
+   "value": 199.4
+  },
+  {
+   "year": 1988,
+   "value": 229.3
+  },
+  {
+   "year": 1989,
+   "value": 211.8
+  },
+  {
+   "year": 1990,
+   "value": 212.7
+  },
+  {
+   "year": 1991,
+   "value": 197.5
+  },
+  {
+   "year": 1992,
+   "value": 108.4
+  },
+  {
+   "year": 1993,
+   "value": 242.8
+  },
+  {
+   "year": 1994,
+   "value": 172.3
+  },
+  {
+   "year": 1995,
+   "value": 195.2
+  },
+  {
+   "year": 1996,
+   "value": 179.5
+  },
+  {
+   "year": 1997,
+   "value": 248.6
+  },
+  {
+   "year": 1998,
+   "value": 252.8
+  },
+  {
+   "year": 1999,
+   "value": 209.4
+  },
+  {
+   "year": 2000,
+   "value": 164.5
+  },
+  {
+   "year": 2001,
+   "value": 202.1
+  },
+  {
+   "year": 2002,
+   "value": 229.3
+  },
+  {
+   "year": 2003,
+   "value": 182.9
+  },
+  {
+   "year": 2004,
+   "value": 218.2
+  },
+  {
+   "year": 2005,
+   "value": 223.7
+  },
+  {
+   "year": 2006,
+   "value": 248.5
+  },
+  {
+   "year": 2007,
+   "value": 215.0
+  },
+  {
+   "year": 2008,
+   "value": 150.9
+  },
+  {
+   "year": 2009,
+   "value": 180.8
+  },
+  {
+   "year": 2010,
+   "value": 159.3
+  },
+  {
+   "year": 2011,
+   "value": 348.0
+  },
+  {
+   "year": 2012,
+   "value": 227.1
+  },
+  {
+   "year": 2013,
+   "value": 156.2
+  },
+  {
+   "year": 2014,
+   "value": 146.9
+  },
+  {
+   "year": 2015,
+   "value": 82.5
+  },
+  {
+   "year": 2016,
+   "value": 130.4
+  },
+  {
+   "year": 2017,
+   "value": 141.9
+  },
+  {
+   "year": 2018,
+   "value": 224.5
+  },
+  {
+   "year": 2019,
+   "value": 127.4
+  },
+  {
+   "year": 2020,
+   "value": 143.3
+  },
+  {
+   "year": 2021,
+   "value": 181.3
+  },
+  {
+   "year": 2022,
+   "value": 156.4
+  },
+  {
+   "year": 2023,
+   "value": 233.9
+  },
+  {
+   "year": 2024,
+   "value": 180.9
+  },
+  {
+   "year": 2025,
+   "value": 213.5
+  }
+ ],
+ "sen": {
+  "slope_per_year": -1.66959,
+  "slope_per_decade": -16.6959,
+  "ci_low": -26.7059,
+  "ci_high": -5.07,
+  "intercept": 238.801
+ },
+ "mk": {
+  "p": 0.0178,
+  "tau": -0.2788,
+  "z": -2.37,
+  "correction": "hamed_rao"
+ },
+ "ols": {
+  "slope_per_year": -1.5438,
+  "p": 0.0213,
+  "r2": 0.1494,
+  "n_eff": 35.3
+ },
+ "robustness": [
+  {
+   "start_year": 1981,
+   "end_year": 2025,
+   "p": 0.0178,
+   "slope_per_decade": -16.6959,
+   "significant": true
+  },
+  {
+   "start_year": 1984,
+   "end_year": 2025,
+   "p": 0.0462,
+   "slope_per_decade": -13.9421,
+   "significant": true
+  },
+  {
+   "start_year": 1987,
+   "end_year": 2025,
+   "p": 0.16,
+   "slope_per_decade": -11.42,
+   "significant": false
+  },
+  {
+   "start_year": 1981,
+   "end_year": 2022,
+   "p": 0.00441,
+   "slope_per_decade": -21.9714,
+   "significant": true
+  },
+  {
+   "start_year": 1984,
+   "end_year": 2022,
+   "p": 0.0111,
+   "slope_per_decade": -19.0818,
+   "significant": true
+  }
+ ],
+ "robustness_summary": {
+  "significant": 4,
+  "total": 5
+ },
+ "witness": null,
+ "verdict": "refuted",
+ "reason": "opposite_trend",
+ "years_to_wait": null,
+ "steps": [
+  {
+   "id": "raw",
+   "title": "Monthly data",
+   "value": "540 months",
+   "detail": "Monthly precipitation for Київ from NASA POWER, 1981–2025."
+  },
+  {
+   "id": "season",
+   "title": "Pick the season",
+   "value": "summer (Jun–Aug)",
+   "detail": "Only the months the claim is about are kept (Jun, Jul, Aug)."
+  },
+  {
+   "id": "yearly",
+   "title": "One value per year",
+   "value": "45 years",
+   "detail": "The months of each year are added up into one number."
+  },
+  {
+   "id": "trend",
+   "title": "Overall direction",
+   "value": "-16.7 mm per 10 years",
+   "detail": "The typical change over time, robust to single extreme years (Sen's slope)."
+  },
+  {
+   "id": "random_check",
+   "title": "Could it be chance?",
+   "value": "p = 0.018",
+   "detail": "Very unlikely to appear by chance if nothing were changing."
+  },
+  {
+   "id": "robustness",
+   "title": "Does the choice of years matter?",
+   "value": "4 of 5 periods agree",
+   "detail": "We repeat the check with the start and end shifted by a few years."
+  },
+  {
+   "id": "witness",
+   "title": "Ground station check",
+   "value": "No station",
+   "detail": "No nearby station with long enough records for this variable."
+  },
+  {
+   "id": "verdict",
+   "title": "Verdict",
+   "value": "Refuted",
+   "detail": "A clear, robust trend in the opposite direction."
+  }
+ ],
+ "detection": {
+  "residual_sd": 48.9436,
+  "phi": 0.1211,
+  "slope_per_year": -1.66959,
+  "n_years": 45,
+  "multipliers": [
+   0.5,
+   0.75,
+   1.0,
+   1.5,
+   2.0
+  ],
+  "years_needed": [
+   78.0,
+   59.0,
+   51.0,
+   38.0,
+   32.0
+  ]
+ },
+ "extrapolation": {
+  "note": "What-if line, not a forecast: it only shows where the trend would go at this pace. For physically based futures see the climate-model scenarios.",
+  "from_year": 2025,
+  "from_value": 165.3,
+  "years": [
+   2025,
+   2026,
+   2027,
+   2028,
+   2029,
+   2030,
+   2031,
+   2032,
+   2033,
+   2034,
+   2035,
+   2036,
+   2037,
+   2038,
+   2039,
+   2040,
+   2041,
+   2042,
+   2043,
+   2044,
+   2045,
+   2046,
+   2047,
+   2048,
+   2049,
+   2050
+  ],
+  "paths": [
+   {
+    "id": "stop",
+    "label": "The change stops",
+    "multiplier": 0.0,
+    "central": [
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3
+    ],
+    "low": [
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3
+    ],
+    "high": [
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3,
+     165.3
+    ]
+   },
+   {
+    "id": "slower",
+    "label": "Half as fast",
+    "multiplier": 0.5,
+    "central": [
+     165.3,
+     164.5,
+     163.7,
+     162.8,
+     162.0,
+     161.2,
+     160.3,
+     159.5,
+     158.7,
+     157.8,
+     157.0,
+     156.2,
+     155.3,
+     154.5,
+     153.7,
+     152.8,
+     152.0,
+     151.1,
+     150.3,
+     149.5,
+     148.6,
+     147.8,
+     147.0,
+     146.1,
+     145.3,
+     144.5
+    ],
+    "low": [
+     165.3,
+     164.0,
+     162.7,
+     161.3,
+     160.0,
+     158.7,
+     157.3,
+     156.0,
+     154.7,
+     153.3,
+     152.0,
+     150.7,
+     149.3,
+     148.0,
+     146.6,
+     145.3,
+     144.0,
+     142.6,
+     141.3,
+     140.0,
+     138.6,
+     137.3,
+     136.0,
+     134.6,
+     133.3,
+     132.0
+    ],
+    "high": [
+     165.3,
+     165.1,
+     164.8,
+     164.6,
+     164.3,
+     164.1,
+     163.8,
+     163.6,
+     163.3,
+     163.1,
+     162.8,
+     162.6,
+     162.3,
+     162.0,
+     161.8,
+     161.5,
+     161.3,
+     161.0,
+     160.8,
+     160.5,
+     160.3,
+     160.0,
+     159.8,
+     159.5,
+     159.3,
+     159.0
+    ]
+   },
+   {
+    "id": "same",
+    "label": "Same pace as 1981–2025",
+    "multiplier": 1.0,
+    "central": [
+     165.3,
+     163.7,
+     162.0,
+     160.3,
+     158.7,
+     157.0,
+     155.3,
+     153.7,
+     152.0,
+     150.3,
+     148.6,
+     147.0,
+     145.3,
+     143.6,
+     142.0,
+     140.3,
+     138.6,
+     137.0,
+     135.3,
+     133.6,
+     131.9,
+     130.3,
+     128.6,
+     126.9,
+     125.3,
+     123.6
+    ],
+    "low": [
+     165.3,
+     162.7,
+     160.0,
+     157.3,
+     154.7,
+     152.0,
+     149.3,
+     146.6,
+     144.0,
+     141.3,
+     138.6,
+     136.0,
+     133.3,
+     130.6,
+     128.0,
+     125.3,
+     122.6,
+     119.9,
+     117.3,
+     114.6,
+     111.9,
+     109.3,
+     106.6,
+     103.9,
+     101.2,
+     98.6
+    ],
+    "high": [
+     165.3,
+     164.8,
+     164.3,
+     163.8,
+     163.3,
+     162.8,
+     162.3,
+     161.8,
+     161.3,
+     160.8,
+     160.3,
+     159.8,
+     159.3,
+     158.7,
+     158.2,
+     157.7,
+     157.2,
+     156.7,
+     156.2,
+     155.7,
+     155.2,
+     154.7,
+     154.2,
+     153.7,
+     153.2,
+     152.7
+    ]
+   },
+   {
+    "id": "faster",
+    "label": "1.5× faster",
+    "multiplier": 1.5,
+    "central": [
+     165.3,
+     162.8,
+     160.3,
+     157.8,
+     155.3,
+     152.8,
+     150.3,
+     147.8,
+     145.3,
+     142.8,
+     140.3,
+     137.8,
+     135.3,
+     132.8,
+     130.3,
+     127.8,
+     125.3,
+     122.8,
+     120.3,
+     117.8,
+     115.3,
+     112.7,
+     110.2,
+     107.7,
+     105.2,
+     102.7
+    ],
+    "low": [
+     165.3,
+     161.3,
+     157.3,
+     153.3,
+     149.3,
+     145.3,
+     141.3,
+     137.3,
+     133.3,
+     129.3,
+     125.3,
+     121.3,
+     117.3,
+     113.3,
+     109.3,
+     105.3,
+     101.2,
+     97.2,
+     93.2,
+     89.2,
+     85.2,
+     81.2,
+     77.2,
+     73.2,
+     69.2,
+     65.2
+    ],
+    "high": [
+     165.3,
+     164.6,
+     163.8,
+     163.1,
+     162.3,
+     161.5,
+     160.8,
+     160.0,
+     159.3,
+     158.5,
+     157.7,
+     157.0,
+     156.2,
+     155.5,
+     154.7,
+     153.9,
+     153.2,
+     152.4,
+     151.6,
+     150.9,
+     150.1,
+     149.4,
+     148.6,
+     147.8,
+     147.1,
+     146.3
+    ]
+   }
+  ]
+ },
+ "scenarios": {
+  "synthetic": false,
+  "source": "NASA NEX-GDDP-CMIP6 (5-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR)",
+  "baseline_period": "1995-2014",
+  "baseline_value": 207.0,
+  "note": "These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
+  "paths": [
+   {
+    "id": "ssp126",
+    "label": "The world cuts emissions fast",
+    "years": [
+     2030,
+     2050,
+     2070,
+     2100
+    ],
+    "median": [
+     -6.9,
+     1.3,
+     0.0,
+     15.3
+    ],
+    "low": [
+     -29.5,
+     -16.6,
+     -23.4,
+     -20.4
+    ],
+    "high": [
+     20.6,
+     9.8,
+     26.9,
+     28.1
+    ]
+   },
+   {
+    "id": "ssp245",
+    "label": "Roughly as now",
+    "years": [
+     2030,
+     2050,
+     2070,
+     2100
+    ],
+    "median": [
+     5.1,
+     -22.8,
+     -5.7,
+     -1.2
+    ],
+    "low": [
+     -28.8,
+     -33.5,
+     -32.2,
+     -45.4
+    ],
+    "high": [
+     15.5,
+     -4.0,
+     4.2,
+     2.5
+    ]
+   },
+   {
+    "id": "ssp585",
+    "label": "Emissions keep growing",
+    "years": [
+     2030,
+     2050,
+     2070,
+     2100
+    ],
+    "median": [
+     12.0,
+     -27.8,
+     -40.0,
+     -57.3
+    ],
+    "low": [
+     -5.4,
+     -36.4,
+     -66.6,
+     -78.4
+    ],
+    "high": [
+     32.3,
+     -14.4,
+     -21.0,
+     -25.6
+    ]
+   }
+  ]
+ },
+ "provenance": [
+  {
+   "what": "Precipitation",
+   "source": "NASA POWER",
+   "product": "PRECTOTCORR (MERRA-2, bias-corrected)",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=PRECTOTCORR&community=AG&latitude=50.45&longitude=30.52&start=1981&end=2025&format=JSON",
+   "retrieved_at": "2026-11-14",
+   "license": "Public domain (NASA)"
+  },
+  {
+   "what": "Future scenarios",
+   "source": "NASA NCCS",
+   "product": "NEX-GDDP-CMIP6 v2.0, 5 models, r1i1p1f1",
+   "url": "https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
+   "retrieved_at": "2026-11-14",
+   "license": "CC BY 4.0 (NASA NEX-GDDP-CMIP6)"
+  }
+ ],
+ "meta": {
+  "stub": true,
+  "stats_engine": "backend.app.stats v2",
+  "generated_at": "2026-11-14T17:45:44Z"
+ }
+}

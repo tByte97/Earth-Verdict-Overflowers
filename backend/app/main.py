@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .catalog import load_compounds, load_variables
-from .check import CheckError, run_check
+from .check import REGIONS, CheckError, run_check
 from .event import get_global_co2_summary, run_co2_impact, run_event
 from .models import (
     CaseSpec,
@@ -88,11 +88,18 @@ async def places(q: str = Query("", max_length=100)):
         return []
     from .sources import SourceUnavailable, geocode
 
+    regions = [Place(place_id=f"region:{k}", name=name, lat=lat, lon=lon)
+               for k, (name, lat, lon) in REGIONS.items()
+               if name.lower().startswith(q.strip().lower()) or k.startswith(q.strip().lower().replace(" ", ""))
+               or (k == "globe" and q.strip().lower() in ("world", "planet", "earth", "globe"))]
+
     try:
         found = await asyncio.to_thread(geocode.search_places, q.strip())
     except SourceUnavailable as e:
+        if regions:
+            return regions
         return error("source_unavailable", f"Place search did not respond: {e.message}")
-    return [Place(place_id=p["place_id"], name=p["name"], lat=p["lat"], lon=p["lon"]) for p in found]
+    return regions + [Place(place_id=p["place_id"], name=p["name"], lat=p["lat"], lon=p["lon"]) for p in found]
 
 
 @app.post("/api/check", response_model=CheckResult,

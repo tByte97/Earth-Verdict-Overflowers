@@ -12,6 +12,7 @@ DATA_URL = "https://www.ncei.noaa.gov/access/services/data/v1"
 MIN_COVERAGE = 0.9
 MIN_TEMP_DAYS = 25
 VALID_ELEMENTS = frozenset({"TAVG", "TMAX", "TMIN", "PRCP"})
+DAILY_FALLBACK_ELEMENTS = frozenset({"TAVG", "TMAX", "TMIN"})
 
 
 @dataclass(frozen=True)
@@ -201,7 +202,9 @@ def best_station(
     coverage = covered / total_months if total_months else 0.0
 
     # Replace the entire series with GHCN-Daily (never splice) if GSOM coverage < 90%.
-    if coverage < MIN_COVERAGE:
+    # Not for PRCP: a monthly total needs every day, so daily data recovers no months
+    # (Lviv: 292 vs 293 of 540) while costing one request per year (~75 s on first call).
+    if coverage < MIN_COVERAGE and elem in DAILY_FALLBACK_ELEMENTS:
         daily_monthly, daily_url = _daily_monthly_series(sid, elem, start_year, end_year)
         daily_covered = sum(v is not None for v in daily_monthly)
         if daily_covered > covered:

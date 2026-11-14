@@ -1,0 +1,1065 @@
+{
+ "case": {
+  "claim_text": "Kyiv is actually getting colder",
+  "variable_id": "air_temp",
+  "place": {
+   "place_id": "city:kyiv",
+   "name": "Київ",
+   "lat": 50.45,
+   "lon": 30.52
+  },
+  "season": "year",
+  "start_year": 1981,
+  "end_year": 2025,
+  "claim_direction": "decrease"
+ },
+ "variable": {
+  "id": "air_temp",
+  "label": "Air temperature",
+  "units": "°C",
+  "definition": "How warm the air is about 2 m above the ground.",
+  "caveat": "Reanalysis: a weather model steered by observations, not a single thermometer."
+ },
+ "series": [
+  {
+   "year": 1981,
+   "value": 7.08
+  },
+  {
+   "year": 1982,
+   "value": 7.13
+  },
+  {
+   "year": 1983,
+   "value": 8.24
+  },
+  {
+   "year": 1984,
+   "value": 6.86
+  },
+  {
+   "year": 1985,
+   "value": 5.48
+  },
+  {
+   "year": 1986,
+   "value": 7.09
+  },
+  {
+   "year": 1987,
+   "value": 5.04
+  },
+  {
+   "year": 1988,
+   "value": 7.16
+  },
+  {
+   "year": 1989,
+   "value": 9.19
+  },
+  {
+   "year": 1990,
+   "value": 8.44
+  },
+  {
+   "year": 1991,
+   "value": 7.67
+  },
+  {
+   "year": 1992,
+   "value": 7.68
+  },
+  {
+   "year": 1993,
+   "value": 6.44
+  },
+  {
+   "year": 1994,
+   "value": 7.28
+  },
+  {
+   "year": 1995,
+   "value": 7.5
+  },
+  {
+   "year": 1996,
+   "value": 6.29
+  },
+  {
+   "year": 1997,
+   "value": 6.44
+  },
+  {
+   "year": 1998,
+   "value": 6.78
+  },
+  {
+   "year": 1999,
+   "value": 8.17
+  },
+  {
+   "year": 2000,
+   "value": 8.12
+  },
+  {
+   "year": 2001,
+   "value": 7.38
+  },
+  {
+   "year": 2002,
+   "value": 8.25
+  },
+  {
+   "year": 2003,
+   "value": 6.65
+  },
+  {
+   "year": 2004,
+   "value": 7.42
+  },
+  {
+   "year": 2005,
+   "value": 7.31
+  },
+  {
+   "year": 2006,
+   "value": 7.23
+  },
+  {
+   "year": 2007,
+   "value": 8.88
+  },
+  {
+   "year": 2008,
+   "value": 8.76
+  },
+  {
+   "year": 2009,
+   "value": 8.33
+  },
+  {
+   "year": 2010,
+   "value": 7.97
+  },
+  {
+   "year": 2011,
+   "value": 7.88
+  },
+  {
+   "year": 2012,
+   "value": 7.81
+  },
+  {
+   "year": 2013,
+   "value": 7.91
+  },
+  {
+   "year": 2014,
+   "value": 8.45
+  },
+  {
+   "year": 2015,
+   "value": 9.45
+  },
+  {
+   "year": 2016,
+   "value": 8.4
+  },
+  {
+   "year": 2017,
+   "value": 8.44
+  },
+  {
+   "year": 2018,
+   "value": 8.3
+  },
+  {
+   "year": 2019,
+   "value": 9.42
+  },
+  {
+   "year": 2020,
+   "value": 9.74
+  },
+  {
+   "year": 2021,
+   "value": 7.72
+  },
+  {
+   "year": 2022,
+   "value": 8.34
+  },
+  {
+   "year": 2023,
+   "value": 9.34
+  },
+  {
+   "year": 2024,
+   "value": 9.93
+  },
+  {
+   "year": 2025,
+   "value": 9.27
+  }
+ ],
+ "sen": {
+  "slope_per_year": 0.05431,
+  "slope_per_decade": 0.5431,
+  "ci_low": 0.3161,
+  "ci_high": 0.7489,
+  "intercept": 6.686
+ },
+ "mk": {
+  "p": 0.000331,
+  "tau": 0.4828,
+  "z": 3.59,
+  "correction": "hamed_rao"
+ },
+ "ols": {
+  "slope_per_year": 0.05309,
+  "p": 0.000163,
+  "r2": 0.4226,
+  "n_eff": 28.4
+ },
+ "robustness": [
+  {
+   "start_year": 1981,
+   "end_year": 2025,
+   "p": 0.000331,
+   "slope_per_decade": 0.5431,
+   "significant": true
+  },
+  {
+   "start_year": 1984,
+   "end_year": 2025,
+   "p": 7.98e-05,
+   "slope_per_decade": 0.6583,
+   "significant": true
+  },
+  {
+   "start_year": 1987,
+   "end_year": 2025,
+   "p": 0.00147,
+   "slope_per_decade": 0.6422,
+   "significant": true
+  },
+  {
+   "start_year": 1981,
+   "end_year": 2022,
+   "p": 0.0024,
+   "slope_per_decade": 0.4472,
+   "significant": true
+  },
+  {
+   "start_year": 1984,
+   "end_year": 2022,
+   "p": 0.00103,
+   "slope_per_decade": 0.578,
+   "significant": true
+  }
+ ],
+ "robustness_summary": {
+  "significant": 5,
+  "total": 5
+ },
+ "witness": {
+  "station": {
+   "id": "UPM00033345",
+   "name": "Kyiv",
+   "lat": 50.4,
+   "lon": 30.5331,
+   "distance_km": 6.0
+  },
+  "series": [
+   {
+    "year": 1981,
+    "value": 8.41
+   },
+   {
+    "year": 1982,
+    "value": 8.46
+   },
+   {
+    "year": 1983,
+    "value": 9.12
+   },
+   {
+    "year": 1984,
+    "value": 7.65
+   },
+   {
+    "year": 1985,
+    "value": 6.19
+   },
+   {
+    "year": 1986,
+    "value": 7.66
+   },
+   {
+    "year": 1987,
+    "value": 5.84
+   },
+   {
+    "year": 1988,
+    "value": 7.58
+   },
+   {
+    "year": 1989,
+    "value": 9.62
+   },
+   {
+    "year": 1990,
+    "value": 9.24
+   },
+   {
+    "year": 1991,
+    "value": 8.05
+   },
+   {
+    "year": 1992,
+    "value": 8.41
+   },
+   {
+    "year": 1993,
+    "value": 7.25
+   },
+   {
+    "year": 1994,
+    "value": 8.32
+   },
+   {
+    "year": 1995,
+    "value": 8.49
+   },
+   {
+    "year": 1996,
+    "value": 7.32
+   },
+   {
+    "year": 1997,
+    "value": 7.61
+   },
+   {
+    "year": 1998,
+    "value": 8.1
+   },
+   {
+    "year": 1999,
+    "value": 9.35
+   },
+   {
+    "year": 2000,
+    "value": 9.24
+   },
+   {
+    "year": 2001,
+    "value": 8.74
+   },
+   {
+    "year": 2002,
+    "value": 9.32
+   },
+   {
+    "year": 2003,
+    "value": 8.21
+   },
+   {
+    "year": 2004,
+    "value": 8.68
+   },
+   {
+    "year": 2005,
+    "value": 8.71
+   },
+   {
+    "year": 2006,
+    "value": 7.62
+   },
+   {
+    "year": 2007,
+    "value": null
+   },
+   {
+    "year": 2008,
+    "value": null
+   },
+   {
+    "year": 2009,
+    "value": null
+   },
+   {
+    "year": 2010,
+    "value": 9.34
+   },
+   {
+    "year": 2011,
+    "value": 9.03
+   },
+   {
+    "year": 2012,
+    "value": 8.64
+   },
+   {
+    "year": 2013,
+    "value": 9.13
+   },
+   {
+    "year": 2014,
+    "value": 8.98
+   },
+   {
+    "year": 2015,
+    "value": 10.05
+   },
+   {
+    "year": 2016,
+    "value": 9.2
+   },
+   {
+    "year": 2017,
+    "value": 9.43
+   },
+   {
+    "year": 2018,
+    "value": 9.23
+   },
+   {
+    "year": 2019,
+    "value": 10.26
+   },
+   {
+    "year": 2020,
+    "value": 10.56
+   },
+   {
+    "year": 2021,
+    "value": 8.82
+   },
+   {
+    "year": 2022,
+    "value": null
+   },
+   {
+    "year": 2023,
+    "value": 10.74
+   },
+   {
+    "year": 2024,
+    "value": 11.29
+   },
+   {
+    "year": 2025,
+    "value": null
+   }
+  ],
+  "coverage": 0.889,
+  "method_note": "Monthly means computed from daily GHCN-Daily records (≥25 days per month)",
+  "sen": {
+   "slope_per_decade": 0.5391,
+   "ci_low": 0.3264,
+   "ci_high": 0.8198
+  },
+  "mk": {
+   "p": 0.000916
+  },
+  "agreement": "agree",
+  "rates": {
+   "common_years": 40,
+   "main_slope_per_decade": 0.5326,
+   "witness_slope_per_decade": 0.5391,
+   "difference_per_decade": 0.066,
+   "ci_low": -0.0139,
+   "ci_high": 0.163,
+   "p": 0.304,
+   "consistent": true
+  }
+ },
+ "verdict": "refuted",
+ "reason": "opposite_trend",
+ "years_to_wait": null,
+ "steps": [
+  {
+   "id": "raw",
+   "title": "Monthly data",
+   "value": "540 months",
+   "detail": "Monthly air temperature for Київ from NASA POWER, 1981–2025."
+  },
+  {
+   "id": "season",
+   "title": "Pick the season",
+   "value": "the whole year",
+   "detail": "Only the months the claim is about are kept (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)."
+  },
+  {
+   "id": "yearly",
+   "title": "One value per year",
+   "value": "45 years",
+   "detail": "The months of each year are averaged into one number."
+  },
+  {
+   "id": "trend",
+   "title": "Overall direction",
+   "value": "+0.54 °C per 10 years",
+   "detail": "The typical change over time, robust to single extreme years (Sen's slope)."
+  },
+  {
+   "id": "random_check",
+   "title": "Could it be chance?",
+   "value": "p < 0.001",
+   "detail": "Very unlikely to appear by chance if nothing were changing."
+  },
+  {
+   "id": "robustness",
+   "title": "Does the choice of years matter?",
+   "value": "5 of 5 periods agree",
+   "detail": "We repeat the check with the start and end shifted by a few years."
+  },
+  {
+   "id": "witness",
+   "title": "Ground station check",
+   "value": "Station agrees",
+   "detail": "Kyiv weather station, 6 km away. It changes at about the same pace as the satellite-model data."
+  },
+  {
+   "id": "verdict",
+   "title": "Verdict",
+   "value": "Refuted",
+   "detail": "A clear, robust trend in the opposite direction."
+  }
+ ],
+ "detection": {
+  "residual_sd": 0.8243,
+  "phi": 0.2268,
+  "slope_per_year": 0.05431,
+  "n_years": 45,
+  "multipliers": [
+   0.5,
+   0.75,
+   1.0,
+   1.5,
+   2.0
+  ],
+  "years_needed": [
+   55.0,
+   41.0,
+   35.0,
+   28.0,
+   23.0
+  ]
+ },
+ "extrapolation": {
+  "note": "What-if line, not a forecast: it only shows where the trend would go at this pace. For physically based futures see the climate-model scenarios.",
+  "from_year": 2025,
+  "from_value": 9.08,
+  "years": [
+   2025,
+   2026,
+   2027,
+   2028,
+   2029,
+   2030,
+   2031,
+   2032,
+   2033,
+   2034,
+   2035,
+   2036,
+   2037,
+   2038,
+   2039,
+   2040,
+   2041,
+   2042,
+   2043,
+   2044,
+   2045,
+   2046,
+   2047,
+   2048,
+   2049,
+   2050
+  ],
+  "paths": [
+   {
+    "id": "stop",
+    "label": "The change stops",
+    "multiplier": 0.0,
+    "central": [
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08
+    ],
+    "low": [
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08
+    ],
+    "high": [
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08,
+     9.08
+    ]
+   },
+   {
+    "id": "slower",
+    "label": "Half as fast",
+    "multiplier": 0.5,
+    "central": [
+     9.08,
+     9.1,
+     9.13,
+     9.16,
+     9.18,
+     9.21,
+     9.24,
+     9.27,
+     9.29,
+     9.32,
+     9.35,
+     9.37,
+     9.4,
+     9.43,
+     9.46,
+     9.48,
+     9.51,
+     9.54,
+     9.56,
+     9.59,
+     9.62,
+     9.65,
+     9.67,
+     9.7,
+     9.73,
+     9.75
+    ],
+    "low": [
+     9.08,
+     9.09,
+     9.11,
+     9.12,
+     9.14,
+     9.15,
+     9.17,
+     9.19,
+     9.2,
+     9.22,
+     9.23,
+     9.25,
+     9.27,
+     9.28,
+     9.3,
+     9.31,
+     9.33,
+     9.34,
+     9.36,
+     9.38,
+     9.39,
+     9.41,
+     9.42,
+     9.44,
+     9.46,
+     9.47
+    ],
+    "high": [
+     9.08,
+     9.11,
+     9.15,
+     9.19,
+     9.23,
+     9.26,
+     9.3,
+     9.34,
+     9.38,
+     9.41,
+     9.45,
+     9.49,
+     9.53,
+     9.56,
+     9.6,
+     9.64,
+     9.67,
+     9.71,
+     9.75,
+     9.79,
+     9.82,
+     9.86,
+     9.9,
+     9.94,
+     9.97,
+     10.01
+    ]
+   },
+   {
+    "id": "same",
+    "label": "Same pace as 1981–2025",
+    "multiplier": 1.0,
+    "central": [
+     9.08,
+     9.13,
+     9.18,
+     9.24,
+     9.29,
+     9.35,
+     9.4,
+     9.46,
+     9.51,
+     9.56,
+     9.62,
+     9.67,
+     9.73,
+     9.78,
+     9.84,
+     9.89,
+     9.94,
+     10.0,
+     10.05,
+     10.11,
+     10.16,
+     10.22,
+     10.27,
+     10.32,
+     10.38,
+     10.43
+    ],
+    "low": [
+     9.08,
+     9.11,
+     9.14,
+     9.17,
+     9.2,
+     9.23,
+     9.27,
+     9.3,
+     9.33,
+     9.36,
+     9.39,
+     9.42,
+     9.46,
+     9.49,
+     9.52,
+     9.55,
+     9.58,
+     9.61,
+     9.64,
+     9.68,
+     9.71,
+     9.74,
+     9.77,
+     9.8,
+     9.83,
+     9.87
+    ],
+    "high": [
+     9.08,
+     9.15,
+     9.23,
+     9.3,
+     9.38,
+     9.45,
+     9.53,
+     9.6,
+     9.67,
+     9.75,
+     9.82,
+     9.9,
+     9.97,
+     10.05,
+     10.12,
+     10.2,
+     10.27,
+     10.35,
+     10.42,
+     10.5,
+     10.57,
+     10.65,
+     10.72,
+     10.8,
+     10.87,
+     10.95
+    ]
+   },
+   {
+    "id": "faster",
+    "label": "1.5× faster",
+    "multiplier": 1.5,
+    "central": [
+     9.08,
+     9.16,
+     9.24,
+     9.32,
+     9.4,
+     9.48,
+     9.56,
+     9.65,
+     9.73,
+     9.81,
+     9.89,
+     9.97,
+     10.05,
+     10.13,
+     10.22,
+     10.3,
+     10.38,
+     10.46,
+     10.54,
+     10.62,
+     10.71,
+     10.79,
+     10.87,
+     10.95,
+     11.03,
+     11.11
+    ],
+    "low": [
+     9.08,
+     9.12,
+     9.17,
+     9.22,
+     9.27,
+     9.31,
+     9.36,
+     9.41,
+     9.46,
+     9.5,
+     9.55,
+     9.6,
+     9.64,
+     9.69,
+     9.74,
+     9.79,
+     9.83,
+     9.88,
+     9.93,
+     9.98,
+     10.02,
+     10.07,
+     10.12,
+     10.17,
+     10.21,
+     10.26
+    ],
+    "high": [
+     9.08,
+     9.19,
+     9.3,
+     9.41,
+     9.53,
+     9.64,
+     9.75,
+     9.86,
+     9.97,
+     10.09,
+     10.2,
+     10.31,
+     10.42,
+     10.54,
+     10.65,
+     10.76,
+     10.87,
+     10.99,
+     11.1,
+     11.21,
+     11.32,
+     11.43,
+     11.55,
+     11.66,
+     11.77,
+     11.88
+    ]
+   }
+  ]
+ },
+ "scenarios": {
+  "synthetic": false,
+  "source": "NASA NEX-GDDP-CMIP6 (5-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR)",
+  "baseline_period": "1995-2014",
+  "baseline_value": 7.68,
+  "note": "These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
+  "paths": [
+   {
+    "id": "ssp126",
+    "label": "The world cuts emissions fast",
+    "years": [
+     2030,
+     2050,
+     2070,
+     2100
+    ],
+    "median": [
+     0.86,
+     1.75,
+     1.98,
+     1.72
+    ],
+    "low": [
+     0.7,
+     1.19,
+     1.11,
+     0.74
+    ],
+    "high": [
+     1.51,
+     2.58,
+     2.58,
+     2.58
+    ]
+   },
+   {
+    "id": "ssp245",
+    "label": "Roughly as now",
+    "years": [
+     2030,
+     2050,
+     2070,
+     2100
+    ],
+    "median": [
+     1.26,
+     1.72,
+     2.11,
+     3.44
+    ],
+    "low": [
+     1.15,
+     1.4,
+     1.76,
+     2.11
+    ],
+    "high": [
+     1.5,
+     2.73,
+     3.44,
+     4.03
+    ]
+   },
+   {
+    "id": "ssp585",
+    "label": "Emissions keep growing",
+    "years": [
+     2030,
+     2050,
+     2070,
+     2100
+    ],
+    "median": [
+     0.8,
+     2.71,
+     4.13,
+     5.35
+    ],
+    "low": [
+     0.6,
+     1.79,
+     2.96,
+     4.61
+    ],
+    "high": [
+     1.57,
+     3.29,
+     4.93,
+     7.99
+    ]
+   }
+  ]
+ },
+ "provenance": [
+  {
+   "what": "Air temperature",
+   "source": "NASA POWER",
+   "product": "T2M (MERRA-2)",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M&community=AG&latitude=50.45&longitude=30.52&start=1981&end=2025&format=JSON",
+   "retrieved_at": "2026-11-14",
+   "license": "Public domain (NASA)"
+  },
+  {
+   "what": "Air temperature at weather station",
+   "source": "NOAA NCEI",
+   "product": "GHCN-Daily → monthly",
+   "url": "https://www.ncei.noaa.gov/access/services/data/v1?dataset=daily-summaries&stations=UPM00033345&dataTypes=TAVG&units=metric&format=json",
+   "retrieved_at": "2026-11-14",
+   "license": "Public domain (NOAA)"
+  },
+  {
+   "what": "Future scenarios",
+   "source": "NASA NCCS",
+   "product": "NEX-GDDP-CMIP6 v2.0, 5 models, r1i1p1f1",
+   "url": "https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
+   "retrieved_at": "2026-11-14",
+   "license": "CC BY 4.0 (NASA NEX-GDDP-CMIP6)"
+  }
+ ],
+ "meta": {
+  "stub": true,
+  "stats_engine": "backend.app.stats v2",
+  "generated_at": "2026-11-14T17:45:43Z"
+ }
+}

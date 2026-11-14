@@ -6,4 +6,7 @@ data/*
 /env
 __pycache__/
 .DS_Store
+node_modules/
+frontend/dist/
+frontend/test-results/
 .venv/

@@ -12,7 +12,7 @@ from app.stats.robustness import assess_robustness
 from app.stats.seasonal import seasonal_series
 from app.stats.trend import analyze_trend, mann_kendall, ols_effective, sen_slope
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 def test_sen_recovers_known_slope_within_ci():
@@ -63,7 +63,8 @@ def test_gaps_preserve_actual_year_slope_and_lag_acf():
 
 
 def test_kharkiv_jja_precip_regression_no_nan():
-    kharkiv = json.loads((ROOT / "data" / "kharkiv.json").read_text())
+    # Keep the regression reproducible in a clean checkout, without a local data cache.
+    kharkiv = json.loads((FIXTURES / "kharkiv-precip-monthly.json").read_text(encoding="utf-8"))
     years, vals = seasonal_series(
         kharkiv["power"]["series"]["PRECTOTCORR"], "JJA", "sum", 1981, 2025, per_day=True
     )

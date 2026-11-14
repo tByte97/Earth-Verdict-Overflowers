@@ -13,6 +13,7 @@ from typing import Optional, Sequence
 
 from .catalog import VariableDef, get_variable
 from .models import CaseSpec, CheckResult
+from .scenarios import nearby_scenarios
 from .stats import build_extrapolation, months_for_season, seasonal_series
 from .stats.witness import compare_rates
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
@@ -31,7 +32,23 @@ METHOD_NOTES = {
     "ghcnd-daily-sum": "Monthly totals computed from complete months of daily GHCN-Daily records",
 }
 
-SOURCE_LABEL = {"power": "NASA POWER", "giovanni": "NASA Giovanni"}
+SOURCE_LABEL = {"power": "NASA POWER", "giovanni": "NASA Giovanni", "cag": "NOAA Climate at a Glance"}
+
+# Regions for global_temp: place_id "region:<key>". A normal place means the whole planet.
+REGIONS = {"globe": ("The whole planet", 0.0, 0.0), "europe": ("Europe", 50.0, 15.0),
+           "asia": ("Asia", 45.0, 90.0), "africa": ("Africa", 5.0, 20.0),
+           "northamerica": ("North America", 45.0, -100.0), "southamerica": ("South America", -15.0, -60.0),
+           "oceania": ("Oceania", -25.0, 135.0), "arctic": ("The Arctic", 80.0, 0.0)}
+
+
+def region_key(place) -> str:
+    pid = place.place_id.lower()
+    key = pid.split(":", 1)[1] if pid.startswith("region:") else "globe"
+    return key if key in REGIONS else "globe"
+
+
+def region_name(place) -> str:
+    return REGIONS[region_key(place)][0]
 
 
 class CheckError(Exception):
@@ -49,6 +66,9 @@ class MainSeries:
     start: str                      # "YYYY-MM" of monthly[0]
     url: str
     retrieved_at: str
+    # Sources that already give one value per year and season (Climate at a Glance) set this
+    # instead of `monthly`: {year: value}.
+    yearly: Optional[dict[int, Optional[float]]] = None
 
 
 @dataclass(frozen=True)
@@ -133,9 +153,13 @@ def assemble_result(
     end = spec.end_year
     d, u = var.decimals, var.units
 
-    y0, m0 = _ym(main_series.start)
-    years, vals = seasonal_series(main_series.monthly, season, var.agg, start, end,
-                                  per_day=var.per_day, data_start_year=y0, data_start_month=m0)
+    if main_series.yearly is not None:
+        years = list(range(start, end + 1))
+        vals = [main_series.yearly.get(y) for y in years]
+    else:
+        y0, m0 = _ym(main_series.start)
+        years, vals = seasonal_series(main_series.monthly, season, var.agg, start, end,
+                                      per_day=var.per_day, data_start_year=y0, data_start_month=m0)
 
     wy = wv = None
     if station is not None:
@@ -185,9 +209,15 @@ def assemble_result(
     season_months = months_for_season(season)
     season_value = SEASON_LABEL[season] if isinstance(season, str) else calendar.month_name[season_months[0]]
     src = SOURCE_LABEL[var.source_kind]
+    if main_series.yearly is not None:
+        raw_step = dict(id="raw", title="Yearly data", value=f"{end - start + 1} years",
+                        detail=f"{var.label} for {region_name(spec.place)} from {src}, {start}–{end}, "
+                               f"as the difference from the 1901–2000 average.")
+    else:
+        raw_step = dict(id="raw", title="Monthly data", value=f"{(end - start + 1) * 12} months",
+                        detail=f"Monthly {var.label.lower()} for {spec.place.name} from {src}, {start}–{end}.")
     steps = [
-        dict(id="raw", title="Monthly data", value=f"{(end - start + 1) * 12} months",
-             detail=f"Monthly {var.label.lower()} for {spec.place.name} from {src}, {start}–{end}."),
+        raw_step,
         dict(id="season", title="Pick the season", value=season_value,
              detail=f"Only the months the claim is about are kept "
                     f"({', '.join(calendar.month_abbr[m] for m in season_months)})."),
@@ -217,7 +247,7 @@ def assemble_result(
 
     prov = [dict(what=var.label, source=src, product=var.product, url=main_series.url,
                  retrieved_at=main_series.retrieved_at,
-                 license="Public domain (NASA)")]
+                 license="Public domain (NOAA)" if var.source_kind == "cag" else "Public domain (NASA)")]
     if witness and station is not None:
         prov.append(dict(what=f"{var.label} at weather station", source="NOAA NCEI",
                          product="Global Summary of the Month" if station.method == "gsom" else "GHCN-Daily → monthly",
@@ -290,6 +320,15 @@ def fetch_station(var: VariableDef, lat: float, lon: float, start: int, end: int
                         monthly=st.monthly, start=st.start, method=st.method, url=st.url, retrieved_at=_now())
 
 
+def fetch_cag_series(var: VariableDef, place, season) -> MainSeries:
+    """Yearly land+ocean anomalies for a region (or the planet) from NOAA Climate at a Glance."""
+    from .sources import cag
+
+    c = cag.fetch_cag(region_key(place), season)
+    return MainSeries(monthly=[], start="1850-01", url=c["url"], retrieved_at=_now(),
+                      yearly=dict(zip(c["years"], c["anomaly"])))
+
+
 def run_check(spec: CaseSpec) -> CheckResult:
     from .sources import SourceUnavailable
 
@@ -297,11 +336,15 @@ def run_check(spec: CaseSpec) -> CheckResult:
     start = effective_start(spec.start_year, spec.season, var)
     lat, lon = spec.place.lat, spec.place.lon
     try:
-        main_series = fetch_main_series(var, lat, lon, start, spec.end_year)
+        if var.source_kind == "cag":
+            main_series = fetch_cag_series(var, spec.place, spec.season)
+        else:
+            main_series = fetch_main_series(var, lat, lon, start, spec.end_year)
     except SourceUnavailable as e:
         raise CheckError("source_unavailable", f"{SOURCE_LABEL[var.source_kind]} did not respond: {e.message}")
     try:
         station = fetch_station(var, lat, lon, start, spec.end_year)
     except SourceUnavailable:
         station = None  # the witness is optional; the verdict says "no station"
-    return assemble_result(spec, var, main_series, station)
+    scen = nearby_scenarios(spec.variable_id, spec.season, lat, lon)
+    return assemble_result(spec, var, main_series, station, scenarios=scen)

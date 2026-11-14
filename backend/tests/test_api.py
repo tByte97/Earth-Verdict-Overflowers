@@ -149,3 +149,54 @@ def test_grid_layer():
 
 def test_places_short_query_is_empty():
     assert client.get("/api/places", params={"q": "K"}).json() == []
+
+
+def test_live_check_reuses_nearby_cmip6(fake_sources):
+    r = client.post("/api/check", json=spec())
+    sc = r.json()["scenarios"]
+    assert sc is not None and sc["synthetic"] is False
+    assert [p["id"] for p in sc["paths"]] == ["ssp126", "ssp245", "ssp585"]
+    assert sc["baseline_value"] is not None
+    assert any(p["source"] == "NASA NCCS" for p in r.json()["provenance"])
+
+
+def test_no_scenarios_far_away_or_for_other_variables(fake_sources):
+    far = dict(KYIV, place_id="x", name="Somewhere", lat=10.0, lon=10.0)
+    assert client.post("/api/check", json=spec(place=far)).json()["scenarios"] is None
+    assert client.post("/api/check", json=spec(variable_id="snow_depth", season="DJF")).json()["scenarios"] is None
+
+
+def test_global_temp_uses_yearly_cag(monkeypatch):
+    from app.sources import cag
+
+    years = list(range(1850, 2026))
+    rng = np.random.default_rng(3)
+    anomaly = [round(0.008 * (y - 1850) - 0.3 + rng.normal(0, 0.1), 2) for y in years]
+    seen = {}
+
+    def fake(region, season):
+        seen["args"] = (region, season)
+        return {"years": years, "anomaly": anomaly, "base_period": "1901-2000", "units": "°C", "url": "https://cag.example"}
+
+    monkeypatch.setattr(cag, "fetch_cag", fake)
+    europe = {"place_id": "region:europe", "name": "Europe", "lat": 50.0, "lon": 15.0}
+    r = client.post("/api/check", json=spec(variable_id="global_temp", place=europe, season="year",
+                                            claim_text="Europe is getting warmer"))
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert seen["args"] == ("europe", "year")
+    assert body["verdict"] == "confirmed" and body["witness"] is None and body["scenarios"] is None
+    assert body["steps"][0]["title"] == "Yearly data" and len(body["series"]) == 45
+    assert body["provenance"][0]["source"] == "NOAA Climate at a Glance"
+
+    r2 = client.post("/api/check", json=spec(variable_id="global_temp", season="JJA"))   # a city -> the planet
+    assert r2.status_code == 200 and seen["args"] == ("globe", "JJA")
+
+
+def test_places_offers_regions(monkeypatch):
+    from app.sources import geocode
+
+    monkeypatch.setattr(geocode, "search_places", lambda q, **k: [])
+    names = [p["place_id"] for p in client.get("/api/places", params={"q": "Euro"}).json()]
+    assert names[0] == "region:europe"
+    assert client.get("/api/places", params={"q": "world"}).json()[0]["place_id"] == "region:globe"

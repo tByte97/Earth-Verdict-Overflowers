@@ -16,10 +16,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
-sys.path.insert(0, str(ROOT / "tools"))
 from app.catalog import get_variable  # noqa: E402
-from app.check import MainSeries, StationInput, assemble_result  # noqa: E402
+from app.check import MainSeries, StationInput, assemble_result, run_check  # noqa: E402
 from app.models import CaseSpec  # noqa: E402
+from app.scenarios import scenarios_for_point  # noqa: E402
 
 DATA = ROOT / "data"
 CASES = DATA / "cases"
@@ -66,17 +66,8 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
 # ---------- сценарії: NASA NEX-GDDP-CMIP6 (#14) ----------
 
 def cmip6_scenarios(city_key, variable_id, season):
-    """Ансамбль CMIP6 з data/cmip6/<місто>.json (tools/fetch_cmip6.py); базу 1995–2014 бере assemble_result зі спостережень."""
-    from cmip6_to_scenarios import load_cmip6_scenarios
-
-    sc = load_cmip6_scenarios(city_key, variable_id=variable_id, season=season)
-    sc.pop("baseline_value", None)
-    meta = json.loads((DATA / "cmip6" / f"{city_key}.json").read_text())
-    sc["provenance"] = [dict(
-        what="Future scenarios", source="NASA NCCS", product=f"NEX-GDDP-CMIP6 v2.0, {len(meta['models'])} models, r1i1p1f1",
-        url="https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
-        retrieved_at=meta.get("retrieved", "2026-11-14"), license="CC BY 4.0 (NASA NEX-GDDP-CMIP6)")]
-    return sc
+    """Ансамбль CMIP6 з data/cmip6/<місто>.json; базу 1995–2014 бере assemble_result зі спостережень."""
+    return scenarios_for_point(city_key, variable_id, season)
 
 
 SHOWCASE = [
@@ -84,6 +75,14 @@ SHOWCASE = [
     ("kyiv-summer-heat", "kyiv", "air_temp", "JJA", "increase", "Summers in Kyiv are getting hotter", True),
     ("lviv-drier", "lviv", "precip", "year", "decrease", "Lviv is getting drier, it rains less every year", None),
     ("kyiv-winter-snow", "kyiv", "snow_depth", "DJF", "increase", "Kyiv winters have more snow now", None),
+    ("kyiv-colder", "kyiv", "air_temp", "year", "decrease", "Kyiv is actually getting colder", True),
+    ("kyiv-summer-rain", "kyiv", "precip", "JJA", "increase", "Kyiv summers are getting rainier", True),
+]
+
+# Справи для регіонів (global_temp, NOAA Climate at a Glance) — річні аномалії, рахує app.check.run_check
+REGION_SHOWCASE = [
+    ("global-warming-stopped", "globe", "The whole planet", "year", 1998, "decrease",
+     "Global warming stopped after 1998"),
 ]
 
 CANDIDATES = [(c, v, s, dr) for c in ("kyiv", "lviv", "odesa", "kharkiv", "warsaw")
@@ -111,6 +110,14 @@ def main():
         (CASES / f"{fname}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
         if i == 0:
             (CASES / "mock.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
+        print(f"{fname}: {r['verdict']} ({r['reason']}), {r['sen']['slope_per_decade']:+.3f} {r['variable']['units']}/10 р.")
+    for fname, region, name, s, start, dr, claim in REGION_SHOWCASE:
+        spec = CaseSpec(claim_text=claim, variable_id="global_temp",
+                        place=dict(place_id=f"region:{region}", name=name, lat=0.0, lon=0.0),
+                        season=s, start_year=start, end_year=2025, claim_direction=dr)
+        res = run_check(spec)
+        r = res.model_copy(update={"meta": res.meta.model_copy(update={"stub": True})}).model_dump(mode="json")
+        (CASES / f"{fname}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
         print(f"{fname}: {r['verdict']} ({r['reason']}), {r['sen']['slope_per_decade']:+.3f} {r['variable']['units']}/10 р.")
 
 
