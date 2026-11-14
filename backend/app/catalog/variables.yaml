@@ -1,0 +1,117 @@
+# Whitelist of variables a claim can be checked against.
+# The LLM and the manual form can only choose ids from this list.
+#
+# source.kind:  power    -> NASA POWER monthly point, source.param
+#               giovanni -> NASA Giovanni time series, source.param = key in sources.giovanni.GIOVANNI_VARS
+# agg:          mean | sum       how months of a season become one value per year
+# per_day:      true when monthly values are daily rates (mm/day) and `sum` must multiply by days in month
+# witness:      NOAA station element used as an independent ground check, or null
+# years:        first and last year the source covers in full
+
+air_temp:
+  label: Air temperature
+  units: "°C"
+  decimals: 2
+  agg: mean
+  per_day: false
+  source: {kind: power, param: T2M, product: "T2M (MERRA-2)"}
+  witness: TAVG
+  years: [1981, 2025]
+  definition: How warm the air is about 2 m above the ground.
+  caveat: "Reanalysis: a weather model steered by observations, not a single thermometer."
+
+air_temp_max:
+  label: Daytime high temperature
+  units: "°C"
+  decimals: 2
+  agg: mean
+  per_day: false
+  source: {kind: power, param: T2M_MAX, product: "T2M_MAX (MERRA-2)"}
+  witness: TMAX
+  years: [1981, 2025]
+  definition: The warmest air temperature of the day, averaged over the season.
+  caveat: "Reanalysis: a weather model steered by observations, not a single thermometer."
+
+air_temp_min:
+  label: Night-time low temperature
+  units: "°C"
+  decimals: 2
+  agg: mean
+  per_day: false
+  source: {kind: power, param: T2M_MIN, product: "T2M_MIN (MERRA-2)"}
+  witness: TMIN
+  years: [1981, 2025]
+  definition: The coldest air temperature of the day, usually at night, averaged over the season.
+  caveat: "Reanalysis: a weather model steered by observations, not a single thermometer."
+
+precip:
+  label: Precipitation
+  units: mm
+  decimals: 1
+  agg: sum
+  per_day: true
+  source: {kind: power, param: PRECTOTCORR, product: "PRECTOTCORR (MERRA-2, bias-corrected)"}
+  witness: PRCP
+  years: [1981, 2025]
+  definition: How much rain and melted snow falls in total.
+  caveat: Bias-corrected reanalysis; local showers can be missed.
+
+snow_depth:
+  label: Snow depth
+  units: cm
+  decimals: 1
+  agg: mean
+  per_day: false
+  source: {kind: power, param: SNODP, product: "SNODP (MERRA-2)"}
+  witness: null
+  years: [1981, 2025]
+  definition: How thick the snow layer on the ground is, on average.
+  caveat: Modelled snow, not measured on site.
+
+soil_moisture:
+  label: Soil moisture (root zone)
+  units: "0–1"
+  decimals: 3
+  agg: mean
+  per_day: false
+  source: {kind: power, param: GWETROOT, product: "GWETROOT (MERRA-2)"}
+  witness: null
+  years: [1981, 2025]
+  definition: How wet the soil is where plant roots grow, from 0 (completely dry) to 1 (saturated).
+  caveat: Modelled from weather data, not measured in the field.
+
+sunlight:
+  label: Sunlight at the surface
+  units: "MJ/m²/day"
+  decimals: 2
+  agg: mean
+  per_day: false
+  source: {kind: power, param: ALLSKY_SFC_SW_DWN, product: "ALLSKY_SFC_SW_DWN (CERES / GEWEX SRB)"}
+  witness: null
+  years: [1984, 2025]
+  definition: How much solar energy reaches the ground on an average day, clouds included.
+  caveat: Satellite estimate; available from 1984.
+
+precip_gpm:
+  label: Precipitation (GPM satellites)
+  units: mm
+  decimals: 1
+  agg: sum
+  per_day: true
+  source: {kind: giovanni, param: precip_gpm, product: "GPM_3IMERGM v07 (IMERG Final, 0.1°)"}
+  witness: PRCP
+  years: [1998, 2024]
+  definition: Rain and snow measured by a fleet of satellites and calibrated with rain gauges.
+  caveat: Satellite estimate on a 10 km grid; light drizzle and snow are harder to see.
+
+evapotranspiration:
+  label: Evaporation from land
+  units: mm
+  decimals: 1
+  agg: sum
+  per_day: true
+  source: {kind: giovanni, param: evap_gldas, product: "GLDAS_NOAH025_M 2.1 (0.25°)"}
+  witness: null
+  years: [2000, 2025]
+  definition: Water that goes back into the air from soil, rivers and plants.
+  caveat: Land-surface model driven by observations, not a direct measurement.
