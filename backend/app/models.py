@@ -235,3 +235,121 @@ class ErrorBody(Strict):
 
 class ErrorResponse(Strict):
     error: ErrorBody
+
+
+# ---------- Pollutant Event Impact & CO2 Physics ----------
+
+class Compound(Strict):
+    id: str
+    label: str
+    units: str
+    definition: str
+    caveat: Optional[str] = None
+    product: str
+    first_year: int
+    last_year: int
+    local_signal: bool
+
+
+class MonthValue(Strict):
+    month: str
+    value: Optional[float]
+
+
+class EventSpec(Strict):
+    compound_id: str
+    place: Place
+    event_month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    event_label: str
+    window_years: int = Field(default=3, ge=1, le=5)
+    use_control: bool = True
+
+
+class WindowSummary(Strict):
+    start: str
+    end: str
+    mean: Optional[float]
+    n: int
+
+
+class PlaceboCheck(Strict):
+    event_month: str
+    effect: float
+    p: float
+
+
+class EventSen(Strict):
+    slope_per_year: float
+    ci_low: float
+    ci_high: float
+
+
+class EventStep(Strict):
+    id: Literal["data", "seasons", "control", "before_after", "chance", "placebo", "verdict"]
+    title: str
+    value: str
+    detail: str
+
+
+class EventResult(Strict):
+    spec: EventSpec
+    compound: Compound
+    site: list[MonthValue]
+    control: Optional[list[MonthValue]]
+    before: WindowSummary
+    after: WindowSummary
+    effect: Optional[float]
+    ci_low: Optional[float]
+    ci_high: Optional[float]
+    bootstrap_ci_low: Optional[float]
+    bootstrap_ci_high: Optional[float]
+    p: Optional[float]
+    relative_change: Optional[float]
+    placebo: list[PlaceboCheck]
+    placebo_larger: int
+    verdict: Literal["clear_change", "not_proven"]
+    direction: Literal["increase", "decrease", "none"]
+    reason: Literal["clear_change", "not_significant", "placebo_also_changes", "too_short", "no_placebo"]
+    sen_before: Optional[EventSen]
+    sen_after: Optional[EventSen]
+    steps: list[EventStep]
+    provenance: list[Provenance]
+    meta: Meta
+
+
+class Co2ImpactSpec(Strict):
+    mt_co2_per_year: float = Field(gt=0)
+    years: float = Field(gt=0)
+    what_if_ppm: Optional[float] = Field(default=None, gt=0)
+    c0_ppm: float = Field(default=280.0, gt=0)
+    label: Optional[str] = None
+
+
+class Co2Range(Strict):
+    central: float
+    low: float
+    high: float
+
+
+class Co2GlobalSummary(Strict):
+    latest_month: str
+    latest_ppm: float
+    yoy_growth_ppm: Optional[float]
+    sen_slope_ppm_per_year: float
+    sen_ci_low: float
+    sen_ci_high: float
+    mk_p: float
+    series: list[MonthValue]
+
+
+class Co2ImpactResult(Strict):
+    spec: Co2ImpactSpec
+    total_emitted_gt: float
+    added_ppm: Co2Range
+    added_forcing_w_m2: Co2Range
+    transient_warming_c: Co2Range
+    what_if_forcing_w_m2: Optional[float] = None
+    what_if_warming_c: Optional[Co2Range] = None
+    global_co2: Co2GlobalSummary
+    explanation: str
+    provenance: list[Provenance]

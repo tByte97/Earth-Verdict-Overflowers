@@ -1,5 +1,6 @@
 data/*
 !data/cases/
+!data/events/
 !data/layers/
 !data/cmip6/
 /env

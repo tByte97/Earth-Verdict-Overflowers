@@ -31,6 +31,12 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 | POST | `/api/check` | Body `CaseSpec` → `CheckResult` (takes a few seconds on first call, then cached) |
 | GET | `/api/cases` | Showcase cases: id, claim, place, verdict |
 | GET | `/api/cases/{id}` | One showcase `CheckResult` (works offline) |
+| GET | `/api/compounds` | Whitelist of atmospheric compounds (`Compound[]`) |
+| POST | `/api/event` | Body `EventSpec` → BACI pollutant impact `EventResult` |
+| GET | `/api/events` | Showcase pollutant events: id, label, month, place, compound, verdict |
+| GET | `/api/events/{id}` | One showcase `EventResult` (works offline) |
+| POST | `/api/co2-impact` | Body `Co2ImpactSpec` → cumulative CO₂ forcing & warming `Co2ImpactResult` |
+| GET | `/api/co2/global` | Latest NOAA GML global monthly CO₂, YoY growth, and 1980+ Sen slope |
 | GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected) |
 
 Errors always look like `{"error": {"code": "...", "message": "..."}}` with codes

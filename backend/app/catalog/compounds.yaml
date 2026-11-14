@@ -1,0 +1,56 @@
+# Whitelist of atmospheric compounds verified live against NASA Giovanni /configured-variables/.
+# Note: MOD08_M3 / MYD08_M3 (MODIS AOD) and MOP03JM / AIRS CO are not exposed in Giovanni's
+# /timeseries API, so aerosol optical depth uses MERRA-2 TOTEXTTAU (which assimilates MODIS AOD)
+# and CO is omitted.
+
+no2:
+  label: "Nitrogen dioxide (NO₂)"
+  units: "10¹⁵ molecules/cm²"
+  decimals: 2
+  definition: "A short-lived gas released when cars, power plants, and factories burn fuel."
+  caveat: "Satellite column above the ground, not what you breathe; clouds and snow hide many days (months require ≥ 10 valid days)."
+  product: "OMNO2d v003 (Aura OMI, 0.25°)"
+  years: [2005, 2025]
+  giovanni_id: OMNO2d_003_ColumnAmountNO2TropCloudScreened
+  factor: 1.0e-15
+  min_valid_days: 10
+  local_signal: true
+
+so2:
+  label: "Sulfur dioxide (SO₂)"
+  units: "DU"
+  decimals: 3
+  definition: "A sharp-smelling gas given off when coal, heavy oil, or metal ores containing sulfur are burned or smelted."
+  caveat: "Satellite column above the ground, not what you breathe; noisy over clean areas and blocked by clouds or polar winter darkness."
+  product: "OMSO2e v003 (Aura OMI, 0.25°)"
+  years: [2005, 2025]
+  giovanni_id: OMSO2e_003_ColumnAmountSO2
+  factor: 1.0
+  min_valid_days: 5
+  local_signal: true
+
+aod:
+  label: "Aerosol optical depth (550 nm)"
+  units: "AOD"
+  decimals: 3
+  definition: "How much smoke, dust, and haze floating in the air blocks sunlight from reaching the ground."
+  caveat: "MERRA-2 aerosol reanalysis (0.5° × 0.625°) assimilating MODIS and AERONET; includes natural dust and wildfire smoke alongside local pollution."
+  product: "M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°)"
+  years: [2000, 2025]
+  giovanni_id: M2T1NXAER_5_12_4_TOTEXTTAU
+  factor: 1.0
+  min_valid_days: 10
+  local_signal: true
+
+co2:
+  label: "Carbon dioxide (XCO₂)"
+  units: "ppm"
+  decimals: 2
+  definition: "The main long-lived greenhouse gas that mixes around the globe and warms the planet for centuries."
+  caveat: "Mixes globally within weeks, so one plant cannot be isolated against nearby pixels; OCO-2 GEOS L3 runs through Feb 2022 (NOAA GML tracks current global CO₂)."
+  product: "OCO2_GEOS_L3CO2_DAY v10r (0.5° × 0.625°)"
+  years: [2015, 2021]
+  giovanni_id: OCO2_GEOS_L3CO2_DAY_10r_XCO2
+  factor: 1.0e6
+  min_valid_days: 10
+  local_signal: false
