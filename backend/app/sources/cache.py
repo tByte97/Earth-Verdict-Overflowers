@@ -72,16 +72,40 @@ def get_text(
     refresh: bool = False,
     validate: Callable[[str], Any] | None = None,
     timeout: float = 120,
+    max_age_s: float | None = None,
 ) -> str:
-    """Fetch URL text with file caching, offline support, and retries with backoff."""
+    """Fetch URL text with file caching, offline support, and retries with backoff.
+
+    With ``max_age_s``, a cached copy older than that is refetched; if the refetch fails, the
+    stale copy is returned instead of an error.
+    """
     full = build_url(url, params)
     path = cache_path(full, ext=ext)
+    stale = False
     if path.exists() and not refresh:
-        return path.read_text(encoding="utf-8")
+        stale = max_age_s is not None and time.time() - path.stat().st_mtime > max_age_s
+        if not stale or _is_offline():
+            return path.read_text(encoding="utf-8")
 
     src = source_name(url)
     if _is_offline():
         raise SourceUnavailable(src, "offline and not cached")
+    try:
+        return _fetch_and_store(full, path, src, headers, validate, timeout)
+    except SourceUnavailable:
+        if stale:
+            return path.read_text(encoding="utf-8")
+        raise
+
+
+def _fetch_and_store(
+    full: str,
+    path: Path,
+    src: str,
+    headers: dict | None,
+    validate: Callable[[str], Any] | None,
+    timeout: float,
+) -> str:
 
     last_err = "unknown error"
     req_headers = {**_UA, **(headers or {})}

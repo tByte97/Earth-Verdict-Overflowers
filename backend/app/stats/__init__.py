@@ -1,4 +1,20 @@
 """Pure-function climate trend statistics package for Earth Verdict."""
+from .co2 import (
+    ConcentrationImpact,
+    GlobalCo2Summary,
+    PlantContribution,
+    RangeEstimate,
+    plant_contribution,
+    summarize_global_co2,
+    what_if_concentration,
+)
+from .event import (
+    EventSenSlope,
+    EventStatsResult,
+    PlaceboResult,
+    WindowStats,
+    analyze_event,
+)
 from .extrapolation import build_extrapolation
 from .fdr import benjamini_hochberg, bh_adjusted_p, bh_fdr
 from .robustness import (
@@ -34,17 +50,26 @@ from .wait import (
 )
 
 __all__ = [
+    "ConcentrationImpact",
     "DEFAULT_MULTIPLIERS",
     "DetectionResult",
+    "EventSenSlope",
+    "EventStatsResult",
+    "GlobalCo2Summary",
     "MIN_WINDOW_YEARS",
     "MKResult",
     "OLSResult",
+    "PlaceboResult",
+    "PlantContribution",
+    "RangeEstimate",
     "RobustnessResult",
     "RobustnessWindowResult",
     "SEASON_LABELS",
     "SEASON_MONTHS",
     "SenResult",
     "TrendResult",
+    "WindowStats",
+    "analyze_event",
     "analyze_trend",
     "assess_robustness",
     "benjamini_hochberg",
@@ -56,9 +81,12 @@ __all__ = [
     "mann_kendall",
     "months_for_season",
     "ols_effective",
+    "plant_contribution",
     "season_label",
     "seasonal_series",
     "sen_slope",
     "shifted_windows",
+    "summarize_global_co2",
     "weatherhead_years_needed",
+    "what_if_concentration",
 ]

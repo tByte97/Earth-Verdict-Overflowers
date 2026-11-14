@@ -18,14 +18,35 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
-from .catalog import load_variables
+from .catalog import load_compounds, load_variables
 from .check import REGIONS, CheckError, run_check
-from .models import CaseSpec, CheckResult, ErrorResponse, Place, Variable
+from .llm import explain
+from .event import get_global_co2_summary, list_event_sites, run_co2_impact, run_event, run_event_profile
+from .models import (
+    CaseSpec,
+    ChatRequest,
+    ChatResponse,
+    CheckResult,
+    Co2GlobalSummary,
+    Co2ImpactResult,
+    Co2ImpactSpec,
+    Compound,
+    ErrorResponse,
+    EventProfile,
+    EventProfileSpec,
+    EventResult,
+    EventSite,
+    EventSpec,
+    Place,
+    Variable,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.environ.get("EV_DATA_DIR", ROOT / "data"))
 CASES_DIR = DATA_DIR / "cases"
+EVENTS_DIR = DATA_DIR / "events"
 LAYERS_DIR = DATA_DIR / "layers"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 
@@ -119,6 +140,89 @@ async def case(case_id: str):
                                                  "message": f"Unknown case '{case_id}'."}).model_dump(),
                             status_code=404)
     return JSONResponse(json.loads(path.read_text()))
+
+
+# ---------- pollutant event impact & CO2 physics ----------
+
+@app.get("/api/compounds", response_model=list[Compound])
+async def compounds():
+    return [c.public() for c in load_compounds().values()]
+
+
+@app.post("/api/event", response_model=EventResult,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def event(spec: EventSpec):
+    return await asyncio.to_thread(run_event, spec)
+
+
+@app.post("/api/event/profile", response_model=EventProfile,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def event_profile(spec: EventProfileSpec):
+    return await asyncio.to_thread(run_event_profile, spec)
+
+
+@app.get("/api/event-sites", response_model=list[EventSite])
+async def event_sites():
+    return list_event_sites(set(_event_index()))
+
+
+def _event_index() -> dict[str, Path]:
+    if not EVENTS_DIR.is_dir():
+        return {}
+    return {p.stem: p for p in sorted(EVENTS_DIR.glob("*.json")) if not p.stem.startswith("_")}
+
+
+@app.get("/api/events")
+async def events():
+    out = []
+    for eid, path in _event_index().items():
+        r = json.loads(path.read_text())
+        out.append({
+            "id": eid,
+            "event_label": r["spec"]["event_label"],
+            "event_month": r["spec"]["event_month"],
+            "place": r["spec"]["place"]["name"],
+            "compound_id": r["spec"]["compound_id"],
+            "verdict": r["verdict"],
+            "reason": r["reason"],
+            "effect": r["effect"],
+            "relative_change": r["relative_change"],
+        })
+    return out
+
+
+@app.get("/api/events/{event_id}", response_model=EventResult, responses={404: {"model": ErrorResponse}})
+async def event_detail(event_id: str):
+    path = _event_index().get(event_id)
+    if path is None:
+        return JSONResponse(ErrorResponse(error={"code": "bad_request",
+                                                 "message": f"Unknown event '{event_id}'."}).model_dump(),
+                            status_code=404)
+    return JSONResponse(json.loads(path.read_text()))
+
+
+@app.post("/api/co2-impact", response_model=Co2ImpactResult,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def co2_impact(spec: Co2ImpactSpec):
+    return await asyncio.to_thread(run_co2_impact, spec)
+
+
+@app.get("/api/co2/global", response_model=Co2GlobalSummary,
+         responses={503: {"model": ErrorResponse}})
+async def co2_global():
+    summary, _ = await asyncio.to_thread(get_global_co2_summary)
+    return summary
+
+
+# ---------- plain-language explanation / follow-up questions (Gemini) ----------
+
+@app.post("/api/chat", response_model=ChatResponse,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def chat(req: ChatRequest):
+    try:
+        return await asyncio.to_thread(explain, req.kind, req.result, req.question, req.lang)
+    except ValidationError as exc:
+        return error("bad_request", f"'result' is not a valid {req.kind} result: {exc.errors()[0]['msg']}.")
 
 
 # ---------- trend layers for the globe (precomputed, FDR-corrected) ----------

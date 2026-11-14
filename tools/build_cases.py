@@ -28,6 +28,10 @@ CASES = DATA / "cases"
 STATION_METHOD = {"gsom": "gsom", "ghcnd": "ghcnd-daily-mean"}
 
 
+# English names for the English UI and step texts (the city files keep the local names).
+CITY_NAMES_EN = {"kyiv": "Kyiv", "lviv": "Lviv", "odesa": "Odesa", "kharkiv": "Kharkiv", "warsaw": "Warsaw"}
+
+
 def load_city(key):
     return json.loads((DATA / f"{key}.json").read_text())
 
@@ -37,7 +41,8 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
     city = load_city(city_key)
     var = get_variable(variable_id)
     spec = CaseSpec(claim_text=claim, variable_id=variable_id,
-                    place=dict(place_id=f"city:{city_key}", name=city["name"], lat=city["lat"], lon=city["lon"]),
+                    place=dict(place_id=f"city:{city_key}", name=CITY_NAMES_EN.get(city_key, city["name"]),
+                               lat=city["lat"], lon=city["lon"]),
                     season=season, start_year=start, end_year=end, claim_direction=direction)
     m_start = city.get("months_start", "1981-01")
     lat, lon = city["lat"], city["lon"]
