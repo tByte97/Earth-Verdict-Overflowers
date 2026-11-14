@@ -17,13 +17,15 @@ function stripeColor(t: number, low: string, high: string) {
   return `rgb(${neutral.map((c, i) => Math.round(c + (end[i] - c) * Math.min(1, Math.abs(t)))).join(',')})`;
 }
 
-const baselineKinds = { normal_1991_2020: '1991–2020 normal', series_mean: 'average of the whole record' };
 
 // Colour is value − baseline.mean from the backend, on a diverging scale with zero in the middle.
 export function YearStripes({ result: r }: { result: CheckResult }) {
   const [low, high, lowLabel, highLabel] = ramps[r.variable.id] ?? ['#7a8fa6', '#b5643c', 'lower', 'higher'];
   const units = r.variable.units;
-  const { mean, period: basePeriod, kind } = r.baseline;
+  const { mean, period: basePeriod, kind, n_years } = r.baseline;
+  const baselineText = kind === 'normal_1991_2020'
+    ? `the ${basePeriod} normal: ${number(mean)} ${units}, the average of ${n_years} years`
+    : `the average of the whole record, ${basePeriod}: ${number(mean)} ${units} over ${n_years} years. The record does not cover enough of 1991–2020 for a normal`;
   const values = r.series.flatMap(point => point.value === null ? [] : [point.value]);
   const scale = Math.max(...values.map(value => Math.abs(value - mean))) || 1;
   const first = r.series[0]?.year, last = r.series.at(-1)?.year;
@@ -39,7 +41,7 @@ export function YearStripes({ result: r }: { result: CheckResult }) {
       <span>{lowLabel}</span>
       <span className="ramp" aria-hidden="true" style={{ background: `linear-gradient(90deg,${low},rgb(${neutral}),${high})` }} />
       <span>{highLabel}</span>
-      <span className="stripe-note">Colour is relative to the {basePeriod} average ({baselineKinds[kind]}): {number(mean)} {units} over {r.baseline.n_years} years. Grey means close to that average. Hover a stripe to see its year.</span>
+      <span className="stripe-note">Colour is relative to {baselineText}. Grey means close to that average. Hover a stripe to see its year.</span>
     </p>
   </figure>;
 }

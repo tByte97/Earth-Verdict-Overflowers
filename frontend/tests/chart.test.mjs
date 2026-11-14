@@ -66,7 +66,7 @@ test('legend and captions carry units, period, station, the 95% band and the bas
     const stripes = page.locator('.stripes > div');
     assert.equal(await stripes.count(), cases['kyiv-summer-heat'].series.length);
     assert.equal(await stripes.first().getAttribute('title'), '1981: 19.39 °C · 1991-2020 average: 20.35 °C');
-    assert.match(await page.locator('.stripe-legend').innerText(), /Colour is relative to the 1991-2020 average \(1991–2020 normal\): 20\.35 °C over 30 years\./);
+    assert.match(await page.locator('.stripe-legend').innerText(), /Colour is relative to the 1991-2020 normal: 20\.35 °C, the average of 30 years\./);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
