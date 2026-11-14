@@ -16,57 +16,14 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.event import run_co2_impact, run_event  # noqa: E402
-from app.models import Co2ImpactSpec, EventSpec, Place  # noqa: E402
+from app.event import event_site_spec, list_event_sites, run_co2_impact, run_event  # noqa: E402
+from app.models import Co2ImpactSpec, EventSpec  # noqa: E402
 
 EVENTS_DIR = ROOT / "data" / "events"
 
-SHOWCASE_EVENTS = [
-    (
-        "mundra-so2",
-        EventSpec(
-            compound_id="so2",
-            place=Place(place_id="ev:mundra", name="Mundra UMPP, India", lat=22.823, lon=69.553),
-            event_month="2012-03",
-            event_label="Mundra UMPP coal power plant commissioning",
-            window_years=3,
-            use_control=True,
-        ),
-    ),
-    (
-        "sasan-no2",
-        EventSpec(
-            compound_id="no2",
-            place=Place(place_id="ev:sasan", name="Sasan UMPP, India", lat=23.978, lon=82.628),
-            event_month="2013-08",
-            event_label="Sasan UMPP coal power plant commissioning",
-            window_years=3,
-            use_control=True,
-        ),
-    ),
-    (
-        "la-no2-lockdown",
-        EventSpec(
-            compound_id="no2",
-            place=Place(place_id="ev:la", name="Los Angeles, USA", lat=34.0522, lon=-118.2437),
-            event_month="2020-03",
-            event_label="COVID-19 stay-at-home order",
-            window_years=1,
-            use_control=True,
-        ),
-    ),
-    (
-        "burshtyn-aod",
-        EventSpec(
-            compound_id="aod",
-            place=Place(place_id="ev:burshtyn", name="Burshtyn, Ukraine", lat=49.208, lon=24.664),
-            event_month="2018-01",
-            event_label="Burshtyn thermal power plant baseline check",
-            window_years=3,
-            use_control=True,
-        ),
-    ),
-]
+def showcase_events() -> list[tuple[str, EventSpec]]:
+    """All ready-made slider events from backend/app/catalog/event_sites.yaml."""
+    return [(site.id, event_site_spec(site)) for site in list_event_sites(set())]
 
 
 def _fmt_row(eid: str, r) -> str:
@@ -85,7 +42,7 @@ def main() -> None:
     EVENTS_DIR.mkdir(parents=True, exist_ok=True)
     rows: list[str] = []
 
-    for eid, spec in SHOWCASE_EVENTS:
+    for eid, spec in showcase_events():
         res = run_event(spec)
         out_path = EVENTS_DIR / f"{eid}.json"
         out_path.write_text(json.dumps(res.model_dump(mode="json"), ensure_ascii=False, indent=1), encoding="utf-8")

@@ -329,6 +329,8 @@ def analyze_event(
     block_size: int = BOOTSTRAP_BLOCK_MONTHS,
     n_bootstrap: int = BOOTSTRAP_RESAMPLES,
     bootstrap_seed: int = BOOTSTRAP_SEED,
+    compute_bootstrap: bool = True,
+    compute_sen: bool = True,
 ) -> EventStatsResult:
     """Run BACI event impact analysis with deseasonalisation, lag-1 Welch t, bootstrap, and placebos."""
     if not 1 <= window_years <= 5:
@@ -352,8 +354,8 @@ def analyze_event(
     after_start_ym = _index_to_ym(event_idx, start_month)
     after_end_ym = _index_to_ym(a_end - 1, start_month)
 
-    sen_b = _window_sen_slope(site_arr, max(0, b_start), min(len(site_arr), event_idx))
-    sen_a = _window_sen_slope(site_arr, max(0, event_idx), min(len(site_arr), a_end))
+    sen_b = _window_sen_slope(site_arr, max(0, b_start), min(len(site_arr), event_idx)) if compute_sen else None
+    sen_a = _window_sen_slope(site_arr, max(0, event_idx), min(len(site_arr), a_end)) if compute_sen else None
 
     main = _evaluate_baci_window(
         site_arr,
@@ -361,7 +363,7 @@ def analyze_event(
         event_idx,
         w_months,
         min_coverage=min_coverage,
-        compute_bootstrap=True,
+        compute_bootstrap=compute_bootstrap,
         block_size=block_size,
         n_bootstrap=n_bootstrap,
         bootstrap_seed=bootstrap_seed,
@@ -475,3 +477,44 @@ def analyze_event(
         sen_before=sen_b,
         sen_after=sen_a,
     )
+
+
+@dataclass(frozen=True)
+class ProfilePoint:
+    event_month: str
+    effect: Optional[float]
+    ci_low: Optional[float]
+    ci_high: Optional[float]
+    p: Optional[float]
+    verdict: EventVerdict
+    reason: EventReason
+    n_placebo: int
+    placebo_larger: int
+
+
+def event_profile(
+    site: Sequence[Optional[float]],
+    control: Optional[Sequence[Optional[float]]],
+    start_month: str,
+    window_years: int,
+    *,
+    alpha: float = ALPHA,
+    min_coverage: float = MIN_WINDOW_COVERAGE,
+) -> list[ProfilePoint]:
+    """The same verdict for every event month whose windows fit the record.
+
+    Uses exactly the rules of ``analyze_event`` (placebos included) but skips the bootstrap and
+    Sen slopes, which do not affect the verdict, so a slider can show how the answer depends on
+    the chosen month.
+    """
+    n = len(site)
+    w = window_years * 12
+    out: list[ProfilePoint] = []
+    for idx in range(w, n - w + 1):
+        ym = _index_to_ym(idx, start_month)
+        r = analyze_event(site, control, start_month, ym, window_years, alpha=alpha,
+                          min_coverage=min_coverage, compute_bootstrap=False, compute_sen=False)
+        out.append(ProfilePoint(event_month=ym, effect=r.effect, ci_low=r.ci_low, ci_high=r.ci_high, p=r.p,
+                                verdict=r.verdict, reason=r.reason, n_placebo=len(r.placebo),
+                                placebo_larger=r.placebo_larger))
+    return out

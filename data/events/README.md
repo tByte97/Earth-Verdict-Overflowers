@@ -8,10 +8,11 @@ A verdict needs at least 3 fake dates. `aod` is MERRA-2, a model reanalysis.
 
 | File | Event | Compound | Effect | % | p | 95% CI | Placebo | Verdict |
 |---|---|---|---|---|---|---|---|---|
-| `mundra-so2.json` | Mundra UMPP, India — Mundra UMPP coal power plant commissioning (2012-03, w=3y) | `so2` | +0.1428 DU | — | 0.00409 | [+0.049, +0.236] | 0/7 | `clear_change` (`clear_change`) |
-| `sasan-no2.json` | Sasan UMPP, India — Sasan UMPP coal power plant commissioning (2013-08, w=3y) | `no2` | +1.3660 10¹⁵ molecules/cm² | +20.2% | 0.00409 | [+0.471, +2.262] | 1/7 | `not_proven` (`placebo_also_changes`) |
-| `la-no2-lockdown.json` | Los Angeles, USA — COVID-19 stay-at-home order (2020-03, w=1y) | `no2` | -0.8760 10¹⁵ molecules/cm² | -12.0% | 0.0118 | [-1.494, -0.259] | 4/17 | `not_proven` (`placebo_also_changes`) |
-| `burshtyn-aod.json` | Burshtyn, Ukraine — Burshtyn thermal power plant baseline check (2018-01, w=3y) | `aod` | -0.0003 AOD | -0.2% | 0.878 | [-0.004, +0.003] | 12/13 | `not_proven` (`not_significant`) |
+| `mundra-so2.json` | Mundra UMPP, India — Mundra coal power plant opens (India) (2012-03, w=3y) | `so2` | +0.1428 DU | — | 0.00409 | [+0.049, +0.236] | 0/7 | `clear_change` (`clear_change`) |
+| `sasan-no2.json` | Sasan UMPP, India — Sasan coal power plant opens (India) (2013-08, w=3y) | `no2` | +1.3660 10¹⁵ molecules/cm² | +20.2% | 0.00409 | [+0.471, +2.262] | 1/7 | `not_proven` (`placebo_also_changes`) |
+| `navajo-no2.json` | Navajo Generating Station, Page, Arizona — Navajo Generating Station closes (Arizona, USA) (2019-11, w=3y) | `no2` | -0.2720 10¹⁵ molecules/cm² | -23.2% | 2.45e-06 | [-0.371, -0.173] | 4/9 | `not_proven` (`placebo_also_changes`) |
+| `la-no2-lockdown.json` | Los Angeles, USA — COVID-19 stay-at-home order (Los Angeles) (2020-03, w=1y) | `no2` | -0.8760 10¹⁵ molecules/cm² | -12.0% | 0.0118 | [-1.494, -0.259] | 4/17 | `not_proven` (`placebo_also_changes`) |
+| `burshtyn-aod.json` | Burshtyn, Ukraine — No event: Burshtyn power plant area (Ukraine) (2018-01, w=3y) | `aod` | -0.0003 AOD | -0.2% | 0.878 | [-0.004, +0.003] | 12/13 | `not_proven` (`not_significant`) |
 
 ## CO₂ global context & physics example
 

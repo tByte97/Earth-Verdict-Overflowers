@@ -8,7 +8,7 @@ from typing import Literal, Optional
 
 import yaml
 
-from ..models import Compound, Variable
+from ..models import Compound, EventBounds, Variable
 
 CATALOG_FILE = Path(__file__).with_name("variables.yaml")
 COMPOUNDS_FILE = Path(__file__).with_name("compounds.yaml")
@@ -87,7 +87,14 @@ class CompoundDef:
             last_year=self.last_year,
             local_signal=self.local_signal,
             kind=self.kind,
+            event_bounds=[EventBounds(window_years=w, earliest=a, latest=b)
+                          for w, (a, b) in ((w, self.event_month_bounds(w)) for w in range(1, 6))
+                          if a <= b] if self.local_signal else [],
         )
+
+    def event_month_bounds(self, window_years: int) -> tuple[str, str]:
+        """Earliest and latest event_month whose full before and after windows fit in the record."""
+        return f"{self.first_year + window_years}-01", f"{self.last_year - window_years + 1}-01"
 
 
 @lru_cache(maxsize=1)
@@ -116,3 +123,20 @@ def load_compounds() -> dict[str, CompoundDef]:
 
 def get_compound(compound_id: str) -> Optional[CompoundDef]:
     return load_compounds().get(compound_id)
+
+
+EVENT_SITES_FILE = Path(__file__).with_name("event_sites.yaml")
+
+
+@lru_cache(maxsize=1)
+def load_event_sites() -> dict[str, dict]:
+    """Ready-made slider events: {id: {label, kind, place{name,lat,lon}, compound_id, event_month, window_years, note}}."""
+    raw = yaml.safe_load(EVENT_SITES_FILE.read_text(encoding="utf-8"))
+    for sid, site in raw.items():
+        compound = get_compound(site["compound_id"])
+        if compound is None or not compound.local_signal:
+            raise ValueError(f"event site '{sid}': compound '{site['compound_id']}' is not usable on the slider")
+        earliest, latest = compound.event_month_bounds(int(site["window_years"]))
+        if not earliest <= site["event_month"] <= latest:
+            raise ValueError(f"event site '{sid}': {site['event_month']} is outside {earliest}..{latest}")
+    return raw

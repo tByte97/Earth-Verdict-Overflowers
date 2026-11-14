@@ -239,6 +239,13 @@ class ErrorResponse(Strict):
 
 # ---------- Pollutant Event Impact & CO2 Physics ----------
 
+class EventBounds(Strict):
+    """Range of event_month whose full before and after windows fit the record."""
+    window_years: int
+    earliest: str
+    latest: str
+
+
 class Compound(Strict):
     id: str
     label: str
@@ -250,6 +257,7 @@ class Compound(Strict):
     last_year: int
     local_signal: bool
     kind: Literal["satellite", "reanalysis"]
+    event_bounds: list[EventBounds]     # empty when local_signal is false (CO2)
 
 
 class MonthValue(Strict):
@@ -314,6 +322,52 @@ class EventResult(Strict):
     sen_before: Optional[EventSen]
     sen_after: Optional[EventSen]
     steps: list[EventStep]
+    provenance: list[Provenance]
+    meta: Meta
+
+
+class EventSite(Strict):
+    """A ready-made event for the slider (catalog/event_sites.yaml)."""
+    id: str
+    label: str
+    kind: Literal["opening", "closure", "lockdown", "eruption", "check"]
+    place: Place
+    compound_id: str
+    event_month: str
+    window_years: int
+    note: str
+    saved: bool             # a precomputed EventResult exists at /api/events/{id}
+
+
+class EventProfileSpec(Strict):
+    compound_id: str
+    place: Place
+    window_years: int = Field(default=3, ge=1, le=5)
+    use_control: bool = True
+
+
+class ProfilePoint(Strict):
+    event_month: str
+    effect: Optional[float]
+    ci_low: Optional[float]
+    ci_high: Optional[float]
+    p: Optional[float]
+    verdict: Literal["clear_change", "not_proven"]
+    reason: Literal["clear_change", "not_significant", "placebo_also_changes", "too_short", "no_placebo"]
+    n_placebo: int
+    placebo_larger: int
+
+
+class EventProfile(Strict):
+    """Verdict for every possible event month at one place, for the slider (same rules as /api/event,
+    without the bootstrap interval)."""
+    spec: EventProfileSpec
+    compound: Compound
+    site: list[MonthValue]
+    control: Optional[list[MonthValue]]
+    earliest: str
+    latest: str
+    points: list[ProfilePoint]
     provenance: list[Provenance]
     meta: Meta
 
