@@ -52,7 +52,13 @@ export const CheckResultSchema = z.object({
   witness: WitnessSchema.nullable(), verdict: z.enum(['confirmed', 'refuted', 'not_proven']),
   reason: z.enum(['significant_trend', 'opposite_trend', 'not_significant', 'short_series', 'sources_disagree', 'not_robust']),
   years_to_wait: integer.nullable(),
-  steps: z.array(z.object({ id: z.enum(['raw', 'season', 'yearly', 'trend', 'random_check', 'robustness', 'witness', 'verdict']), title: z.string(), value: z.string(), detail: z.string() }).strict()),
+  steps: z.array(z.object({
+    id: z.enum(['raw', 'season', 'yearly', 'trend', 'random_check', 'robustness', 'witness', 'verdict']), title: z.string(), value: z.string(), detail: z.string(),
+    fields: z.array(z.string()),
+    n_months: integer.nullable(), monthly: z.array(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/), value: finite.nullable() }).strict()).nullable(),
+    months: z.array(integer.min(1).max(12)).nullable(), aggregation: z.enum(['mean', 'sum']).nullable(), years_dropped: z.array(integer).nullable(),
+    alpha: finite.nullable(), methods_agree: z.boolean().nullable(), methods_reason: z.enum(['direction_differs', 'significance_differs']).nullable(),
+  }).strict()),
   detection: DetectionSchema, extrapolation: ExtrapolationSchema, scenarios: ScenariosSchema.nullable(),
   provenance: z.array(ProvenanceSchema), meta: z.object({ stub: z.boolean(), stats_engine: z.string(), generated_at: z.string() }).strict(),
 }).strict();

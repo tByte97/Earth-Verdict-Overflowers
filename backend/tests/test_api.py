@@ -221,3 +221,21 @@ def test_scenario_analogs_pick_closest_year_or_beyond_record():
     tie, far = p["analogs"]
     assert tie == {"year": 2050, "analog_year": 2003, "analog_value": 21.3, "analog_rank": 2, "beyond_record": False}
     assert far == {"year": 2100, "analog_year": None, "analog_value": None, "analog_rank": None, "beyond_record": True}
+
+
+def test_steps_carry_structured_fields():
+    import json
+    from pathlib import Path
+    r = json.loads((Path(__file__).resolve().parents[2] / "data/cases/kyiv-summer-heat.json").read_text())
+    st = {s["id"]: s for s in r["steps"]}
+    assert r["case"]["place"]["name"] == "Kyiv"
+    assert st["raw"]["n_months"] == sum(m["value"] is not None for m in st["raw"]["monthly"]) == 540
+    assert st["season"]["months"] == [6, 7, 8] and st["season"]["aggregation"] == "mean"
+    assert st["season"]["years_dropped"] == [y["year"] for y in r["series"] if y["value"] is None]
+    assert st["random_check"]["alpha"] == 0.05 and st["random_check"]["methods_agree"] is True
+    assert st["random_check"]["fields"] == ["mk.p", "ols.p"]
+    for s in r["steps"]:            # every path resolves in the result
+        for path in s["fields"]:
+            node = r
+            for key in path.split("."):
+                node = node[key]

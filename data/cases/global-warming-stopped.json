@@ -203,49 +203,154 @@
    "id": "raw",
    "title": "Yearly data",
    "value": "28 years",
-   "detail": "Temperature of the planet or a continent for The whole planet from NOAA Climate at a Glance, 1998–2025, as the difference from the 1901–2000 average."
+   "detail": "Temperature of the planet or a continent for The whole planet from NOAA Climate at a Glance, 1998–2025, as the difference from the 1901–2000 average.",
+   "fields": [
+    "series"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   },
   {
    "id": "season",
    "title": "Pick the season",
    "value": "the whole year",
-   "detail": "Only the months the claim is about are kept (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)."
+   "detail": "Only the months the claim is about are kept (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec).",
+   "fields": [
+    "case.season"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "aggregation": "mean",
+   "years_dropped": [],
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   },
   {
    "id": "yearly",
    "title": "One value per year",
    "value": "28 years",
-   "detail": "The months of each year are averaged into one number."
+   "detail": "The months of each year are averaged into one number.",
+   "fields": [
+    "series"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   },
   {
    "id": "trend",
    "title": "Overall direction",
    "value": "+0.25 °C per 10 years",
-   "detail": "The typical change over time, robust to single extreme years (Sen's slope)."
+   "detail": "The typical change over time, robust to single extreme years (Sen's slope).",
+   "fields": [
+    "sen.slope_per_decade",
+    "sen.ci_low",
+    "sen.ci_high"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   },
   {
    "id": "random_check",
    "title": "Could it be chance?",
    "value": "p < 0.001",
-   "detail": "Very unlikely to appear by chance if nothing were changing."
+   "detail": "Very unlikely to appear by chance if nothing were changing.",
+   "fields": [
+    "mk.p",
+    "ols.p"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": 0.05,
+   "methods_agree": true,
+   "methods_reason": null
   },
   {
    "id": "robustness",
    "title": "Does the choice of years matter?",
    "value": "5 of 5 periods agree",
-   "detail": "We repeat the check with the start and end shifted by a few years."
+   "detail": "We repeat the check with the start and end shifted by a few years.",
+   "fields": [
+    "robustness_summary.significant",
+    "robustness_summary.total"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   },
   {
    "id": "witness",
    "title": "Ground station check",
    "value": "No station",
-   "detail": "No nearby station with long enough records for this variable."
+   "detail": "No nearby station with long enough records for this variable.",
+   "fields": [],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   },
   {
    "id": "verdict",
    "title": "Verdict",
    "value": "Refuted",
-   "detail": "A clear, robust trend in the opposite direction."
+   "detail": "A clear, robust trend in the opposite direction.",
+   "fields": [
+    "verdict",
+    "reason",
+    "years_to_wait"
+   ],
+   "n_months": null,
+   "monthly": null,
+   "months": null,
+   "aggregation": null,
+   "years_dropped": null,
+   "alpha": null,
+   "methods_agree": null,
+   "methods_reason": null
   }
  ],
  "detection": {
@@ -666,13 +771,13 @@
    "source": "NOAA Climate at a Glance",
    "product": "NOAAGlobalTemp land+ocean anomalies (Climate at a Glance)",
    "url": "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/time-series/globe/land_ocean/12/12/1850-2026/data.json",
-   "retrieved_at": "2026-11-14T20:49:24Z",
+   "retrieved_at": "2026-11-14T21:28:13Z",
    "license": "Public domain (NOAA)"
   }
  ],
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T20:49:24Z"
+  "generated_at": "2026-11-14T21:28:14Z"
  }
 }

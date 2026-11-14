@@ -139,6 +139,20 @@ def _witness_detail(witness: Optional[dict], units: str, dec: int) -> str:
             + (", which is typical for growing cities." if faster and units == "°C" else "."))
 
 
+def _monthly_record(ms: MainSeries, var: VariableDef, start: int, end: int, d: int) -> list[dict]:
+    """Monthly values start-01..end-12 in the variable's units (per-day rates times days in month)."""
+    y0, m0 = _ym(ms.start)
+    out = []
+    for y in range(start, end + 1):
+        for m in range(1, 13):
+            i = (y - y0) * 12 + (m - m0)
+            v = ms.monthly[i] if 0 <= i < len(ms.monthly) else None
+            if v is not None and var.per_day:
+                v = v * calendar.monthrange(y, m)[1]
+            out.append(dict(month=f"{y}-{m:02d}", value=None if v is None else round(v, d)))
+    return out
+
+
 def assemble_result(
     spec: CaseSpec,
     var: VariableDef,
@@ -212,29 +226,48 @@ def assemble_result(
     if main_series.yearly is not None:
         raw_step = dict(id="raw", title="Yearly data", value=f"{end - start + 1} years",
                         detail=f"{var.label} for {region_name(spec.place)} from {src}, {start}–{end}, "
-                               f"as the difference from the 1901–2000 average.")
+                               f"as the difference from the 1901–2000 average.",
+                        fields=["series"])
     else:
-        raw_step = dict(id="raw", title="Monthly data", value=f"{(end - start + 1) * 12} months",
-                        detail=f"Monthly {var.label.lower()} for {spec.place.name} from {src}, {start}–{end}.")
+        monthly = _monthly_record(main_series, var, start, end, d)
+        n_months = sum(m["value"] is not None for m in monthly)
+        raw_step = dict(id="raw", title="Monthly data", value=f"{n_months} months",
+                        detail=f"Monthly {var.label.lower()} for {spec.place.name} from {src}, {start}–{end}.",
+                        fields=["case.start_year", "case.end_year"], n_months=n_months, monthly=monthly)
+    ols_sig = main.ols.p < ALPHA
+    if (main.sen.slope_per_year > 0) != (main.ols.slope_per_year > 0) and main.sen.slope_per_year and main.ols.slope_per_year:
+        methods_reason = "direction_differs"
+    elif sig != ols_sig:
+        methods_reason = "significance_differs"
+    else:
+        methods_reason = None
+    witness_fields = ([] if not witness else ["witness.agreement", "witness.sen.slope_per_decade", "witness.mk.p"]
+                      + (["witness.rates.difference_per_decade", "witness.rates.p"] if witness.get("rates") else []))
     steps = [
         raw_step,
         dict(id="season", title="Pick the season", value=season_value,
              detail=f"Only the months the claim is about are kept "
-                    f"({', '.join(calendar.month_abbr[m] for m in season_months)})."),
+                    f"({', '.join(calendar.month_abbr[m] for m in season_months)}).",
+             fields=["case.season"], months=list(season_months), aggregation=var.agg,
+             years_dropped=[y for y, v in zip(years, vals) if v is None]),
         dict(id="yearly", title="One value per year", value=f"{main.n} years",
-             detail=f"The months of each year are {'added up' if var.agg == 'sum' else 'averaged'} into one number."),
+             detail=f"The months of each year are {'added up' if var.agg == 'sum' else 'averaged'} into one number.",
+             fields=["series"]),
         dict(id="trend", title="Overall direction", value=per_decade(main.sen.slope_per_year),
-             detail="The typical change over time, robust to single extreme years (Sen's slope)."),
+             detail="The typical change over time, robust to single extreme years (Sen's slope).",
+             fields=["sen.slope_per_decade", "sen.ci_low", "sen.ci_high"]),
         dict(id="random_check", title="Could it be chance?",
              value=f"p = {main.mk.p:.3f}" if main.mk.p >= 0.001 else "p < 0.001",
              detail=("Very unlikely to appear by chance if nothing were changing." if sig
-                     else "A slope like this easily appears by chance when weather simply varies.")),
+                     else "A slope like this easily appears by chance when weather simply varies."),
+             fields=["mk.p", "ols.p"], alpha=ALPHA, methods_agree=methods_reason is None, methods_reason=methods_reason),
         dict(id="robustness", title="Does the choice of years matter?", value=f"{n_sig} of {len(rob)} periods agree",
-             detail="We repeat the check with the start and end shifted by a few years."),
+             detail="We repeat the check with the start and end shifted by a few years.",
+             fields=["robustness_summary.significant", "robustness_summary.total"]),
         dict(id="witness", title="Ground station check",
              value={"agree": "Station agrees", "disagree": "Station disagrees",
                     "one_source": "Station sees no clear change", "no_station": "No station"}[w_agree],
-             detail=_witness_detail(witness, u, d)),
+             detail=_witness_detail(witness, u, d), fields=witness_fields),
         dict(id="verdict", title="Verdict",
              value={"confirmed": "Confirmed", "refuted": "Refuted", "not_proven": "Not proven"}[ev.verdict],
              detail={"significant_trend": "A clear, robust trend in the direction of the claim.",
@@ -242,7 +275,8 @@ def assemble_result(
                      "not_significant": "Year-to-year swings are larger than the change so far.",
                      "not_robust": "The result depends on which years you pick.",
                      "sources_disagree": "Satellite-model data and the station point in different directions.",
-                     "short_series": "Too few years to judge."}[ev.reason]),
+                     "short_series": "Too few years to judge."}[ev.reason],
+             fields=["verdict", "reason", "years_to_wait"]),
     ]
 
     prov = [dict(what=var.label, source=src, product=var.product, url=main_series.url,
