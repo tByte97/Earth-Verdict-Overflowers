@@ -98,6 +98,9 @@
   box-shadow:0 4px 14px rgba(36,59,51,.12);
   pointer-events:none;
 }
+.chart-table {
+  max-height:360px;
+}
 .chart-values summary {
   padding:14px 0;
 }

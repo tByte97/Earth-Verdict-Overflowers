@@ -83,7 +83,7 @@ export function SeriesChart({ result: r }: { result: CheckResult }) {
     </div>
     <details className="chart-values">
       <summary>Exact values for every year <span>Received precision · missing values stay missing</span></summary>
-      <div className="table-scroll numeric-table"><table>
+      <div className="table-scroll chart-table"><table>
         <thead><tr><th>Year</th><th><SourceLink result={r} path="series.0.value">NASA POWER</SourceLink> · {units}</th><th>{witness ? <><SourceLink result={r} path="witness.series.0.value">{`Station ${witness.station.name}`}</SourceLink> · {units}</> : 'Station'}</th></tr></thead>
         <tbody>{r.series.map(point => {
           const measured = station.get(point.year);
