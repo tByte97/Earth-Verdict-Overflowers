@@ -13,10 +13,16 @@ const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarb
 // Coastlines only: the GIBS borders layer cuts Crimea off from Ukraine, and its labels use outdated names.
 const COASTLINES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Coastlines/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png';
 
+// Zoom band in which the globe unrolls into a flat Web Mercator map.
+const GLOBE_UNTIL = 3.2, FLAT_FROM = 4.8;
+const byZoom = (...stops: (number | string)[]) => ['interpolate', ['linear'], ['zoom'], ...stops] as maplibregl.ExpressionSpecification;
+
 // The background layer stays visible when tiles fail, so the globe and markers work offline.
 const style: maplibregl.StyleSpecification = {
   version: 8,
-  projection: { type: 'globe' },
+  projection: { type: byZoom(GLOBE_UNTIL, 'vertical-perspective', FLAT_FROM, 'mercator') },
+  // The atmosphere glow belongs to the globe; it fades out as the map flattens.
+  sky: { 'atmosphere-blend': byZoom(0, 1, GLOBE_UNTIL, 0.7, FLAT_FROM, 0) },
   sources: {
     bluemarble: {
       type: 'raster', tiles: [BLUE_MARBLE], tileSize: 256, maxzoom: 8,
