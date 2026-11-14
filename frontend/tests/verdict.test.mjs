@@ -18,8 +18,10 @@ async function configureLive(page) {
   await page.getByRole('button', { name: fixtures[0].result.case.place.name, exact: true }).click();
 }
 
-async function open(path = '/') {
+async function open(path = '/', { blockImagery = false } = {}) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  // Provenance/state assertions can run offline; globe screenshots still load imagery.
+  if (blockImagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(baseURL + path);
@@ -203,10 +205,9 @@ test('canonical contract units, residual r1, witness gaps, provenance and future
 
 test('all edge-case reasons and witness agreements still render using test-only intercepted responses', async () => {
   test.setTimeout(60_000);
-  const { page, errors } = await open();
+  const { page, errors } = await open('/', { blockImagery: true });
   try {
     await page.route('**/api/variables', route => route.fulfill({ json: [fixtures[0].result.variable] }));
-    await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
     for (const fixture of edgeFixtures) {
       const result = structuredClone(fixtures[0].result);
       result.verdict = fixture.result.verdict;
@@ -234,7 +235,7 @@ test('detection shows total duration and additional wait from the same updated b
   try {
     for (const fixture of fixtures) {
       await page.getByLabel('Saved case').selectOption(fixture.id);
-      await page.locator('.technical > summary').click();
+      await page.locator('.detection-simulator > summary').click();
       const detection = page.getByRole('region', { name: 'Detection duration' });
       const index = fixture.result.detection.multipliers.indexOf(1);
       assert.equal(await detection.getByTestId('detection-total').innerText(), String(fixture.result.detection.years_needed[index]));
@@ -249,7 +250,7 @@ test('rate control uses exact nodes, log interpolation, and never changes the ve
   const { page, errors } = await open();
   try {
     await page.getByLabel('Saved case').selectOption('lviv-drier');
-    await page.locator('.technical > summary').click();
+    await page.locator('.detection-simulator > summary').click();
     const detection = page.getByRole('region', { name: 'Detection duration' });
     const originalVerdict = await page.locator('.verdict').innerText();
     const originalWait = await detection.getByTestId('detection-wait').innerText();
@@ -287,7 +288,7 @@ test('missing detection points are not zero or bridged and null waiting retains 
     await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
-    await page.locator('.technical > summary').click();
+    await page.locator('.detection-simulator > summary').click();
     const detection = page.getByRole('region', { name: 'Detection duration' });
     assert.equal(await detection.getByTestId('detection-wait').innerText(), 'Not determined');
     assert.match(await detection.innerText(), /already been reached.*remains unproven/);
@@ -407,7 +408,7 @@ for (const scenarioCase of [
   { name: 'synthetic fixture', scenarios: syntheticScenarios, label: 'Stylised scenario', warning: 'stylised placeholders, not CMIP6 model outputs' },
 ]) {
   test(`derived provenance uses method records regardless of free-text descriptions or record order (${scenarioCase.name})`, async () => {
-    const { page, errors } = await open();
+    const { page, errors } = await open('/', { blockImagery: true });
     try {
       const result = structuredClone(fixtures[0].result);
       result.scenarios = structuredClone(scenarioCase.scenarios);

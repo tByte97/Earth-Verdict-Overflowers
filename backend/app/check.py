@@ -17,6 +17,7 @@ from .scenarios import add_observed_context, nearby_scenarios
 from .stats import build_extrapolation, months_for_season, seasonal_series
 from .stats.band import baseline_mean, sen_band
 from .stats.witness import compare_rates
+from .stats.history import detection_history
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
 
 STATS_ENGINE = "backend.app.stats v2"
@@ -333,7 +334,9 @@ def assemble_result(
         robustness=rob,
         robustness_summary=dict(significant=n_sig, total=len(rob)),
         witness=witness, verdict=ev.verdict, reason=ev.reason, years_to_wait=ev.years_to_wait,
-        steps=steps, detection=detection, extrapolation=extrapolation, scenarios=scen, provenance=prov,
+        steps=steps, detection=detection,
+        detection_history=detection_history(years, vals, alpha=ALPHA, min_observations=MIN_YEARS),
+        extrapolation=extrapolation, scenarios=scen, provenance=prov,
         meta=dict(stub=stub, stats_engine=STATS_ENGINE, generated_at=_now()),
     )
     return CheckResult.model_validate(result)
