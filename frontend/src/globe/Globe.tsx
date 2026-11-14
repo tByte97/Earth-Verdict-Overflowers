@@ -10,6 +10,8 @@ export type Station = NonNullable<CheckResult['witness']>['station'];
 const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: roundCoord(lat), lon: roundCoord(lon) });
 
 const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
+// City lights seen from orbit; a fixed composite date keeps the layer stable.
+const BLACK_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png';
 // Coastlines only: the GIBS borders layer cuts Crimea off from Ukraine, and its labels use outdated names.
 const COASTLINES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Coastlines/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png';
 
@@ -26,13 +28,17 @@ const style: maplibregl.StyleSpecification = {
   sources: {
     bluemarble: {
       type: 'raster', tiles: [BLUE_MARBLE], tileSize: 256, maxzoom: 8,
-      attribution: 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a> · Blue Marble, coastlines',
+      attribution: 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a> · Blue Marble, VIIRS Black Marble 2016, coastlines',
     },
+    blackmarble: { type: 'raster', tiles: [BLACK_MARBLE], tileSize: 256, maxzoom: 8 },
     coastlines: { type: 'raster', tiles: [COASTLINES], tileSize: 256, maxzoom: 9 },
   },
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#1c3a4a' } },
-    { id: 'bluemarble', type: 'raster', source: 'bluemarble' },
+    // Muted daytime imagery keeps markers and future data layers in front.
+    { id: 'bluemarble', type: 'raster', source: 'bluemarble', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.7 } },
+    // Night lights only from far away; they fade out before the map flattens.
+    { id: 'blackmarble', type: 'raster', source: 'blackmarble', paint: { 'raster-opacity': byZoom(2.4, 0.8, 3.8, 0) } },
     { id: 'coastlines', type: 'raster', source: 'coastlines' },
   ],
 };
