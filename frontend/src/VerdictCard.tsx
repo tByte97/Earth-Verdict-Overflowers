@@ -5,6 +5,7 @@ import { DetectionEstimate } from './DetectionEstimate';
 import { waitingExplanation } from './detection';
 import { YearStripes } from './chart/YearStripes';
 import { SeriesChart } from './chart/SeriesChart';
+import { FutureChart } from './chart/FutureChart';
 
 const verdicts = { confirmed: ['Confirmed', '✓'], refuted: ['Refuted', '×'], not_proven: ['Not proven', '?'] };
 const reasons: Record<string, string> = {
@@ -100,6 +101,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
       <summary>Future illustrations · separate from the verdict <span>Conditional estimates, not a forecast</span></summary>
       <div className="detail-body">
         <p className="caution"><strong>These values do not determine the historical verdict.</strong> Extrapolation is an illustration, not a forecast. Scenario curves are {r.scenarios?.synthetic ? 'stylised placeholders, not CMIP6 model outputs' : 'conditional model scenarios'}.</p>
+        <FutureChart result={r} />
         {r.extrapolation && <p className="help-text">{r.extrapolation.note}</p>}
         {r.scenarios && <p className="help-text">{r.scenarios.source} · Scenario anomaly baseline: {r.scenarios.baseline_period}; baseline mean: {number(r.scenarios.baseline_value)} {r.variable.units}.</p>}
         {renderNumbers(future)}
