@@ -228,7 +228,7 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
         robustness_summary=dict(significant=n_sig, total=len(rob)),
         witness=witness, verdict=verdict, reason=reason, years_to_wait=wait,
         steps=steps, detection=detection, extrapolation=extrapolation, scenarios=scen, provenance=prov,
-        meta=dict(stub=True, stats_engine="backend.app.stats v1",
+        meta=dict(stub=True, stats_engine="backend.app.stats v2",
                   generated_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
     )
     return CheckResult.model_validate(result).model_dump(mode="json"), ev

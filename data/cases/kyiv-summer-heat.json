@@ -530,11 +530,11 @@
    2.0
   ],
   "years_needed": [
-   20.9,
-   15.9,
-   13.1,
-   10.0,
-   8.3
+   48.0,
+   36.0,
+   31.0,
+   24.0,
+   21.0
   ]
  },
  "extrapolation": {
@@ -1061,7 +1061,7 @@
  ],
  "meta": {
   "stub": true,
-  "stats_engine": "backend.app.stats v1",
-  "generated_at": "2026-11-14T14:29:04Z"
+  "stats_engine": "backend.app.stats v2",
+  "generated_at": "2026-11-14T14:40:24Z"
  }
 }

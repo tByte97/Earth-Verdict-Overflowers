@@ -170,12 +170,23 @@ def evaluate_verdict(
         robust_need=robust_need,
     )
 
-    detection = compute_detection(
-        residual_sd=main.ols.residual_sd,
-        phi=main.ols.phi,
-        slope_per_year=main.sen.slope_per_year,
-        n_years=main.n,
-    )
+    # Детекція — симуляція потужності (~1 с); compute_wait=False вимикає її разом із wait
+    # (масові симуляції в тестах і сітка на глобусі цього не потребують).
+    if compute_wait:
+        detection = compute_detection(
+            residual_sd=main.ols.residual_sd,
+            phi=main.ols.phi,
+            slope_per_year=main.sen.slope_per_year,
+            n_years=main.n,
+            alpha=alpha,
+            min_years=min_years,
+        )
+    else:
+        detection = DetectionResult(
+            residual_sd=float(main.ols.residual_sd), phi=float(min(max(main.ols.phi, 0.0), 0.9)),
+            slope_per_year=float(main.sen.slope_per_year), n_years=int(main.n),
+            multipliers=[0.5, 0.75, 1.0, 1.5, 2.0], years_needed=[None] * 5,
+        )
 
     wait = (
         estimate_years_to_wait(
