@@ -35,6 +35,6 @@
 .rate-experiment { border-top:1px solid var(--line); margin-top:24px; padding-top:4px; }
 .rate-experiment .detection-estimate { margin-top:12px; }
 .detection-simulator .text-button { white-space:normal; text-align:left; }
-@media(max-width:650px) {
+@media(max-width:950px) {
   .uncertainty-panel { margin-left:20px; margin-right:20px; }
 }

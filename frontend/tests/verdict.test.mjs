@@ -18,8 +18,10 @@ async function configureLive(page) {
   await page.getByRole('button', { name: fixtures[0].result.case.place.name, exact: true }).click();
 }
 
-async function open(path = '/') {
+async function open(path = '/', { blockImagery = false } = {}) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  // Provenance/state assertions can run offline; globe screenshots still load imagery.
+  if (blockImagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(baseURL + path);
@@ -203,10 +205,9 @@ test('canonical contract units, residual r1, witness gaps, provenance and future
 
 test('all edge-case reasons and witness agreements still render using test-only intercepted responses', async () => {
   test.setTimeout(60_000);
-  const { page, errors } = await open();
+  const { page, errors } = await open('/', { blockImagery: true });
   try {
     await page.route('**/api/variables', route => route.fulfill({ json: [fixtures[0].result.variable] }));
-    await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
     for (const fixture of edgeFixtures) {
       const result = structuredClone(fixtures[0].result);
       result.verdict = fixture.result.verdict;
@@ -407,7 +408,7 @@ for (const scenarioCase of [
   { name: 'synthetic fixture', scenarios: syntheticScenarios, label: 'Stylised scenario', warning: 'stylised placeholders, not CMIP6 model outputs' },
 ]) {
   test(`derived provenance uses method records regardless of free-text descriptions or record order (${scenarioCase.name})`, async () => {
-    const { page, errors } = await open();
+    const { page, errors } = await open('/', { blockImagery: true });
     try {
       const result = structuredClone(fixtures[0].result);
       result.scenarios = structuredClone(scenarioCase.scenarios);

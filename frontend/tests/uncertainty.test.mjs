@@ -139,6 +139,16 @@ test('older responses have an honest unavailable state and malformed prefix data
   await expect(page.locator('.history-unavailable')).toContainText('no p-values are inferred');
   await expect(page.getByRole('slider', { name: 'Record through year' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Detection duration' })).toBeVisible();
+  // Pydantic serialises a missing history as null: same honest state, and its table row keeps its context.
+  const nulled = structuredClone(heat);
+  nulled.detection_history = null;
+  await liveResult(page, nulled);
+  await page.locator('.detection-simulator > summary').click();
+  await expect(page.locator('.history-unavailable')).toContainText('no p-values are inferred');
+  await page.locator('.technical > summary').click();
+  const row = page.locator('.numeric-table tbody tr').filter({ has: page.locator('code', { hasText: /^detection_history$/ }) });
+  await expect(row).toContainText('Observed prefix test; not a verdict or forecast');
+  await expect(row).toContainText('not supplied by this response');
   const malformed = structuredClone(heat);
   malformed.detection_history.points[20].p = 1.5;
   await liveResult(page, malformed);

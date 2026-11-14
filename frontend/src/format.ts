@@ -44,11 +44,11 @@ export function fieldContext(path: string, r: CheckResult): { unit: string; cont
   else if (/^detection\.multipliers\./.test(path)) unit = 'rate multiplier · dimensionless';
   else if (/^detection\.years_needed\./.test(path)) unit = 'total years needed · conditional estimate';
   if (path.startsWith('detection.')) context += ' · Detection experiment, not a forecast';
-  if (path.startsWith('detection_history.')) {
+  if (path === 'detection_history' || path.startsWith('detection_history.')) {
     const prefix = /^detection_history\.points\.(\d+)\./.exec(path);
     const point = prefix ? r.detection_history?.points[Number(prefix[1])] : undefined;
-    context = `${r.detection_history?.start_year}–${point?.end_year ?? r.case.end_year} · ${r.case.season} · Observed prefix test; not a verdict or forecast`;
-    unit = /\.(start_year|end_year)$/.test(path) ? 'calendar year' : /\.(min_observations|n_observations)$/.test(path) ? 'observed years' : path.endsWith('.correction') ? 'not applicable · test not performed' : 'dimensionless';
+    context = `${r.detection_history?.start_year ?? r.case.start_year}–${point?.end_year ?? r.case.end_year} · ${r.case.season} · Observed prefix test; not a verdict or forecast`;
+    unit = path === 'detection_history' ? 'not supplied by this response' : /\.(start_year|end_year)$/.test(path) ? 'calendar year' : /\.(min_observations|n_observations)$/.test(path) ? 'observed years' : path.endsWith('.correction') ? 'not applicable · test not performed' : 'dimensionless';
   }
   if (path.startsWith('extrapolation.')) {
     context = `${r.extrapolation?.from_year}–${r.extrapolation?.years.at(-1)} · Illustration, not a forecast`;
