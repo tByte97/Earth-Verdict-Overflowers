@@ -18,7 +18,34 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 from app.models import CheckResult  # noqa: E402
 from app.stats import build_extrapolation, months_for_season, seasonal_series  # noqa: E402
+from app.stats.witness import compare_rates  # noqa: E402
 from app.verdict import ALPHA, evaluate_verdict, sig3  # noqa: E402
+
+
+# NOAA зберігає старі російські транслітерації; показуємо сучасні українські.
+STATION_RENAMES = {"Kiev": "Kyiv", "Kharkov": "Kharkiv", "Odessa": "Odesa", "Lvov": "Lviv"}
+
+
+def station_name(raw):
+    """«KIEV, UP» → «Kyiv»: без коду країни, сучасна транслітерація."""
+    base = raw.split(",")[0].strip().title()
+    return STATION_RENAMES.get(base, base)
+
+
+def witness_detail(witness, units, dec):
+    """Одне речення для кроку «Ground station check»."""
+    if not witness:
+        return "No nearby station with long enough records for this variable."
+    where = f"{witness['station']['name']} weather station, {witness['station']['distance_km']} km away."
+    r = witness.get("rates")
+    if not r:
+        return where
+    if r["consistent"]:
+        return f"{where} It changes at about the same pace as the satellite-model data."
+    faster = r["difference_per_decade"] > 0
+    return (f"{where} It changes {'faster' if faster else 'slower'} "
+            f"({r['witness_slope_per_decade']:+.{dec}f} vs {r['main_slope_per_decade']:+.{dec}f} {units} per 10 years)"
+            + (", which is typical for growing cities." if faster and units == "°C" else "."))
 
 DATA = ROOT / "data"
 CASES = DATA / "cases"
@@ -113,7 +140,7 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
     if ev.witness_trend and wy is not None and wv is not None and st is not None:
         wt = ev.witness_trend
         witness = dict(
-            station=dict(id=st["id"], name=st["name"].title(), lat=st["lat"], lon=st["lon"], distance_km=st["distance_km"]),
+            station=dict(id=st["id"], name=station_name(st["name"]), lat=st["lat"], lon=st["lon"], distance_km=st["distance_km"]),
             series=[dict(year=y, value=None if v is None else round(v, var["dec"])) for y, v in zip(wy, wv)],
             coverage=round(ev.witness_coverage or 0.0, 3),
             method_note=("Monthly means computed from daily GHCN-Daily records (≥25 days per month)"
@@ -126,6 +153,16 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
             mk=dict(p=sig3(wt.mk.p)),
             agreement=w_agree,
         )
+        rc = compare_rates(years, vals, wy, wv)
+        if rc is not None:
+            witness["rates"] = dict(
+                common_years=rc.common_years,
+                main_slope_per_decade=round(rc.main_slope_per_decade, 4),
+                witness_slope_per_decade=round(rc.witness_slope_per_decade, 4),
+                difference_per_decade=round(rc.difference_per_decade, 4),
+                ci_low=round(rc.ci_low, 4), ci_high=round(rc.ci_high, 4),
+                p=sig3(rc.p), consistent=rc.consistent,
+            )
 
     verdict, reason, wait = ev.verdict, ev.reason, ev.years_to_wait
     sig = main.mk.p < ALPHA
@@ -151,8 +188,7 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
         dict(id="witness", title="Ground station check",
              value={"agree": "Station agrees", "disagree": "Station disagrees", "one_source": "Station sees no clear change",
                     "no_station": "No station"}[w_agree],
-             detail=(f"{witness['station']['name']} weather station, {witness['station']['distance_km']} km away."
-                     if witness else "No nearby station with long enough records for this variable.")),
+             detail=witness_detail(witness, u, d)),
         dict(id="verdict", title="Verdict", value={"confirmed": "Confirmed", "refuted": "Refuted", "not_proven": "Not proven"}[verdict],
              detail={"significant_trend": "A clear, robust trend in the direction of the claim.",
                      "opposite_trend": "A clear, robust trend in the opposite direction.",
