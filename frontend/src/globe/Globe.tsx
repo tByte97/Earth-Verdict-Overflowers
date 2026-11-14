@@ -13,6 +13,8 @@ const snap = (value: number) => Math.round(value * 4) / 4;
 const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: snap(lat), lon: snap(lon) });
 
 const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
+// Coastlines only: the GIBS borders layer cuts Crimea off from Ukraine, and its labels use outdated names.
+const COASTLINES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Coastlines/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png';
 
 // The background layer stays visible when tiles fail, so the globe and markers work offline.
 const style: maplibregl.StyleSpecification = {
@@ -21,12 +23,14 @@ const style: maplibregl.StyleSpecification = {
   sources: {
     bluemarble: {
       type: 'raster', tiles: [BLUE_MARBLE], tileSize: 256, maxzoom: 8,
-      attribution: 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a> · Blue Marble',
+      attribution: 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a> · Blue Marble, coastlines',
     },
+    coastlines: { type: 'raster', tiles: [COASTLINES], tileSize: 256, maxzoom: 9 },
   },
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#1c3a4a' } },
     { id: 'bluemarble', type: 'raster', source: 'bluemarble' },
+    { id: 'coastlines', type: 'raster', source: 'coastlines' },
   ],
 };
 
@@ -59,7 +63,7 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   useEffect(() => {
     let instance: maplibregl.Map;
     try {
-      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: false } });
+      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches } });
     } catch {
       setUnavailable(true);
       return;
@@ -68,6 +72,10 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     resize.observe(container.current!);
     instance.once('load', () => {
       instance.resize();
+      // MapLibre opens compact attribution expanded; start collapsed so it stays one icon on phones.
+      const attribution = container.current?.querySelector('.maplibregl-compact');
+      attribution?.classList.remove('maplibregl-compact-show');
+      attribution?.removeAttribute('open');
       if (activePlace.current) instance.setCenter([activePlace.current.lon, activePlace.current.lat]);
     });
     instance.once('idle', () => setReady(true));
@@ -100,7 +108,7 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     {!unavailable && <div className="globe-view-controls" aria-label="Map view">
       <button type="button" onClick={() => map.current?.flyTo({ zoom: 1.4, duration: 600 })}>Globe view</button>
       {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
-      <button type="button" disabled={!place} onClick={() => place && map.current?.flyTo({ center: [place.lon, place.lat], zoom: 8.5, duration: 600 })}>Local view</button>
+      <button type="button" disabled={!place} onClick={() => place && map.current?.flyTo({ center: [place.lon, place.lat], zoom: 4.75, duration: 600 })}>Local view</button>
     </div>}
     <div ref={container} className="globe-map" />
     {onPick && !unavailable && <p className="globe-hint">{ready ? 'Click the globe to pick coordinates' : 'Loading imagery…'}</p>}
