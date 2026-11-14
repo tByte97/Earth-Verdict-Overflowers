@@ -37,7 +37,7 @@ function App() {
     const timer = window.setTimeout(() => {
       setSearchStatus('Searching…');
       findPlaces(query, controller.signal).then(items => {
-        if (!controller.signal.aborted) { setPlaces(items); setSearchStatus(items.length ? 'Select a place below.' : isLive ? 'No places found. Try another name.' : 'No places found. Demo search supports Kyiv only.'); }
+        if (!controller.signal.aborted) { setPlaces(items); setSearchStatus(items.length ? 'Select a place below.' : isLive ? 'No places found. Try another name.' : 'No places found. Saved cases cover Kyiv and Lviv.'); }
       }).catch(e => { if (e.name !== 'AbortError') setSearchStatus(`Search failed: ${e.message}`); });
     }, 250);
     return () => { window.clearTimeout(timer); controller.abort(); };
@@ -65,14 +65,14 @@ function App() {
     <main>
       <div className="intro"><p className="eyebrow">A closer look at our changing planet</p><h1>A claim. A check.<br /><span>A clearer answer.</span></h1><p>Choose what you want to investigate.<br />See the conclusion, then explore the evidence behind it.</p></div>
       {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
-      <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Demo · synthetic data'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Explore saved sample responses. These are not real climate findings.'}</p></div><a href={isLive ? '?source=demo' : '?source=live'}>{isLive ? 'Open demo' : 'Connect backend'} <span aria-hidden="true">↗</span></a></div>
+      <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real observations · provisional statistics. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
       <div className="workspace">
         <aside className="case-panel" aria-labelledby="case-heading">
           <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Your investigation</p><h2 id="case-heading">Set up a check</h2></div></div>
-          {!isLive && <label className="demo-select">Saved demo response<select value={demoId} onChange={e => chooseDemo(e.target.value)}>{demoCases.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
+          {!isLive && <label className="demo-select">Saved case<select value={demoId} onChange={e => chooseDemo(e.target.value)}>{demoCases.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
           <form onSubmit={submit}>
             <label>Claim<input required value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} /></label>
-            <p className="field-help">The structured parameters below define the actual check. Demo wording comes from the saved response.</p>
+            <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
             {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); }}>{place.name}</button></li>)}</ul>}
@@ -82,13 +82,13 @@ function App() {
             <label>Claim direction<select value={spec.claim_direction} onChange={e => edit({ claim_direction: e.target.value as CaseSpec['claim_direction'] })}><option value="increase">Increasing</option><option value="decrease">Decreasing</option><option value="change">Changing in either direction</option></select></label>
             {error && <div className="error" role="alert">{error}</div>}
             <button className="primary-button" type="submit" disabled={busy || !variables.length}>{busy ? 'Checking…' : 'Check claim'} <span aria-hidden="true">→</span></button>
-            <p className="field-help">{isLive ? 'Your backend performs the calculations.' : 'Custom parameters need a connected backend. Demo checks return the selected saved JSON unchanged.'}</p>
+            <p className="field-help">{isLive ? 'Your backend performs the calculations.' : 'Saved cases return the team’s JSON unchanged. Custom periods require the calculation API.'}</p>
           </form>
         </aside>
         <section className="result-panel" aria-label="Check result" aria-busy={busy}>
           <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
           <div aria-live="polite" aria-atomic="true" className="sr-only">{busy ? 'Check in progress.' : result ? `Result: ${result.verdict.replace('_', ' ')}.` : 'Parameters changed. Run a check to see the result.'}</div>
-          {result ? <VerdictCard key={JSON.stringify(result.case) + result.verdict} result={result} demo={!isLive} /> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+          {result ? <VerdictCard key={JSON.stringify(result.case) + result.verdict} result={result} saved={!isLive} /> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
         </section>
       </div>
       <footer><span>Earth Verdict · Team Overflowers</span><p>Past observations describe evidence about change. They are not a forecast.</p></footer>

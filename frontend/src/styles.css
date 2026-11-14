@@ -816,3 +816,4 @@ footer>p {
     scroll-behavior:auto!important;
   }
 }
+.future-reference { border-top: 2px dashed #b6c5d1; background: #f3f6fa; } .future-reference > summary { color: #455a73; } .future-reference .numeric-table { max-height: 320px; }

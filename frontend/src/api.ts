@@ -1,7 +1,7 @@
-import demo from './mock/cases.json';
-import type { CaseSpec, CheckResult, DemoCase, Place, Variable } from './types';
+import { demoCases } from './data';
+import type { CaseSpec, CheckResult, Place, Variable } from './types';
 
-export const demoCases = demo as DemoCase[];
+export { demoCases } from './data';
 // Explicit opt-in; connection failure never silently falls back to synthetic data.
 export const isLive = new URLSearchParams(window.location.search).get('source') === 'live';
 
@@ -16,12 +16,12 @@ async function request<T>(path: string, init?: RequestInit, signal?: AbortSignal
 
 export async function getVariables(signal?: AbortSignal): Promise<Variable[]> {
   if (isLive) return request('/variables', undefined, signal);
-  return [demoCases[0].result.variable];
+  return [...new Map(demoCases.map(item => [item.result.variable.id, item.result.variable])).values()];
 }
 export async function findPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
   if (isLive) return request(`/places?q=${encodeURIComponent(query)}`, undefined, signal);
-  const place = demoCases[0].result.case.place;
-  return place.name.toLowerCase().includes(query.trim().toLowerCase()) || 'київ'.includes(query.trim().toLowerCase()) ? [place] : [];
+  const places = [...new Map(demoCases.map(item => [item.result.case.place.place_id, item.result.case.place])).values()];
+  return places.filter(place => `${place.name} ${place.place_id} ${place.place_id.endsWith('lviv') ? 'Lviv Львів' : 'Kyiv Київ'}`.toLowerCase().includes(query.trim().toLowerCase()));
 }
 export async function runCheck(spec: CaseSpec, demoId: string, signal?: AbortSignal): Promise<CheckResult> {
   if (isLive) {
@@ -34,12 +34,13 @@ export async function runCheck(spec: CaseSpec, demoId: string, signal?: AbortSig
     return result;
   }
   if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-  const fixture = demoCases.find(item => item.id === demoId)!;
-  const original = fixture.result.case;
-  const matches = original.claim_text === spec.claim_text && original.variable_id === spec.variable_id && original.place.place_id === spec.place.place_id &&
-    original.season === spec.season && original.start_year === spec.start_year &&
-    original.end_year === spec.end_year && original.claim_direction === spec.claim_direction;
-  if (!matches) throw new Error('No saved demo response matches these parameters. Choose a demo case, or connect the backend to check a custom case.');
+  const fixture = demoCases.find(item => {
+    const original = item.result.case;
+    return original.claim_text === spec.claim_text && original.variable_id === spec.variable_id && original.place.place_id === spec.place.place_id &&
+      original.season === spec.season && original.start_year === spec.start_year &&
+      original.end_year === spec.end_year && original.claim_direction === spec.claim_direction;
+  });
+  if (!fixture) throw new Error('No saved backend response matches these parameters. Choose one of the three saved cases. Custom calculations require the calculation API.');
   return structuredClone(fixture.result);
 }
 
