@@ -197,17 +197,19 @@ imagery still depends on NASA GIBS availability.
 `src/chart/` holds two components rendered by the verdict card between the witness badge
 and **How we checked this**:
 
-- **Year stripes** (`YearStripes.tsx`): one stripe per `series` year. Colour runs from the
-  lowest to the highest value of the record; no baseline or normal is implied, and missing
-  years are hatched. The legend shows the extremes with units.
+- **Year stripes** (`YearStripes.tsx`): one stripe per `series` year, coloured by
+  `value − baseline.mean` on a diverging scale with zero in the middle. The legend names
+  `baseline.period` and `baseline.kind` (1991–2020 normal or the whole-record average);
+  tooltips show the absolute value and the baseline mean, not a computed difference.
+  Missing years are hatched.
 - **Series chart** (`SeriesChart.tsx`, Chart.js): yearly `series` points, the Sen trend from
-  `intercept + slope_per_year × (year − start_year)` and `witness.series` as a separate line
-  with `spanGaps: false`, so null years break the line. Hover tooltips name the year and say
+  `sen.band[*].mid`, the shaded 95% band from `sen.band[*].low` / `high` (uncertainty of the
+  trend slope, not the range of single years) and `witness.series` as a separate line with
+  `spanGaps: false`, so null years break the line. Hover tooltips name the year and say
   **no station measurement** for gaps. Axis titles carry the variable, units and season.
-- The 95% Sen range (`ci_low`/`ci_high`, per decade) is shown as legend text. A shaded band
-  needs its outline from the backend; it is not computed in the browser.
 - The canvas is not readable by screen readers, so **Exact values for every year** lists each
-  year with the received value, the station value or its absence, and provider links.
+  year with the received value, trend and band values, the station value or its absence,
+  and provider links.
 
 `tests/chart.test.mjs` checks the table against the canonical JSON, gap tooltips, legend
-units and the no-station and DJF cases.
+units, the band and baseline legend, and the no-station and DJF cases.
