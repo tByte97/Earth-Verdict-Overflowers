@@ -19,13 +19,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .catalog import load_variables
+from .catalog import load_compounds, load_variables
 from .check import REGIONS, CheckError, run_check
-from .models import CaseSpec, CheckResult, ErrorResponse, Place, Variable
+from .event import get_global_co2_summary, run_co2_impact, run_event
+from .models import (
+    CaseSpec,
+    CheckResult,
+    Co2GlobalSummary,
+    Co2ImpactResult,
+    Co2ImpactSpec,
+    Compound,
+    ErrorResponse,
+    EventResult,
+    EventSpec,
+    Place,
+    Variable,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.environ.get("EV_DATA_DIR", ROOT / "data"))
 CASES_DIR = DATA_DIR / "cases"
+EVENTS_DIR = DATA_DIR / "events"
 LAYERS_DIR = DATA_DIR / "layers"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 
@@ -119,6 +133,67 @@ async def case(case_id: str):
                                                  "message": f"Unknown case '{case_id}'."}).model_dump(),
                             status_code=404)
     return JSONResponse(json.loads(path.read_text()))
+
+
+# ---------- pollutant event impact & CO2 physics ----------
+
+@app.get("/api/compounds", response_model=list[Compound])
+async def compounds():
+    return [c.public() for c in load_compounds().values()]
+
+
+@app.post("/api/event", response_model=EventResult,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def event(spec: EventSpec):
+    return await asyncio.to_thread(run_event, spec)
+
+
+def _event_index() -> dict[str, Path]:
+    if not EVENTS_DIR.is_dir():
+        return {}
+    return {p.stem: p for p in sorted(EVENTS_DIR.glob("*.json"))}
+
+
+@app.get("/api/events")
+async def events():
+    out = []
+    for eid, path in _event_index().items():
+        r = json.loads(path.read_text())
+        out.append({
+            "id": eid,
+            "event_label": r["spec"]["event_label"],
+            "event_month": r["spec"]["event_month"],
+            "place": r["spec"]["place"]["name"],
+            "compound_id": r["spec"]["compound_id"],
+            "verdict": r["verdict"],
+            "reason": r["reason"],
+            "effect": r["effect"],
+            "relative_change": r["relative_change"],
+        })
+    return out
+
+
+@app.get("/api/events/{event_id}", response_model=EventResult, responses={404: {"model": ErrorResponse}})
+async def event_detail(event_id: str):
+    path = _event_index().get(event_id)
+    if path is None:
+        return JSONResponse(ErrorResponse(error={"code": "bad_request",
+                                                 "message": f"Unknown event '{event_id}'."}).model_dump(),
+                            status_code=404)
+    return JSONResponse(json.loads(path.read_text()))
+
+
+@app.post("/api/co2-impact", response_model=Co2ImpactResult,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def co2_impact(spec: Co2ImpactSpec):
+    return await asyncio.to_thread(run_co2_impact, spec)
+
+
+@app.get("/api/co2/global", response_model=Co2GlobalSummary,
+         responses={503: {"model": ErrorResponse}})
+async def co2_global():
+    summary, _ = await asyncio.to_thread(get_global_co2_summary)
+    return summary
 
 
 # ---------- trend layers for the globe (precomputed, FDR-corrected) ----------
