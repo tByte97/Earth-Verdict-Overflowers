@@ -129,7 +129,7 @@ def trend(years, values):
                 intercept_at_start=float(ts.intercept + ts.slope * x[0]),
                 mk_p=float(mk.p), tau=float(mk.Tau), z=float(mk.z),
                 ols_slope=float(lr.slope), ols_p=p_ols, r2=float(lr.rvalue ** 2), n_eff=float(n_eff),
-                r1=r1, sd=sd, n_star=n_star)
+                r1=r1, phi=phi, sd=sd, n_star=n_star)
 
 
 def windows(start, end):
@@ -242,6 +242,31 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
                              f"&stations={witness['station']['id']}&dataTypes={var['station']}&units=metric&format=json",
                          retrieved_at=city["retrieved"], license="Public domain (NOAA)"))
 
+    # A. Скільки ще чекати: та сама формула Weatherhead для різних швидкостей зміни
+    mults = [0.5, 0.75, 1.0, 1.5, 2.0]
+    infl = math.sqrt((1 + main["phi"]) / (1 - main["phi"]))
+    detection = dict(
+        residual_sd=round(main["sd"], 4), phi=round(main["phi"], 4), slope_per_year=round(main["slope"], 5),
+        n_years=main["n"], multipliers=mults,
+        years_needed=[round((3.3 * main["sd"] / abs(k * main["slope"]) * infl) ** (2 / 3), 1) if main["slope"] else None
+                      for k in mults],
+    )
+
+    # B. Продовження тренду до 2050 при різних швидкостях; віяло — з 95% інтервалу нахилу
+    fut = list(range(end, 2051))
+    y_end = main["intercept_at_start"] + main["slope"] * (end - start)
+    ext_paths = []
+    for pid, lab, k in [("stop", "The change stops", 0.0), ("slower", "Half as fast", 0.5),
+                        ("same", "Same pace as 1981–2025", 1.0), ("faster", "1.5× faster", 1.5)]:
+        ext_paths.append(dict(id=pid, label=lab, multiplier=k,
+                              central=[round(y_end + k * main["slope"] * (t - end), d) for t in fut],
+                              low=[round(y_end + k * min(main["lo"], main["hi"]) * (t - end), d) for t in fut],
+                              high=[round(y_end + k * max(main["lo"], main["hi"]) * (t - end), d) for t in fut]))
+    extrapolation = dict(
+        note="What-if line, not a forecast: it only shows where the trend would go at this pace. "
+             "For physically based futures see the climate-model scenarios.",
+        from_year=end, from_value=round(y_end, d), years=fut, paths=ext_paths)
+
     scen = None
     if scenarios:
         i0, i1 = years.index(1995), years.index(2014) + 1
@@ -266,7 +291,7 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
         robustness=rob,
         robustness_summary=dict(significant=n_sig, total=len(rob)),
         witness=witness, verdict=verdict, reason=reason, years_to_wait=wait,
-        steps=steps, scenarios=scen, provenance=prov,
+        steps=steps, detection=detection, extrapolation=extrapolation, scenarios=scen, provenance=prov,
         meta=dict(stub=True, stats_engine="provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
                   generated_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
     )

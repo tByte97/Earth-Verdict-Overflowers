@@ -143,6 +143,37 @@ class Scenarios(Strict):
     paths: list[ScenarioPath]
 
 
+class Detection(Strict):
+    """A. «Скільки ще чекати»: статистика виявлення (Weatherhead et al. 1998), не прогноз.
+    years_needed[i] = загальна кількість років спостережень, потрібна, щоб тренд зі
+    швидкістю slope_per_year × multipliers[i] став помітним на тлі шуму ряду.
+    Формула для фронтенду: n* = ((3.3·residual_sd / |k·slope|) · sqrt((1+phi)/(1−phi)))^(2/3)."""
+    residual_sd: float
+    phi: float              # автокореляція залишків (lag-1), обмежена 0…0.9
+    slope_per_year: float
+    n_years: int            # скільки років уже є
+    multipliers: list[float]
+    years_needed: list[Optional[float]]  # None = нахил нульовий, виявити неможливо
+
+
+class ExtrapolationPath(Strict):
+    id: Literal["stop", "slower", "same", "faster"]
+    label: str
+    multiplier: float
+    central: list[float]
+    low: list[float]        # з 95% інтервалу нахилу Сена
+    high: list[float]
+
+
+class Extrapolation(Strict):
+    """B. Продовження тренду: «що буде, якщо швидкість зміни стане такою». Не прогноз."""
+    note: str
+    from_year: int
+    from_value: float       # значення лінії тренду в from_year
+    years: list[int]
+    paths: list[ExtrapolationPath]
+
+
 class Provenance(Strict):
     what: str
     source: str
@@ -173,7 +204,9 @@ class CheckResult(Strict):
                     "sources_disagree", "not_robust"]
     years_to_wait: Optional[int]        # лише для not_proven
     steps: list[Step]
-    scenarios: Optional[Scenarios]      # не впливає на verdict
+    detection: Detection                # A: повзунок «швидкість ×0.5…×2 → скільки років треба»
+    extrapolation: Extrapolation        # B: продовження тренду, підпис «сценарій, не прогноз»
+    scenarios: Optional[Scenarios]      # C: сценарії CMIP6; жоден із трьох не впливає на verdict
     provenance: list[Provenance]
     meta: Meta
 
