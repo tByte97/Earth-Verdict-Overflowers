@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Збирає показові справи (CheckResult) з даних, викачаних tools/fetch_data.py.
 
-Статистика тут ТИМЧАСОВА: готові бібліотеки (pymannkendall, scipy), щоб у заглушці для
-фронтенду були справжні числа, узгоджені з рядом. Власний модуль backend/app/stats/
-(задача #12) її замінить.
+Використовує статистичне ядро backend/app/stats та backend/app/verdict.
 
 Запуск (з кореня репозиторію):
   backend/.venv/bin/python tools/build_cases.py --explore   # таблиця кандидатів
@@ -12,26 +10,18 @@
 import argparse
 import calendar
 import json
-import math
 import sys
 import time
 from pathlib import Path
 
-import numpy as np
-import pymannkendall as pmk
-from scipy import stats
-
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 from app.models import CheckResult  # noqa: E402
+from app.stats import build_extrapolation, months_for_season, seasonal_series  # noqa: E402
+from app.verdict import ALPHA, evaluate_verdict, sig3  # noqa: E402
 
 DATA = ROOT / "data"
 CASES = DATA / "cases"
-ALPHA = 0.05
-MIN_YEARS = 15
-ROBUST_NEED = 4  # значущих вікон із 5
-
-SEASON_MONTHS = {"year": list(range(1, 13)), "DJF": [12, 1, 2], "MAM": [3, 4, 5], "JJA": [6, 7, 8], "SON": [9, 10, 11]}
 
 # variable_id → як брати й агрегувати; тексти англійською (мова інтерфейсу за ТЗ)
 VARIABLES = {
@@ -62,85 +52,6 @@ def load_city(key):
     return json.loads((DATA / f"{key}.json").read_text())
 
 
-def monthly_lookup(arr, start="1981-01"):
-    y0, m0 = map(int, start.split("-"))
-    def get(y, m):
-        i = (y - y0) * 12 + (m - m0)
-        return arr[i] if 0 <= i < len(arr) else None
-    return get
-
-
-def seasonal(arr, season, agg, y_from, y_to, per_day=False):
-    """Одне значення на рік. DJF року Y = грудень Y-1 + січень, лютий Y. Рік з пропуском → None.
-    per_day=True: значення в мм/добу, для суми множимо на кількість днів місяця."""
-    get = monthly_lookup(arr)
-    out = []
-    for y in range(y_from, y_to + 1):
-        vals = []
-        for m in SEASON_MONTHS[season]:
-            yy = y - 1 if (season == "DJF" and m == 12) else y
-            v = get(yy, m)
-            if v is None:
-                vals = None
-                break
-            if agg == "sum" and per_day:
-                v *= calendar.monthrange(yy, m)[1]
-            vals.append(v)
-        out.append(None if vals is None else (sum(vals) if agg == "sum" else sum(vals) / len(vals)))
-    return list(range(y_from, y_to + 1)), out
-
-
-# ---------- тимчасова статистика ----------
-
-def sig3(p):
-    """p-значення до трьох значущих цифр: 1.23e-07, а не 0.0."""
-    return float(f"{p:.3g}")
-
-
-def lag1(res):
-    r = np.asarray(res) - np.mean(res)
-    return float(np.sum(r[1:] * r[:-1]) / np.sum(r * r)) if np.sum(r * r) > 0 else 0.0
-
-
-def trend(years, values):
-    x = np.array([y for y, v in zip(years, values) if v is not None], float)
-    y = np.array([v for v in values if v is not None], float)
-    n = len(y)
-    if n < MIN_YEARS:
-        return None
-    ts = stats.theilslopes(y, x, alpha=0.95)
-    with np.errstate(invalid="ignore"):
-        mk = pmk.hamed_rao_modification_test(y)
-    if not math.isfinite(mk.p):
-        # TODO(#12): Hamed–Rao іноді дає від'ємну дисперсію (Харків, опади JJA) → NaN.
-        # Тимчасово: звичайний тест; у власному модулі — обмежити поправку знизу.
-        mk = pmk.original_test(y)
-    lr = stats.linregress(x, y)
-    res = y - (lr.intercept + lr.slope * x)
-    r1 = lag1(res)
-    n_eff = n * (1 - r1) / (1 + r1) if r1 > 0 else float(n)
-    t = lr.slope / lr.stderr * math.sqrt(max(n_eff - 2, 1) / (n - 2)) if lr.stderr > 0 else 0.0
-    p_ols = float(2 * stats.t.sf(abs(t), max(n_eff - 2, 1)))
-    # Weatherhead et al. 1998: скільки років треба, щоб такий нахил став помітним
-    phi = min(max(r1, 0.0), 0.9)
-    sd = float(np.std(res, ddof=1))
-    n_star = (3.3 * sd / abs(ts.slope) * math.sqrt((1 + phi) / (1 - phi))) ** (2 / 3) if ts.slope else math.inf
-    return dict(n=n, x0=float(x[0]), slope=float(ts.slope), lo=float(ts.low_slope), hi=float(ts.high_slope),
-                intercept_at_start=float(ts.intercept + ts.slope * x[0]),
-                mk_p=float(mk.p), tau=float(mk.Tau), z=float(mk.z),
-                ols_slope=float(lr.slope), ols_p=p_ols, r2=float(lr.rvalue ** 2), n_eff=float(n_eff),
-                r1=r1, phi=phi, sd=sd, n_star=n_star)
-
-
-def windows(start, end):
-    cands = [(start, end), (start + 3, end), (start + 6, end), (start, end - 3), (start + 3, end - 3)]
-    return [(a, b) for a, b in cands if b - a + 1 >= MIN_YEARS]
-
-
-def sign_ok(direction, slope):
-    return {"increase": slope > 0, "decrease": slope < 0, "change": slope != 0}[direction]
-
-
 # ---------- одна справа ----------
 
 def build(city_key, variable_id, season, direction, claim, start=1981, end=2025, scenarios=None):
@@ -148,69 +59,91 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
     var = VARIABLES[variable_id]
     if season == "DJF" and start == 1981:
         start = 1982  # для зими 1981 немає грудня 1980
+    data_start_y, data_start_m = map(int, city.get("months_start", "1981-01").split("-"))
     per_day = var["agg"] == "sum"
-    years, vals = seasonal(city["power"]["series"][var["power"]], season, var["agg"], start, end, per_day)
-    main = trend(years, vals)
+    years, vals = seasonal_series(
+        city["power"]["series"][var["power"]],
+        season,
+        var["agg"],
+        start,
+        end,
+        per_day=per_day,
+        data_start_year=data_start_y,
+        data_start_month=data_start_m,
+    )
 
-    rob = []
-    for a, b in windows(start, end):
-        i0, i1 = years.index(a), years.index(b) + 1
-        t = trend(years[i0:i1], vals[i0:i1])
-        rob.append(dict(start_year=a, end_year=b, p=sig3(t["mk_p"]), slope_per_decade=round(t["slope"] * 10, 4),
-                        significant=bool(t["mk_p"] < ALPHA and np.sign(t["slope"]) == np.sign(main["slope"]))))
-    n_sig = sum(w["significant"] for w in rob)
-
-    witness, w_agree = None, "no_station"
     st = city.get("station")
-    if var["station"] and st:
-        wy, wv = seasonal(st["series"][var["station"]], season, var["agg"], start, end, per_day=False)
-        cov = sum(v is not None for v in wv) / len(wv)
-        wt = trend(wy, wv) if cov >= 0.6 else None
-        if wt:
-            same = np.sign(wt["slope"]) == np.sign(main["slope"])
-            w_agree = "agree" if (wt["mk_p"] < ALPHA and same) else "disagree" if (wt["mk_p"] < ALPHA and not same) else "one_source"
-            witness = dict(
-                station=dict(id=st["id"], name=st["name"].title(), lat=st["lat"], lon=st["lon"], distance_km=st["distance_km"]),
-                series=[dict(year=y, value=None if v is None else round(v, var["dec"])) for y, v in zip(wy, wv)],
-                coverage=round(cov, 3),
-                method_note=("Monthly means computed from daily GHCN-Daily records (≥25 days per month)"
-                             if variable_id == "air_temp" and st.get("tavg_source", "").startswith("ghcnd") else None),
-                sen=dict(slope_per_decade=round(wt["slope"] * 10, 4), ci_low=round(wt["lo"] * 10, 4), ci_high=round(wt["hi"] * 10, 4)),
-                mk=dict(p=sig3(wt["mk_p"])),
-                agreement=w_agree,
-            )
+    wy, wv = None, None
+    if var["station"] and st and var["station"] in st.get("series", {}):
+        wy, wv = seasonal_series(
+            st["series"][var["station"]],
+            season,
+            var["agg"],
+            start,
+            end,
+            per_day=False,
+            data_start_year=data_start_y,
+            data_start_month=data_start_m,
+        )
 
-    # ---------- вердикт ----------
-    sig = main["mk_p"] < ALPHA
-    if main["n"] < MIN_YEARS:
-        verdict, reason = "not_proven", "short_series"
-    elif not sig:
-        verdict, reason = "not_proven", "not_significant"
-    elif n_sig < ROBUST_NEED:
-        verdict, reason = "not_proven", "not_robust"
-    elif w_agree == "disagree":
-        verdict, reason = "not_proven", "sources_disagree"
-    elif sign_ok(direction, main["slope"]):
-        verdict, reason = "confirmed", "significant_trend"
-    else:
-        verdict, reason = "refuted", "opposite_trend"
-    wait = None
-    if verdict == "not_proven" and math.isfinite(main["n_star"]) and main["n_star"] > main["n"]:
-        # TODO(#12): коли n* ≤ n, а тест не значущий, формула суперечить тесту — тоді не показуємо.
-        wait = math.ceil(main["n_star"] - main["n"])
+    ev = evaluate_verdict(
+        years,
+        vals,
+        direction=direction,
+        start_year=start,
+        end_year=end,
+        witness_years=wy,
+        witness_values=wv,
+    )
+    main = ev.main
+    rob = [
+        dict(
+            start_year=w.start_year,
+            end_year=w.end_year,
+            p=sig3(w.p),
+            slope_per_decade=round(w.slope_per_decade, 4),
+            significant=w.significant,
+        )
+        for w in ev.robustness.windows
+    ]
+    n_sig = ev.robustness.significant
+
+    witness = None
+    w_agree = ev.witness_agreement
+    if ev.witness_trend and wy is not None and wv is not None and st is not None:
+        wt = ev.witness_trend
+        witness = dict(
+            station=dict(id=st["id"], name=st["name"].title(), lat=st["lat"], lon=st["lon"], distance_km=st["distance_km"]),
+            series=[dict(year=y, value=None if v is None else round(v, var["dec"])) for y, v in zip(wy, wv)],
+            coverage=round(ev.witness_coverage or 0.0, 3),
+            method_note=("Monthly means computed from daily GHCN-Daily records (≥25 days per month)"
+                         if variable_id == "air_temp" and st.get("tavg_source", "").startswith("ghcnd") else None),
+            sen=dict(
+                slope_per_decade=round(wt.sen.slope_per_decade, 4),
+                ci_low=round(wt.sen.ci_low_per_year * 10, 4),
+                ci_high=round(wt.sen.ci_high_per_year * 10, 4),
+            ),
+            mk=dict(p=sig3(wt.mk.p)),
+            agreement=w_agree,
+        )
+
+    verdict, reason, wait = ev.verdict, ev.reason, ev.years_to_wait
+    sig = main.mk.p < ALPHA
 
     u, d = var["units"], var["dec"]
     dec = lambda v: f"{v * 10:+.{d}f} {u} per 10 years"
+    season_months = months_for_season(season)
+    season_step_val = SEASON_LABEL[season] if isinstance(season, str) else calendar.month_name[season_months[0]]
     steps = [
         dict(id="raw", title="Monthly data", value=f"{(end - start + 1) * 12} months",
              detail=f"Monthly {var['label'].lower()} for {city['name']} from NASA POWER, {start}–{end}."),
-        dict(id="season", title="Pick the season", value=SEASON_LABEL[season],
-             detail=f"Only the months the claim is about are kept ({', '.join(calendar.month_abbr[m] for m in SEASON_MONTHS[season])})."),
-        dict(id="yearly", title="One value per year", value=f"{main['n']} years",
+        dict(id="season", title="Pick the season", value=season_step_val,
+             detail=f"Only the months the claim is about are kept ({', '.join(calendar.month_abbr[m] for m in season_months)})."),
+        dict(id="yearly", title="One value per year", value=f"{main.n} years",
              detail=f"The months of each year are {'added up' if var['agg'] == 'sum' else 'averaged'} into one number."),
-        dict(id="trend", title="Overall direction", value=dec(main["slope"]),
+        dict(id="trend", title="Overall direction", value=dec(main.sen.slope_per_year),
              detail="The typical change over time, robust to single extreme years (Sen's slope)."),
-        dict(id="random_check", title="Could it be chance?", value=f"p = {main['mk_p']:.3f}" if main["mk_p"] >= 0.001 else "p < 0.001",
+        dict(id="random_check", title="Could it be chance?", value=f"p = {main.mk.p:.3f}" if main.mk.p >= 0.001 else "p < 0.001",
              detail=("Very unlikely to appear by chance if nothing were changing." if sig
                      else "A slope like this easily appears by chance when weather simply varies.")),
         dict(id="robustness", title="Does the choice of years matter?", value=f"{n_sig} of {len(rob)} periods agree",
@@ -242,30 +175,25 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
                              f"&stations={witness['station']['id']}&dataTypes={var['station']}&units=metric&format=json",
                          retrieved_at=city["retrieved"], license="Public domain (NOAA)"))
 
-    # A. Скільки ще чекати: та сама формула Weatherhead для різних швидкостей зміни
-    mults = [0.5, 0.75, 1.0, 1.5, 2.0]
-    infl = math.sqrt((1 + main["phi"]) / (1 - main["phi"]))
+    det = ev.detection
     detection = dict(
-        residual_sd=round(main["sd"], 4), phi=round(main["phi"], 4), slope_per_year=round(main["slope"], 5),
-        n_years=main["n"], multipliers=mults,
-        years_needed=[round((3.3 * main["sd"] / abs(k * main["slope"]) * infl) ** (2 / 3), 1) if main["slope"] else None
-                      for k in mults],
+        residual_sd=round(det.residual_sd, 4),
+        phi=round(det.phi, 4),
+        slope_per_year=round(det.slope_per_year, 5),
+        n_years=det.n_years,
+        multipliers=det.multipliers,
+        years_needed=det.years_needed,
     )
 
-    # B. Продовження тренду до 2050 при різних швидкостях; віяло — з 95% інтервалу нахилу
-    fut = list(range(end, 2051))
-    y_end = main["intercept_at_start"] + main["slope"] * (end - start)
-    ext_paths = []
-    for pid, lab, k in [("stop", "The change stops", 0.0), ("slower", "Half as fast", 0.5),
-                        ("same", "Same pace as 1981–2025", 1.0), ("faster", "1.5× faster", 1.5)]:
-        ext_paths.append(dict(id=pid, label=lab, multiplier=k,
-                              central=[round(y_end + k * main["slope"] * (t - end), d) for t in fut],
-                              low=[round(y_end + k * min(main["lo"], main["hi"]) * (t - end), d) for t in fut],
-                              high=[round(y_end + k * max(main["lo"], main["hi"]) * (t - end), d) for t in fut]))
-    extrapolation = dict(
-        note="What-if line, not a forecast: it only shows where the trend would go at this pace. "
-             "For physically based futures see the climate-model scenarios.",
-        from_year=end, from_value=round(y_end, d), years=fut, paths=ext_paths)
+    extrapolation = build_extrapolation(
+        slope_per_year=main.sen.slope_per_year,
+        ci_low_per_year=main.sen.ci_low_per_year,
+        ci_high_per_year=main.sen.ci_high_per_year,
+        intercept_at_start=main.sen.intercept_at_start,
+        start_year=start,
+        end_year=end,
+        decimals=d,
+    )
 
     scen = None
     if scenarios:
@@ -282,20 +210,28 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
                   season=season, start_year=start, end_year=end, claim_direction=direction),
         variable=dict(id=variable_id, label=var["label"], units=u, definition=var["definition"], caveat=var["caveat"]),
         series=[dict(year=y, value=None if v is None else round(v, d)) for y, v in zip(years, vals)],
-        sen=dict(slope_per_year=round(main["slope"], 5), slope_per_decade=round(main["slope"] * 10, 4),
-                 ci_low=round(main["lo"] * 10, 4), ci_high=round(main["hi"] * 10, 4),
-                 intercept=round(main["intercept_at_start"], 3)),
-        mk=dict(p=sig3(main["mk_p"]), tau=round(main["tau"], 4), z=round(main["z"], 3), correction="hamed_rao"),
-        ols=dict(slope_per_year=round(main["ols_slope"], 5), p=sig3(main["ols_p"]), r2=round(main["r2"], 4),
-                 n_eff=round(main["n_eff"], 1)),
+        sen=dict(
+            slope_per_year=round(main.sen.slope_per_year, 5),
+            slope_per_decade=round(main.sen.slope_per_decade, 4),
+            ci_low=round(main.sen.ci_low_per_year * 10, 4),
+            ci_high=round(main.sen.ci_high_per_year * 10, 4),
+            intercept=round(main.sen.intercept_at_start, 3),
+        ),
+        mk=dict(p=sig3(main.mk.p), tau=round(main.mk.tau, 4), z=round(main.mk.z, 3), correction=main.mk.correction),
+        ols=dict(
+            slope_per_year=round(main.ols.slope_per_year, 5),
+            p=sig3(main.ols.p),
+            r2=round(main.ols.r2, 4),
+            n_eff=round(main.ols.n_eff, 1),
+        ),
         robustness=rob,
         robustness_summary=dict(significant=n_sig, total=len(rob)),
         witness=witness, verdict=verdict, reason=reason, years_to_wait=wait,
         steps=steps, detection=detection, extrapolation=extrapolation, scenarios=scen, provenance=prov,
-        meta=dict(stub=True, stats_engine="provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
+        meta=dict(stub=True, stats_engine="backend.app.stats v1",
                   generated_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
     )
-    return CheckResult.model_validate(result).model_dump(mode="json"), main
+    return CheckResult.model_validate(result).model_dump(mode="json"), ev
 
 
 # ---------- сценарії: стилізовані, поки немає CMIP6 (#14) ----------

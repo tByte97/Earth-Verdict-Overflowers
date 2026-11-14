@@ -518,7 +518,7 @@
   }
  ],
  "detection": {
-  "residual_sd": 0.9294,
+  "residual_sd": 0.9401,
   "phi": 0.0,
   "slope_per_year": 0.06512,
   "n_years": 45,
@@ -530,11 +530,11 @@
    2.0
   ],
   "years_needed": [
-   20.7,
-   15.8,
-   13.0,
+   20.9,
+   15.9,
+   13.1,
    10.0,
-   8.2
+   8.3
   ]
  },
  "extrapolation": {
@@ -1061,7 +1061,7 @@
  ],
  "meta": {
   "stub": true,
-  "stats_engine": "provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
-  "generated_at": "2026-11-14T14:12:30Z"
+  "stats_engine": "backend.app.stats v1",
+  "generated_at": "2026-11-14T14:29:04Z"
  }
 }
