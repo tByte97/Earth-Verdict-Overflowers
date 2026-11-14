@@ -31,7 +31,9 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 | POST | `/api/check` | Body `CaseSpec` → `CheckResult` (takes a few seconds on first call, then cached) |
 | GET | `/api/cases` | Showcase cases: id, claim, place, verdict |
 | GET | `/api/cases/{id}` | One showcase `CheckResult` (works offline) |
-| GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected) |
+| GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected); top level has `variable_id`, `start_year`, `end_year` and `pair` (nearest cells with opposite significant trends, or null) |
+
+Each `steps[]` item has `fields` (dot paths into the result that the step summarises) and step-specific fields: `raw` → `n_months`, `monthly`; `season` → `months`, `aggregation`, `years_dropped`; `random_check` → `alpha`, `methods_agree`, `methods_reason`. They are `null` on the other steps.
 
 Errors always look like `{"error": {"code": "...", "message": "..."}}` with codes
 `unknown_variable`, `short_series`, `bad_request` (400), `place_not_found` (404),
