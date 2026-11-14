@@ -551,6 +551,210 @@
    15.0
   ]
  },
+ "detection_history": {
+  "alpha": 0.05,
+  "min_observations": 15,
+  "method": "sen_mann_kendall",
+  "start_year": 1998,
+  "points": [
+   {
+    "end_year": 1998,
+    "n_observations": 1,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1999,
+    "n_observations": 2,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2000,
+    "n_observations": 3,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2001,
+    "n_observations": 4,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2002,
+    "n_observations": 5,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2003,
+    "n_observations": 6,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2004,
+    "n_observations": 7,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2005,
+    "n_observations": 8,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2006,
+    "n_observations": 9,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2007,
+    "n_observations": 10,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2008,
+    "n_observations": 11,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2009,
+    "n_observations": 12,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2010,
+    "n_observations": 13,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2011,
+    "n_observations": 14,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 2012,
+    "n_observations": 15,
+    "p": 0.03513152440211248,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2013,
+    "n_observations": 16,
+    "p": 0.018713430089415197,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2014,
+    "n_observations": 17,
+    "p": 0.004377336600194305,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2015,
+    "n_observations": 18,
+    "p": 0.0035870661948607437,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2016,
+    "n_observations": 19,
+    "p": 0.003567777103907857,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2017,
+    "n_observations": 20,
+    "p": 0.01007214457761259,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2018,
+    "n_observations": 21,
+    "p": 0.00716248561697096,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2019,
+    "n_observations": 22,
+    "p": 0.0019002504353280187,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2020,
+    "n_observations": 23,
+    "p": 0.0014283347146383332,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2021,
+    "n_observations": 24,
+    "p": 0.0007549761549397701,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2022,
+    "n_observations": 25,
+    "p": 0.0009433046526598896,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2023,
+    "n_observations": 26,
+    "p": 0.00012412162289993163,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2024,
+    "n_observations": 27,
+    "p": 0.0001756214028534389,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2025,
+    "n_observations": 28,
+    "p": 0.00012291144963867028,
+    "correction": "hamed_rao",
+    "status": "ok"
+   }
+  ]
+ },
  "extrapolation": {
   "note": "What-if line, not a forecast: it only shows where the trend would go at this pace. For physically based futures see the climate-model scenarios.",
   "from_year": 2025,
@@ -949,217 +1153,13 @@
    "source": "NOAA Climate at a Glance",
    "product": "NOAAGlobalTemp land+ocean anomalies (Climate at a Glance)",
    "url": "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/time-series/globe/land_ocean/12/12/1850-2026/data.json",
-   "retrieved_at": "2026-11-14T21:35:50Z",
+   "retrieved_at": "2026-11-14T22:10:53Z",
    "license": "Public domain (NOAA)"
   }
  ],
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T21:35:50Z"
- },
- "detection_history": {
-  "alpha": 0.05,
-  "min_observations": 15,
-  "method": "sen_mann_kendall",
-  "start_year": 1998,
-  "points": [
-   {
-    "end_year": 1998,
-    "n_observations": 1,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 1999,
-    "n_observations": 2,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2000,
-    "n_observations": 3,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2001,
-    "n_observations": 4,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2002,
-    "n_observations": 5,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2003,
-    "n_observations": 6,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2004,
-    "n_observations": 7,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2005,
-    "n_observations": 8,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2006,
-    "n_observations": 9,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2007,
-    "n_observations": 10,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2008,
-    "n_observations": 11,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2009,
-    "n_observations": 12,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2010,
-    "n_observations": 13,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2011,
-    "n_observations": 14,
-    "p": null,
-    "correction": null,
-    "status": "short_series"
-   },
-   {
-    "end_year": 2012,
-    "n_observations": 15,
-    "p": 0.03513152440211248,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2013,
-    "n_observations": 16,
-    "p": 0.018713430089415197,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2014,
-    "n_observations": 17,
-    "p": 0.004377336600194305,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2015,
-    "n_observations": 18,
-    "p": 0.0035870661948607437,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2016,
-    "n_observations": 19,
-    "p": 0.003567777103907857,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2017,
-    "n_observations": 20,
-    "p": 0.01007214457761259,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2018,
-    "n_observations": 21,
-    "p": 0.00716248561697096,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2019,
-    "n_observations": 22,
-    "p": 0.0019002504353280187,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2020,
-    "n_observations": 23,
-    "p": 0.0014283347146383332,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2021,
-    "n_observations": 24,
-    "p": 0.0007549761549397701,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2022,
-    "n_observations": 25,
-    "p": 0.0009433046526598896,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2023,
-    "n_observations": 26,
-    "p": 0.00012412162289993163,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2024,
-    "n_observations": 27,
-    "p": 0.0001756214028534389,
-    "correction": "hamed_rao",
-    "status": "ok"
-   },
-   {
-    "end_year": 2025,
-    "n_observations": 28,
-    "p": 0.00012291144963867028,
-    "correction": "hamed_rao",
-    "status": "ok"
-   }
-  ]
+  "generated_at": "2026-11-14T22:10:55Z"
  }
 }

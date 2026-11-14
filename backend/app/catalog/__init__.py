@@ -8,9 +8,10 @@ from typing import Literal, Optional
 
 import yaml
 
-from ..models import Variable
+from ..models import Compound, EventBounds, Variable
 
 CATALOG_FILE = Path(__file__).with_name("variables.yaml")
+COMPOUNDS_FILE = Path(__file__).with_name("compounds.yaml")
 
 
 @dataclass(frozen=True)
@@ -55,3 +56,87 @@ def load_variables() -> dict[str, VariableDef]:
 
 def get_variable(variable_id: str) -> Optional[VariableDef]:
     return load_variables().get(variable_id)
+
+
+@dataclass(frozen=True)
+class CompoundDef:
+    id: str
+    label: str
+    units: str
+    decimals: int
+    definition: str
+    caveat: Optional[str]
+    product: str
+    first_year: int
+    last_year: int
+    giovanni_id: str
+    factor: float
+    min_valid_days: int
+    local_signal: bool
+    kind: str = "satellite"
+
+    def public(self) -> Compound:
+        return Compound(
+            id=self.id,
+            label=self.label,
+            units=self.units,
+            definition=self.definition,
+            caveat=self.caveat,
+            product=self.product,
+            first_year=self.first_year,
+            last_year=self.last_year,
+            local_signal=self.local_signal,
+            kind=self.kind,
+            event_bounds=[EventBounds(window_years=w, earliest=a, latest=b)
+                          for w, (a, b) in ((w, self.event_month_bounds(w)) for w in range(1, 6))
+                          if a <= b] if self.local_signal else [],
+        )
+
+    def event_month_bounds(self, window_years: int) -> tuple[str, str]:
+        """Earliest and latest event_month whose full before and after windows fit in the record."""
+        return f"{self.first_year + window_years}-01", f"{self.last_year - window_years + 1}-01"
+
+
+@lru_cache(maxsize=1)
+def load_compounds() -> dict[str, CompoundDef]:
+    raw = yaml.safe_load(COMPOUNDS_FILE.read_text(encoding="utf-8"))
+    out: dict[str, CompoundDef] = {}
+    for cid, c in raw.items():
+        out[cid] = CompoundDef(
+            id=cid,
+            label=c["label"],
+            units=c["units"],
+            decimals=int(c["decimals"]),
+            definition=c["definition"],
+            caveat=c.get("caveat"),
+            product=c["product"],
+            first_year=int(c["years"][0]),
+            last_year=int(c["years"][1]),
+            giovanni_id=c["giovanni_id"],
+            factor=float(c.get("factor", 1.0)),
+            min_valid_days=int(c.get("min_valid_days", 10)),
+            local_signal=bool(c.get("local_signal", True)),
+            kind=str(c.get("kind", "satellite")),
+        )
+    return out
+
+
+def get_compound(compound_id: str) -> Optional[CompoundDef]:
+    return load_compounds().get(compound_id)
+
+
+EVENT_SITES_FILE = Path(__file__).with_name("event_sites.yaml")
+
+
+@lru_cache(maxsize=1)
+def load_event_sites() -> dict[str, dict]:
+    """Ready-made slider events: {id: {label, kind, place{name,lat,lon}, compound_id, event_month, window_years, note}}."""
+    raw = yaml.safe_load(EVENT_SITES_FILE.read_text(encoding="utf-8"))
+    for sid, site in raw.items():
+        compound = get_compound(site["compound_id"])
+        if compound is None or not compound.local_signal:
+            raise ValueError(f"event site '{sid}': compound '{site['compound_id']}' is not usable on the slider")
+        earliest, latest = compound.event_month_bounds(int(site["window_years"]))
+        if not earliest <= site["event_month"] <= latest:
+            raise ValueError(f"event site '{sid}': {site['event_month']} is outside {earliest}..{latest}")
+    return raw

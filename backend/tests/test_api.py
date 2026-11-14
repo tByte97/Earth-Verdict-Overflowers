@@ -214,6 +214,37 @@ def test_places_offers_regions(monkeypatch):
     assert client.get("/api/places", params={"q": "world"}).json()[0]["place_id"] == "region:globe"
 
 
+def test_region_file_gives_scenarios_for_any_cell(fake_sources, monkeypatch, tmp_path):
+    import json as _json
+    from app import scenarios as sc
+
+    lats, lons = [44.125, 44.375, 44.625], [29.875, 30.125, 30.375]
+    cube = lambda base: [[[round(base + h + 0.1 * i + 0.01 * j, 2) for j in range(3)] for i in range(3)]
+                         for h in range(4)]
+    block = {sid: {"median": cube(b), "low": cube(b - 0.5), "high": cube(b + 0.5)}
+             for sid, b in (("ssp126", 1.0), ("ssp245", 1.5), ("ssp585", 2.0))}
+    data = {"name": "t", "bbox": [44, 29.75, 44.75, 30.5], "grid": {"lat": lats, "lon": lons},
+            "models": ["A", "B", "C"], "baseline_period": "1995-2014", "retrieved": "2026-11-15",
+            "catalog_url": "https://example.test", "horizons": {"years": [2030, 2050, 2070, 2100], "windows": {"2030": "2021-2040", "2050": "2041-2060",
+                                                                         "2070": "2061-2080", "2100": "2091-2100"}},
+            "variables": {"tas": {"JJA": block}, "pr": {"JJA": block}}}
+    (tmp_path / "region-t.json").write_text(_json.dumps(data))
+    monkeypatch.setattr(sc, "CMIP6_DIR", tmp_path)
+    sc._load.cache_clear()
+
+    out = sc.nearby_scenarios("air_temp", "JJA", 44.4, 30.1)        # inside -> cell (1, 1)
+    assert out["synthetic"] is False and out["source"].startswith("NASA NEX-GDDP-CMIP6 (3-model")
+    assert out["paths"][0]["median"] == [1.11, 2.11, 3.11, 4.11]
+    assert out["paths"][2]["high"][0] == 2.61
+    assert out["paths"][0]["windows"] == ["2021-2040", "2041-2060", "2061-2080", "2091-2100"]
+    assert sc.nearby_scenarios("air_temp", "JJA", 10.0, 10.0) is None
+    assert sc.nearby_scenarios("snow_depth", "JJA", 44.4, 30.1) is None
+    r = client.post("/api/check", json=spec(place={"place_id": "pt:44.40,30.10", "name": "Point", "lat": 44.4, "lon": 30.1}))
+    assert r.status_code == 200, r.text
+    assert r.json()["scenarios"]["paths"][0]["analogs"][0]["year"] == 2030
+    sc._load.cache_clear()
+
+
 def test_scenario_analogs_pick_closest_year_or_beyond_record():
     from app.scenarios import add_observed_context
     scen = {"baseline_value": 20.0, "paths": [{"years": [2050, 2100], "median": [1.4, 9.0],

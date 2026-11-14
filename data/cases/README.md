@@ -52,4 +52,4 @@ This is a coordinated schema addition: the updated client accepts older response
 
 After installing the backend dependencies and fetching the source data, `python tools/build_cases.py` uses `app.check.assemble_result` to generate both current statistics and prefix histories. Live `/api/check` uses that same assembly path. No new endpoint, browser-side statistical library or calculation on slider movement is required.
 
-For this addition, only `detection_history` was appended to the saved cases. Original fields were preserved. Provider aggregates were verified against every saved annual series, and the formatted final prefix p-value was checked against each original `mk.p` before writing.
+Regenerate the complete saved responses with that builder after contract updates; do not merge or append JSON fields by hand. The rebuilt responses include `detection_history` together with the Sen pivot/band, baseline, structured steps and expanded scenario metadata. Retrieval/generation metadata may change during a rebuild. The formatted final prefix p-value must still agree with the response's main `mk.p`.

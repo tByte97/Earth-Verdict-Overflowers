@@ -335,3 +335,190 @@ class ErrorBody(Strict):
 
 class ErrorResponse(Strict):
     error: ErrorBody
+
+
+# ---------- Pollutant Event Impact & CO2 Physics ----------
+
+class EventBounds(Strict):
+    """Range of event_month whose full before and after windows fit the record."""
+    window_years: int
+    earliest: str
+    latest: str
+
+
+class Compound(Strict):
+    id: str
+    label: str
+    units: str
+    definition: str
+    caveat: Optional[str] = None
+    product: str
+    first_year: int
+    last_year: int
+    local_signal: bool
+    kind: Literal["satellite", "reanalysis"]
+    event_bounds: list[EventBounds]     # empty when local_signal is false (CO2)
+
+
+class MonthValue(Strict):
+    month: str
+    value: Optional[float]
+
+
+class EventSpec(Strict):
+    compound_id: str
+    place: Place
+    event_month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    event_label: str
+    window_years: int = Field(default=3, ge=1, le=5)
+    use_control: bool = True
+
+
+class WindowSummary(Strict):
+    start: str
+    end: str
+    mean: Optional[float]
+    n: int
+
+
+class PlaceboCheck(Strict):
+    event_month: str
+    effect: float
+    p: float
+
+
+class EventSen(Strict):
+    slope_per_year: float
+    ci_low: float
+    ci_high: float
+
+
+class EventStep(Strict):
+    id: Literal["data", "seasons", "control", "before_after", "chance", "placebo", "verdict"]
+    title: str
+    value: str
+    detail: str
+
+
+class EventResult(Strict):
+    spec: EventSpec
+    compound: Compound
+    site: list[MonthValue]
+    control: Optional[list[MonthValue]]
+    before: WindowSummary
+    after: WindowSummary
+    effect: Optional[float]
+    ci_low: Optional[float]
+    ci_high: Optional[float]
+    bootstrap_ci_low: Optional[float]
+    bootstrap_ci_high: Optional[float]
+    p: Optional[float]
+    relative_change: Optional[float]
+    placebo: list[PlaceboCheck]
+    placebo_larger: int
+    verdict: Literal["clear_change", "not_proven"]
+    direction: Literal["increase", "decrease", "none"]
+    reason: Literal["clear_change", "not_significant", "placebo_also_changes", "too_short", "no_placebo"]
+    sen_before: Optional[EventSen]
+    sen_after: Optional[EventSen]
+    steps: list[EventStep]
+    provenance: list[Provenance]
+    meta: Meta
+
+
+class EventSite(Strict):
+    """A ready-made event for the slider (catalog/event_sites.yaml)."""
+    id: str
+    label: str
+    kind: Literal["opening", "closure", "lockdown", "eruption", "check"]
+    place: Place
+    compound_id: str
+    event_month: str
+    window_years: int
+    note: str
+    saved: bool             # a precomputed EventResult exists at /api/events/{id}
+
+
+class EventProfileSpec(Strict):
+    compound_id: str
+    place: Place
+    window_years: int = Field(default=3, ge=1, le=5)
+    use_control: bool = True
+
+
+class ProfilePoint(Strict):
+    event_month: str
+    effect: Optional[float]
+    ci_low: Optional[float]
+    ci_high: Optional[float]
+    p: Optional[float]
+    verdict: Literal["clear_change", "not_proven"]
+    reason: Literal["clear_change", "not_significant", "placebo_also_changes", "too_short", "no_placebo"]
+    n_placebo: int
+    placebo_larger: int
+
+
+class EventProfile(Strict):
+    """Verdict for every possible event month at one place, for the slider (same rules as /api/event,
+    without the bootstrap interval)."""
+    spec: EventProfileSpec
+    compound: Compound
+    site: list[MonthValue]
+    control: Optional[list[MonthValue]]
+    earliest: str
+    latest: str
+    points: list[ProfilePoint]
+    provenance: list[Provenance]
+    meta: Meta
+
+
+class Co2ImpactSpec(Strict):
+    mt_co2_per_year: float = Field(gt=0, le=50_000)   # world fossil CO2 is ~37,000 Mt/yr
+    years: float = Field(gt=0, le=200)
+    what_if_ppm: Optional[float] = Field(default=None, ge=150, le=2_000)
+    c0_ppm: float = Field(default=280.0, ge=150, le=2_000)
+    label: Optional[str] = Field(default=None, max_length=120)
+
+
+class Co2Range(Strict):
+    central: float
+    low: float
+    high: float
+
+
+class Co2GlobalSummary(Strict):
+    latest_month: str
+    latest_ppm: float
+    yoy_growth_ppm: Optional[float]
+    sen_slope_ppm_per_year: float
+    sen_ci_low: float
+    sen_ci_high: float
+    series: list[MonthValue]
+
+
+class Co2ImpactResult(Strict):
+    spec: Co2ImpactSpec
+    total_emitted_gt: float
+    added_ppm: Co2Range
+    added_forcing_w_m2: Co2Range
+    transient_warming_c: Co2Range
+    what_if_forcing_w_m2: Optional[float] = None
+    what_if_warming_c: Optional[Co2Range] = None
+    global_co2: Co2GlobalSummary
+    explanation: str
+    provenance: list[Provenance]
+
+
+# ---------- Explanations (Gemini) ----------
+
+class ChatRequest(Strict):
+    kind: Literal["check", "event", "co2"]
+    result: dict
+    question: Optional[str] = Field(default=None, max_length=300)
+    lang: Literal["en", "uk"] = "en"
+
+
+class ChatResponse(Strict):
+    text: str
+    model: str
+    grounded: bool      # False: the model's answer used a number not in the result; text is the built-in summary
