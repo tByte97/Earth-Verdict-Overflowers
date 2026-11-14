@@ -27,6 +27,9 @@ export function fieldContext(path: string, r: CheckResult): { unit: string; cont
   if (window) { const row = r.robustness[Number(window[1])]; context = `${row.start_year}–${row.end_year} · ${r.case.season}`; }
   if (/\.(lat|lon)$/.test(path)) { unit = 'degrees'; context = 'Location'; }
   else if (path.endsWith('distance_km')) { unit = 'km'; context = 'Distance to station'; }
+  else if (/^sen\.band\.\d+\.(low|mid|high)$/.test(path) || path === 'sen.pivot_value' || path === 'baseline.mean') unit = r.variable.units;
+  else if (path === 'baseline.n_years') unit = 'observed years';
+  else if (path === 'sen.pivot_year') unit = 'calendar year';
   else if (/\.(year|start_year|end_year|from_year)$/.test(path)) unit = 'calendar year';
   else if (/per_decade$/.test(path) || /ci_(low|high)$/.test(path)) unit = `${r.variable.units} / decade`;
   else if (/slope_per_year$/.test(path)) unit = `${r.variable.units} / year`;
