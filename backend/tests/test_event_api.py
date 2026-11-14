@@ -156,6 +156,17 @@ def test_event_error_handling(monkeypatch: pytest.MonkeyPatch):
     r_rng = client.post("/api/event", json={**base, "event_month": "1995-01"})
     assert r_rng.status_code == 400 and r_rng.json()["error"]["code"] == "bad_request"
 
+    # OMI NO2 covers 2005-2025: a 3-year window on each side needs 2008-01..2023-01.
+    r_late = client.post("/api/event", json={**base, "event_month": "2024-06", "window_years": 3})
+    assert r_late.status_code == 400
+    assert "between 2008-01 and 2023-01" in r_late.json()["error"]["message"]
+    r_early = client.post("/api/event", json={**base, "event_month": "2005-06", "window_years": 1})
+    assert r_early.status_code == 400 and "2006-01" in r_early.json()["error"]["message"]
+
+    # CO2 mixes globally, so the local before/after slider must refuse it.
+    r_co2 = client.post("/api/event", json={**base, "compound_id": "co2", "event_month": "2018-01", "window_years": 1})
+    assert r_co2.status_code == 400 and "/api/co2-impact" in r_co2.json()["error"]["message"]
+
     r_bad = client.post("/api/event", json={"compound_id": "no2"})
     assert r_bad.status_code == 400 and r_bad.json()["error"]["code"] == "bad_request"
 
@@ -184,6 +195,55 @@ def test_co2_endpoints(fake_event_sources):
     assert imp.total_emitted_gt == pytest.approx(0.3)
     assert imp.what_if_forcing_w_m2 == pytest.approx(5.35 * math.log(2.0), abs=0.01)
     assert imp.transient_warming_c.central > 0.0
+    assert "mk_p" not in rg.json()
+
+    for bad in ({"mt_co2_per_year": 1e9, "years": 30}, {"mt_co2_per_year": 10, "years": 5000},
+                {"mt_co2_per_year": 10, "years": 30, "what_if_ppm": 1.0}):
+        rb = client.post("/api/co2-impact", json=bad)
+        assert rb.status_code == 400 and rb.json()["error"]["code"] == "bad_request"
+
+
+def test_compounds_mark_reanalysis_and_global_mixing():
+    by_id = {c["id"]: c for c in client.get("/api/compounds").json()}
+    assert by_id["aod"]["kind"] == "reanalysis"
+    assert by_id["no2"]["kind"] == by_id["so2"]["kind"] == "satellite"
+    assert by_id["co2"]["local_signal"] is False
+
+
+def test_noaa_co2_cache_refreshes_and_falls_back_to_stale(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import os
+    import time
+
+    from app.sources import cache
+
+    monkeypatch.setenv("EV_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("OFFLINE", raising=False)
+    old = "# year month decimal average\n2020 1 2020.04 412.00 0.1\n"
+    new = old + "2020 2 2020.12 412.50 0.1\n"
+    path = _seed_cache(tmp_path, pollutants.NOAA_CO2_URL, None, old, ext="txt")
+
+    calls = []
+
+    def fake_fetch(full, path_, src, headers, validate, timeout):
+        calls.append(full)
+        path_.write_text(new, encoding="utf-8")
+        return new
+
+    monkeypatch.setattr(cache, "_fetch_and_store", fake_fetch)
+    assert pollutants.fetch_noaa_co2()["months"] == ["2020-01"]  # fresh cache: no request
+    assert calls == []
+
+    week = pollutants.NOAA_CO2_MAX_AGE_S
+    os.utime(path, (time.time() - week - 60, time.time() - week - 60))
+    assert pollutants.fetch_noaa_co2()["months"] == ["2020-01", "2020-02"]  # stale: refetched
+    assert len(calls) == 1
+
+    def down(*a, **k):
+        raise SourceUnavailable("noaa", "down")
+
+    monkeypatch.setattr(cache, "_fetch_and_store", down)
+    os.utime(path, (time.time() - week - 60, time.time() - week - 60))
+    assert pollutants.fetch_noaa_co2()["months"] == ["2020-01", "2020-02"]  # source down: stale copy
 
 
 def test_events_showcase_endpoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fake_event_sources):
@@ -292,3 +352,25 @@ def test_giovanni_daily_aggregation_and_control_ring_offline(tmp_path: Path, mon
     assert res["control"][1] is None  # only 4/8 valid points < 5
     assert "super-secret-token" not in res["url"]
     assert all("super-secret-token" not in u for u in res["control_urls"])
+
+
+def test_control_ring_level_does_not_jump_when_a_point_drops_out(monkeypatch: pytest.MonkeyPatch):
+    # Ring points sit at different levels (1..8) and never change. When the brightest point is
+    # missing in one month, a raw average would dip; the anomaly average must stay flat.
+    levels = [float(i + 1) for i in range(8)]
+
+    def fake_daily(var_id, lat, lon, start_year, end_year, **kw):
+        n = (end_year - start_year + 1) * 12
+        ring = pollutants.control_ring_points(30.0, 50.0)
+        idx = next((i for i, (_, la, lo) in enumerate(ring) if (la, lo) == (lat, lon)), None)
+        if idx is None:  # site
+            vals = [1.0] * n
+        else:
+            vals = [levels[idx]] * n
+            if idx == 7:
+                vals[5] = None
+        return {"monthly": vals, "cell": [lat, lon], "url": "u", "doi": None}
+
+    monkeypatch.setattr(giovanni, "fetch_daily_as_monthly", fake_daily)
+    res = pollutants.fetch_site_and_control("no2", 30.0, 50.0, 2020, 2020)
+    assert res["control"] == pytest.approx([4.5] * 12)

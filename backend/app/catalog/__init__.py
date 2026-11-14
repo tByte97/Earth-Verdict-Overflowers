@@ -73,6 +73,7 @@ class CompoundDef:
     factor: float
     min_valid_days: int
     local_signal: bool
+    kind: str = "satellite"
 
     def public(self) -> Compound:
         return Compound(
@@ -85,6 +86,7 @@ class CompoundDef:
             first_year=self.first_year,
             last_year=self.last_year,
             local_signal=self.local_signal,
+            kind=self.kind,
         )
 
 
@@ -107,6 +109,7 @@ def load_compounds() -> dict[str, CompoundDef]:
             factor=float(c.get("factor", 1.0)),
             min_valid_days=int(c.get("min_valid_days", 10)),
             local_signal=bool(c.get("local_signal", True)),
+            kind=str(c.get("kind", "satellite")),
         )
     return out
 

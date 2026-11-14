@@ -17,11 +17,12 @@
   "label": "Aerosol optical depth (550 nm)",
   "units": "AOD",
   "definition": "How much smoke, dust, and haze floating in the air blocks sunlight from reaching the ground.",
-  "caveat": "MERRA-2 aerosol reanalysis (0.5° × 0.625°) assimilating MODIS and AERONET; includes natural dust and wildfire smoke alongside local pollution.",
+  "caveat": "Model reanalysis, not a direct satellite measurement: MERRA-2 (0.5° × 0.625°) assimilates MODIS and AERONET, but its emissions come from inventories, so a new plant may not appear in it. Includes natural dust and wildfire smoke alongside local pollution.",
   "product": "M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°)",
   "first_year": 2000,
   "last_year": 2025,
-  "local_signal": true
+  "local_signal": true,
+  "kind": "reanalysis"
  },
  "site": [
   {
@@ -2536,20 +2537,80 @@
   "n": 36
  },
  "effect": -0.0003,
- "ci_low": -0.0035,
- "ci_high": 0.003,
+ "ci_low": -0.0036,
+ "ci_high": 0.0031,
  "bootstrap_ci_low": -0.003,
  "bootstrap_ci_high": 0.0019,
- "p": 0.875,
+ "p": 0.878,
  "relative_change": -0.0016,
  "placebo": [
   {
+   "event_month": "2003-01",
+   "effect": 0.0041,
+   "p": 0.0338
+  },
+  {
+   "event_month": "2004-01",
+   "effect": 0.001,
+   "p": 0.624
+  },
+  {
+   "event_month": "2005-01",
+   "effect": -0.0001,
+   "p": 0.968
+  },
+  {
+   "event_month": "2006-01",
+   "effect": -0.002,
+   "p": 0.299
+  },
+  {
+   "event_month": "2007-01",
+   "effect": -0.0018,
+   "p": 0.372
+  },
+  {
+   "event_month": "2008-01",
+   "effect": -0.0023,
+   "p": 0.258
+  },
+  {
+   "event_month": "2009-01",
+   "effect": -0.0015,
+   "p": 0.453
+  },
+  {
+   "event_month": "2010-01",
+   "effect": -0.0003,
+   "p": 0.891
+  },
+  {
+   "event_month": "2011-01",
+   "effect": 0.001,
+   "p": 0.595
+  },
+  {
+   "event_month": "2012-01",
+   "effect": 0.0009,
+   "p": 0.572
+  },
+  {
+   "event_month": "2013-01",
+   "effect": 0.0006,
+   "p": 0.677
+  },
+  {
+   "event_month": "2014-01",
+   "effect": 0.0018,
+   "p": 0.318
+  },
+  {
    "event_month": "2015-01",
    "effect": 0.0011,
-   "p": 0.527
+   "p": 0.54
   }
  ],
- "placebo_larger": 0,
+ "placebo_larger": 12,
  "verdict": "not_proven",
  "direction": "decrease",
  "reason": "not_significant",
@@ -2568,7 +2629,7 @@
    "id": "data",
    "title": "Monthly satellite data",
    "value": "312 of 312 months",
-   "detail": "Monthly Aerosol optical depth (550 nm) at Burshtyn, Ukraine from M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°) (2000-01 to 2025-12)."
+   "detail": "Monthly Aerosol optical depth (550 nm) at Burshtyn, Ukraine from M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°) (2000-01 to 2025-12). This is a model reanalysis, not a direct satellite measurement."
   },
   {
    "id": "seasons",
@@ -2591,14 +2652,14 @@
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.875, 95% CI [-0.004, +0.003]",
+   "value": "p = 0.878, 95% CI [-0.004, +0.003]",
    "detail": "Month-to-month persistence and noise can easily produce a difference this size."
   },
   {
    "id": "placebo",
    "title": "Fake dates check",
-   "value": "0 of 1 fake dates match",
-   "detail": "No non-overlapping fake event date showed an equally large, significant jump."
+   "value": "12 of 13 fake dates match",
+   "detail": "At least one fake event date shows a shift as large as the real date, pointing to a broader trend or ordinary year-to-year swings."
   },
   {
    "id": "verdict",
@@ -2613,13 +2674,13 @@
    "source": "NASA Giovanni",
    "product": "M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=M2T1NXAER_5_12_4_TOTEXTTAU&location=%5B49.208%2C24.664%5D&time=2000-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T17:55:01Z",
+   "retrieved_at": "2026-11-14T19:41:06Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T17:55:01Z"
+  "generated_at": "2026-11-14T19:41:06Z"
  }
 }

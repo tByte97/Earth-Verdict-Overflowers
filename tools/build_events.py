@@ -108,6 +108,9 @@ def main() -> None:
         "Real monthly NASA satellite time series (`OMNO2d`, `OMSO2e`, `M2T1NXAER`) evaluated with the",
         "BACI (Before–After–Control–Impact) pipeline (`backend/app/event.py`).",
         "",
+        "Placebo = fake event dates, every 12 months, whose shift is at least as large as the real one.",
+        "A verdict needs at least 3 fake dates. `aod` is MERRA-2, a model reanalysis.",
+        "",
         "| File | Event | Compound | Effect | % | p | 95% CI | Placebo | Verdict |",
         "|---|---|---|---|---|---|---|---|---|",
         *rows,
@@ -116,7 +119,7 @@ def main() -> None:
         "",
         f"- **NOAA GML latest global monthly mean:** `{co2.global_co2.latest_month}` = **{co2.global_co2.latest_ppm:.2f} ppm** "
         f"(YoY growth: {co2.global_co2.yoy_growth_ppm:+.2f} ppm/yr; 1980+ annual Sen slope: "
-        f"{co2.global_co2.sen_slope_ppm_per_year:+.3f} ppm/yr, 95% CI [{co2.global_co2.sen_ci_low:.3f}, {co2.global_co2.sen_ci_high:.3f}], p={co2.global_co2.mk_p:.4g}).",
+        f"{co2.global_co2.sen_slope_ppm_per_year:+.3f} ppm/yr, 95% CI [{co2.global_co2.sen_ci_low:.3f}, {co2.global_co2.sen_ci_high:.3f}]).",
         f"- **10 Mt CO₂/yr × 30 years:** emits **{co2.total_emitted_gt:.2f} Gt CO₂**, adding "
         f"**{co2.added_ppm.central:.5f} ppm** ({co2.added_ppm.low:.5f}–{co2.added_ppm.high:.5f} ppm), "
         f"radiative forcing **{co2.added_forcing_w_m2.central:.6f} W/m²**, and transient warming "

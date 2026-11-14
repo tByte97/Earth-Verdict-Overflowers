@@ -21,7 +21,8 @@
   "product": "OMSO2e v003 (Aura OMI, 0.25°)",
   "first_year": 2005,
   "last_year": 2025,
-  "local_signal": true
+  "local_signal": true,
+  "kind": "satellite"
  },
  "site": [
   {
@@ -1060,11 +1061,11 @@
   },
   {
    "month": "2005-07",
-   "value": 0.001
+   "value": 0.009
   },
   {
    "month": "2005-08",
-   "value": 0.007
+   "value": -0.011
   },
   {
    "month": "2005-09",
@@ -1108,11 +1109,11 @@
   },
   {
    "month": "2006-07",
-   "value": 0.011
+   "value": 0.019
   },
   {
    "month": "2006-08",
-   "value": 0.025
+   "value": 0.016
   },
   {
    "month": "2006-09",
@@ -1156,11 +1157,11 @@
   },
   {
    "month": "2007-07",
-   "value": 0.034
+   "value": 0.027
   },
   {
    "month": "2007-08",
-   "value": 0.017
+   "value": 0.01
   },
   {
    "month": "2007-09",
@@ -1208,7 +1209,7 @@
   },
   {
    "month": "2008-08",
-   "value": 0.01
+   "value": -0.008
   },
   {
    "month": "2008-09",
@@ -1308,7 +1309,7 @@
   },
   {
    "month": "2010-09",
-   "value": 0.039
+   "value": 0.046
   },
   {
    "month": "2010-10",
@@ -1356,7 +1357,7 @@
   },
   {
    "month": "2011-09",
-   "value": 0.048
+   "value": 0.061
   },
   {
    "month": "2011-10",
@@ -1396,7 +1397,7 @@
   },
   {
    "month": "2012-07",
-   "value": 0.005
+   "value": -0.013
   },
   {
    "month": "2012-08",
@@ -1440,7 +1441,7 @@
   },
   {
    "month": "2013-06",
-   "value": 0.037
+   "value": 0.045
   },
   {
    "month": "2013-07",
@@ -1448,7 +1449,7 @@
   },
   {
    "month": "2013-08",
-   "value": 0.012
+   "value": -0.006
   },
   {
    "month": "2013-09",
@@ -1492,7 +1493,7 @@
   },
   {
    "month": "2014-07",
-   "value": 0.045
+   "value": 0.052
   },
   {
    "month": "2014-08",
@@ -1544,7 +1545,7 @@
   },
   {
    "month": "2015-08",
-   "value": 0.04
+   "value": 0.033
   },
   {
    "month": "2015-09",
@@ -1584,7 +1585,7 @@
   },
   {
    "month": "2016-06",
-   "value": 0.016
+   "value": 0.024
   },
   {
    "month": "2016-07",
@@ -1632,7 +1633,7 @@
   },
   {
    "month": "2017-06",
-   "value": 0.062
+   "value": 0.069
   },
   {
    "month": "2017-07",
@@ -1640,7 +1641,7 @@
   },
   {
    "month": "2017-08",
-   "value": -0.015
+   "value": -0.007
   },
   {
    "month": "2017-09",
@@ -1732,11 +1733,11 @@
   },
   {
    "month": "2019-07",
-   "value": 0.062
+   "value": 0.056
   },
   {
    "month": "2019-08",
-   "value": 0.045
+   "value": 0.038
   },
   {
    "month": "2019-09",
@@ -1780,7 +1781,7 @@
   },
   {
    "month": "2020-07",
-   "value": -0.0
+   "value": -0.007
   },
   {
    "month": "2020-08",
@@ -1836,7 +1837,7 @@
   },
   {
    "month": "2021-09",
-   "value": 0.01
+   "value": 0.03
   },
   {
    "month": "2021-10",
@@ -1924,11 +1925,11 @@
   },
   {
    "month": "2023-07",
-   "value": 0.018
+   "value": 0.008
   },
   {
    "month": "2023-08",
-   "value": 0.041
+   "value": 0.04
   },
   {
    "month": "2023-09",
@@ -1968,7 +1969,7 @@
   },
   {
    "month": "2024-06",
-   "value": 0.028
+   "value": 0.035
   },
   {
    "month": "2024-07",
@@ -1980,7 +1981,7 @@
   },
   {
    "month": "2024-09",
-   "value": 0.038
+   "value": 0.045
   },
   {
    "month": "2024-10",
@@ -2028,7 +2029,7 @@
   },
   {
    "month": "2025-09",
-   "value": 0.036
+   "value": 0.043
   },
   {
    "month": "2025-10",
@@ -2055,18 +2056,48 @@
   "mean": 0.17,
   "n": 30
  },
- "effect": 0.1424,
- "ci_low": 0.0542,
- "ci_high": 0.2305,
+ "effect": 0.1428,
+ "ci_low": 0.0492,
+ "ci_high": 0.2365,
  "bootstrap_ci_low": 0.0481,
- "bootstrap_ci_high": 0.2085,
- "p": 0.00244,
- "relative_change": 2.3859,
+ "bootstrap_ci_high": 0.2094,
+ "p": 0.00409,
+ "relative_change": null,
  "placebo": [
   {
+   "event_month": "2008-03",
+   "effect": 0.0081,
+   "p": 0.696
+  },
+  {
    "event_month": "2009-03",
-   "effect": 0.0036,
-   "p": 0.884
+   "effect": 0.0029,
+   "p": 0.91
+  },
+  {
+   "event_month": "2018-03",
+   "effect": -0.0618,
+   "p": 0.0324
+  },
+  {
+   "event_month": "2019-03",
+   "effect": -0.0392,
+   "p": 0.326
+  },
+  {
+   "event_month": "2020-03",
+   "effect": -0.0088,
+   "p": 0.781
+  },
+  {
+   "event_month": "2021-03",
+   "effect": -0.0121,
+   "p": 0.697
+  },
+  {
+   "event_month": "2022-03",
+   "effect": 0.0331,
+   "p": 0.451
   }
  ],
  "placebo_larger": 0,
@@ -2105,26 +2136,26 @@
   {
    "id": "before_after",
    "title": "Before vs after",
-   "value": "+0.142 DU (+238.6%)",
+   "value": "+0.143 DU",
    "detail": "Comparing 2012-03–2015-02 (n=30) against 2009-03–2012-02 (n=30) relative to surroundings."
   },
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.002, 95% CI [+0.054, +0.231]",
+   "value": "p = 0.004, 95% CI [+0.049, +0.236]",
    "detail": "Autocorrelation-adjusted Welch t-test shows this shift is unlikely by random month-to-month swings."
   },
   {
    "id": "placebo",
    "title": "Fake dates check",
-   "value": "0 of 1 fake dates match",
-   "detail": "No non-overlapping fake event date showed an equally large, significant jump."
+   "value": "0 of 7 fake dates match",
+   "detail": "No fake event date, a whole number of years away, showed a shift as large as the real date."
   },
   {
    "id": "verdict",
    "title": "Verdict",
    "value": "Clear change",
-   "detail": "Significant increase after 2012-03 vs surroundings, and fake dates do not show it."
+   "detail": "Significant increase after 2012-03 vs surroundings, and fake dates do not show it. This shows a change at that time, not proof that the event caused it."
   }
  ],
  "provenance": [
@@ -2133,13 +2164,13 @@
    "source": "NASA Giovanni",
    "product": "OMSO2e v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMSO2e_003_ColumnAmountSO2&location=%5B22.823%2C69.553%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T17:55:00Z",
+   "retrieved_at": "2026-11-14T19:41:05Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T17:55:00Z"
+  "generated_at": "2026-11-14T19:41:05Z"
  }
 }

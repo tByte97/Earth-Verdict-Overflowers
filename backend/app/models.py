@@ -249,6 +249,7 @@ class Compound(Strict):
     first_year: int
     last_year: int
     local_signal: bool
+    kind: Literal["satellite", "reanalysis"]
 
 
 class MonthValue(Strict):
@@ -318,11 +319,11 @@ class EventResult(Strict):
 
 
 class Co2ImpactSpec(Strict):
-    mt_co2_per_year: float = Field(gt=0)
-    years: float = Field(gt=0)
-    what_if_ppm: Optional[float] = Field(default=None, gt=0)
-    c0_ppm: float = Field(default=280.0, gt=0)
-    label: Optional[str] = None
+    mt_co2_per_year: float = Field(gt=0, le=50_000)   # world fossil CO2 is ~37,000 Mt/yr
+    years: float = Field(gt=0, le=200)
+    what_if_ppm: Optional[float] = Field(default=None, ge=150, le=2_000)
+    c0_ppm: float = Field(default=280.0, ge=150, le=2_000)
+    label: Optional[str] = Field(default=None, max_length=120)
 
 
 class Co2Range(Strict):
@@ -338,7 +339,6 @@ class Co2GlobalSummary(Strict):
     sen_slope_ppm_per_year: float
     sen_ci_low: float
     sen_ci_high: float
-    mk_p: float
     series: list[MonthValue]
 
 

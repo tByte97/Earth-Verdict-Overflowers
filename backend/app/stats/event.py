@@ -1,4 +1,11 @@
-"""BACI (Before-After-Control-Impact) monthly event impact statistics with placebo checks."""
+"""BACI (Before-After-Control-Impact) monthly event impact statistics with placebo checks.
+
+Fake event dates ("placebos") are placed every 12 months wherever both of their windows fit in
+the record without overlapping the real before/after span. A fake date counts against the real
+event when its effect is at least as large in absolute value, whether or not it is significant on
+its own: a smooth trend gives fake dates the same effect as the real one, so they must be allowed
+to match it. A verdict needs at least MIN_PLACEBOS fake dates.
+"""
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -16,7 +23,8 @@ MIN_WINDOW_COVERAGE = 0.60
 BOOTSTRAP_BLOCK_MONTHS = 6
 BOOTSTRAP_RESAMPLES = 2000
 BOOTSTRAP_SEED = 20261114
-PLACEBO_SHIFTS_MONTHS = (-36, -24, -12, 12, 24, 36)
+PLACEBO_STEP_MONTHS = 12
+MIN_PLACEBOS = 3
 
 EventVerdict = Literal["clear_change", "not_proven"]
 EventDirection = Literal["increase", "decrease", "none"]
@@ -106,9 +114,14 @@ def _to_float_array(values: Sequence[Optional[float]]) -> np.ndarray:
 
 
 def _lag1_acf_clamped(window: np.ndarray) -> float:
-    """Compute lag-1 autocorrelation on a contiguous monthly window grid, clipped to [0, 0.95]."""
+    """Lag-1 autocorrelation of a monthly window, bias-corrected and clipped to [0, 0.95].
+
+    The plain estimate is biased low on 12-36 points (by about -(1 + 4 r1) / n), which would
+    overstate the effective sample size and give too many false "clear change" results.
+    """
     valid = np.isfinite(window)
-    if int(np.sum(valid)) < 3 or len(window) < 2:
+    n_valid = int(np.sum(valid))
+    if n_valid < 3 or len(window) < 2:
         return 0.0
     mean_val = float(np.nanmean(window))
     centered = np.where(valid, window - mean_val, 0.0)
@@ -116,6 +129,7 @@ def _lag1_acf_clamped(window: np.ndarray) -> float:
     if denom <= 0.0:
         return 0.0
     r1 = float(np.dot(centered[:-1], centered[1:])) / denom
+    r1 += (1.0 + 4.0 * r1) / n_valid
     return min(max(r1, 0.0), 0.95)
 
 
@@ -229,11 +243,6 @@ def _evaluate_baci_window(
 
     site_before_mean = float(np.nanmean(sb)) if np.any(np.isfinite(sb)) else None
     site_after_mean = float(np.nanmean(sa)) if np.any(np.isfinite(sa)) else None
-    relative_change = (
-        effect / site_before_mean
-        if site_before_mean is not None and abs(site_before_mean) > 1e-12
-        else None
-    )
 
     var_b = float(np.var(vals_b, ddof=1))
     var_a = float(np.var(vals_a, ddof=1))
@@ -246,6 +255,15 @@ def _evaluate_baci_window(
     vb = var_b / n_eff_b
     va = var_a / n_eff_a
     se = math.sqrt(vb + va)
+
+    # A percentage only makes sense against a baseline clearly above zero (SO2 columns can be
+    # near zero or negative over clean areas, where a percentage explodes).
+    relative_change = None
+    sb_valid = sb[np.isfinite(sb)]
+    if site_before_mean is not None and site_before_mean > 0.0 and len(sb_valid) > 1:
+        se_base = float(np.std(sb_valid, ddof=1)) / math.sqrt(n_eff_b)
+        if site_before_mean >= 3.0 * se_base:
+            relative_change = effect / site_before_mean
 
     if se <= 0.0:
         p = 1.0 if effect == 0.0 else 0.0
@@ -377,13 +395,16 @@ def analyze_event(
         )
 
     placebos: list[PlaceboResult] = []
-    for shift in PLACEBO_SHIFTS_MONTHS:
-        fe = event_idx + shift
+    n_steps = len(site_arr) // PLACEBO_STEP_MONTHS + 1
+    for k in range(-n_steps, n_steps + 1):
+        if k == 0:
+            continue
+        fe = event_idx + k * PLACEBO_STEP_MONTHS
         fb_start = fe - w_months
         fa_end = fe + w_months
         if fb_start < 0 or fa_end > len(site_arr):
             continue
-        # Keep placebo only if both windows lie entirely before real event OR entirely after real after-window.
+        # Both fake windows must lie entirely before the real event or entirely after its after-window.
         if not (fa_end <= event_idx or fb_start >= a_end):
             continue
         pl_eval = _evaluate_baci_window(
@@ -406,15 +427,13 @@ def analyze_event(
                 )
             )
 
-    placebo_larger = sum(
-        1 for pl in placebos if abs(pl.effect) >= abs(main.effect) and pl.p < alpha
-    )
+    placebo_larger = sum(1 for pl in placebos if abs(pl.effect) >= abs(main.effect))
     direction: EventDirection = (
         "increase" if main.effect > 0.0 else "decrease" if main.effect < 0.0 else "none"
     )
     ci_excludes_zero = main.ci_low > 0.0 or main.ci_high < 0.0
 
-    if len(placebos) == 0:
+    if len(placebos) < MIN_PLACEBOS:
         verdict: EventVerdict = "not_proven"
         reason: EventReason = "no_placebo"
     elif main.p >= alpha or not ci_excludes_zero:

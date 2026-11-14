@@ -7,10 +7,11 @@ Physical constants and citations:
   over multi-decadal timescales (Global Carbon Budget, Friedlingstein et al., 2023).
 - Radiative forcing formula: ΔF = 5.35 · ln(C / C0) W/m²
   (Myhre et al., Geophys. Res. Lett. 25(14), 2715–2718, 1998).
-- Effective radiative forcing for doubled CO2: F2x = 3.93 W/m²
-  (IPCC AR6 WGI, Chapter 7, Forster et al., 2021).
 - Transient Climate Response (TCR): best estimate 1.8 °C, likely range 1.4–2.2 °C
-  (IPCC AR6 WGI, Chapter 7, Forster et al., 2021), giving ΔT ≈ TCR · ΔF / F2x.
+  (IPCC AR6 WGI, Chapter 7, Forster et al., 2021). TCR is defined per CO2 doubling, so
+  ΔT = TCR · ln(C / C0) / ln 2. This equals TCR · ΔF / F2x only when F2x comes from the same
+  formula as ΔF (5.35 · ln 2 ≈ 3.71 W/m²); mixing Myhre ΔF with the AR6 F2x (3.93 W/m²)
+  would understate warming by about 6%.
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ AIRBORNE_FRACTION_LOW = 0.40
 AIRBORNE_FRACTION_HIGH = 0.48
 
 RF_COEFF_MYHRE = 5.35
-F2X_CO2_AR6 = 3.93
+F2X_CO2_MYHRE = RF_COEFF_MYHRE * math.log(2.0)  # ≈ 3.71 W/m², consistent with ΔF above
 TCR_CENTRAL = 1.8
 TCR_LOW = 1.4
 TCR_HIGH = 2.2
@@ -65,7 +66,6 @@ class GlobalCo2Summary:
     sen_slope_ppm_per_year: float
     sen_ci_low: float
     sen_ci_high: float
-    mk_p: float
 
 
 def plant_contribution(
@@ -76,7 +76,7 @@ def plant_contribution(
     """Compute cumulative CO2 emissions, added ppm, forcing, and transient warming for a source.
 
     Uses Global Carbon Budget airborne fraction (0.44, range 0.40–0.48), 7.82 Gt CO2/ppm,
-    Myhre et al. (1998) ΔF = 5.35·ln((C + ΔC)/C), and IPCC AR6 F2x = 3.93 W/m²,
+    Myhre et al. (1998) ΔF = 5.35·ln((C + ΔC)/C) and ΔT = TCR · ln((C + ΔC)/C) / ln 2 with
     TCR = 1.8 °C (range 1.4–2.2 °C).
     """
     if mt_co2_per_year <= 0.0:
@@ -95,9 +95,9 @@ def plant_contribution(
     df_l = RF_COEFF_MYHRE * math.log((c_now_ppm + dppm_l) / c_now_ppm)
     df_h = RF_COEFF_MYHRE * math.log((c_now_ppm + dppm_h) / c_now_ppm)
 
-    dt_c = TCR_CENTRAL * df_c / F2X_CO2_AR6
-    dt_l = TCR_LOW * df_l / F2X_CO2_AR6
-    dt_h = TCR_HIGH * df_h / F2X_CO2_AR6
+    dt_c = TCR_CENTRAL * df_c / F2X_CO2_MYHRE
+    dt_l = TCR_LOW * df_l / F2X_CO2_MYHRE
+    dt_h = TCR_HIGH * df_h / F2X_CO2_MYHRE
 
     return PlantContribution(
         total_emitted_gt=total_gt,
@@ -111,7 +111,7 @@ def what_if_concentration(
     c_ppm: float,
     c0_ppm: float = 280.0,
 ) -> ConcentrationImpact:
-    """Compute radiative forcing ΔF = 5.35·ln(C/C0) and IPCC AR6 transient warming range."""
+    """Compute radiative forcing ΔF = 5.35·ln(C/C0) and transient warming TCR · ln(C/C0) / ln 2."""
     if c_ppm <= 0.0 or c0_ppm <= 0.0:
         raise ValueError("CO2 concentrations must be positive")
 
@@ -121,9 +121,9 @@ def what_if_concentration(
         c0_ppm=c0_ppm,
         forcing_w_m2=df,
         transient_warming_c=RangeEstimate(
-            central=TCR_CENTRAL * df / F2X_CO2_AR6,
-            low=TCR_LOW * df / F2X_CO2_AR6,
-            high=TCR_HIGH * df / F2X_CO2_AR6,
+            central=TCR_CENTRAL * df / F2X_CO2_MYHRE,
+            low=TCR_LOW * df / F2X_CO2_MYHRE,
+            high=TCR_HIGH * df / F2X_CO2_MYHRE,
         ),
     )
 
@@ -176,5 +176,4 @@ def summarize_global_co2(
         sen_slope_ppm_per_year=trend.sen.slope_per_year,
         sen_ci_low=trend.sen.ci_low_per_year,
         sen_ci_high=trend.sen.ci_high_per_year,
-        mk_p=trend.mk.p,
     )

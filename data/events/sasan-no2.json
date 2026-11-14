@@ -21,7 +21,8 @@
   "product": "OMNO2d v003 (Aura OMI, 0.25°)",
   "first_year": 2005,
   "last_year": 2025,
-  "local_signal": true
+  "local_signal": true,
+  "kind": "satellite"
  },
  "site": [
   {
@@ -1112,7 +1113,7 @@
   },
   {
    "month": "2006-08",
-   "value": 1.32
+   "value": 1.29
   },
   {
    "month": "2006-09",
@@ -1156,11 +1157,11 @@
   },
   {
    "month": "2007-07",
-   "value": 1.5
+   "value": 1.66
   },
   {
    "month": "2007-08",
-   "value": 1.46
+   "value": 1.54
   },
   {
    "month": "2007-09",
@@ -1204,7 +1205,7 @@
   },
   {
    "month": "2008-07",
-   "value": 1.26
+   "value": 1.15
   },
   {
    "month": "2008-08",
@@ -1492,7 +1493,7 @@
   },
   {
    "month": "2014-07",
-   "value": 2.24
+   "value": 2.28
   },
   {
    "month": "2014-08",
@@ -1584,7 +1585,7 @@
   },
   {
    "month": "2016-06",
-   "value": 2.62
+   "value": 2.65
   },
   {
    "month": "2016-07",
@@ -1640,7 +1641,7 @@
   },
   {
    "month": "2017-08",
-   "value": 1.7
+   "value": 1.74
   },
   {
    "month": "2017-09",
@@ -1740,11 +1741,11 @@
   },
   {
    "month": "2019-09",
-   "value": 2.1
+   "value": 2.17
   },
   {
    "month": "2019-10",
-   "value": 2.59
+   "value": 2.56
   },
   {
    "month": "2019-11",
@@ -1776,7 +1777,7 @@
   },
   {
    "month": "2020-06",
-   "value": 2.35
+   "value": 2.19
   },
   {
    "month": "2020-07",
@@ -1828,11 +1829,11 @@
   },
   {
    "month": "2021-07",
-   "value": 1.97
+   "value": 1.8
   },
   {
    "month": "2021-08",
-   "value": 2.07
+   "value": 2.04
   },
   {
    "month": "2021-09",
@@ -1852,7 +1853,7 @@
   },
   {
    "month": "2022-01",
-   "value": 3.31
+   "value": 3.28
   },
   {
    "month": "2022-02",
@@ -1876,15 +1877,15 @@
   },
   {
    "month": "2022-07",
-   "value": 2.13
+   "value": 2.16
   },
   {
    "month": "2022-08",
-   "value": 1.83
+   "value": 1.68
   },
   {
    "month": "2022-09",
-   "value": 2.2
+   "value": 2.23
   },
   {
    "month": "2022-10",
@@ -1972,7 +1973,7 @@
   },
   {
    "month": "2024-07",
-   "value": 1.76
+   "value": 1.79
   },
   {
    "month": "2024-08",
@@ -1980,11 +1981,11 @@
   },
   {
    "month": "2024-09",
-   "value": 1.67
+   "value": 1.69
   },
   {
    "month": "2024-10",
-   "value": 2.16
+   "value": 2.13
   },
   {
    "month": "2024-11",
@@ -2056,23 +2057,53 @@
   "n": 29
  },
  "effect": 1.366,
- "ci_low": 0.516,
- "ci_high": 2.217,
+ "ci_low": 0.471,
+ "ci_high": 2.262,
  "bootstrap_ci_low": 0.61,
  "bootstrap_ci_high": 2.284,
- "p": 0.00251,
+ "p": 0.00409,
  "relative_change": 0.2023,
  "placebo": [
   {
+   "event_month": "2008-08",
+   "effect": -0.259,
+   "p": 0.522
+  },
+  {
+   "event_month": "2009-08",
+   "effect": -1.051,
+   "p": 0.00976
+  },
+  {
    "event_month": "2010-08",
    "effect": -0.458,
-   "p": 0.327
+   "p": 0.364
+  },
+  {
+   "event_month": "2019-08",
+   "effect": -0.714,
+   "p": 0.0418
+  },
+  {
+   "event_month": "2020-08",
+   "effect": -0.523,
+   "p": 0.187
+  },
+  {
+   "event_month": "2021-08",
+   "effect": 0.802,
+   "p": 0.406
+  },
+  {
+   "event_month": "2022-08",
+   "effect": 1.548,
+   "p": 0.0545
   }
  ],
- "placebo_larger": 0,
- "verdict": "clear_change",
+ "placebo_larger": 1,
+ "verdict": "not_proven",
  "direction": "increase",
- "reason": "clear_change",
+ "reason": "placebo_also_changes",
  "sen_before": {
   "slope_per_year": -0.024,
   "ci_low": -0.912,
@@ -2111,20 +2142,20 @@
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.003, 95% CI [+0.52, +2.22]",
+   "value": "p = 0.004, 95% CI [+0.47, +2.26]",
    "detail": "Autocorrelation-adjusted Welch t-test shows this shift is unlikely by random month-to-month swings."
   },
   {
    "id": "placebo",
    "title": "Fake dates check",
-   "value": "0 of 1 fake dates match",
-   "detail": "No non-overlapping fake event date showed an equally large, significant jump."
+   "value": "1 of 7 fake dates match",
+   "detail": "At least one fake event date shows a shift as large as the real date, pointing to a broader trend or ordinary year-to-year swings."
   },
   {
    "id": "verdict",
    "title": "Verdict",
-   "value": "Clear change",
-   "detail": "Significant increase after 2013-08 vs surroundings, and fake dates do not show it."
+   "value": "Not proven",
+   "detail": "A change occurred, but fake event dates show just as big a shift, suggesting an ongoing trend rather than this event."
   }
  ],
  "provenance": [
@@ -2133,13 +2164,13 @@
    "source": "NASA Giovanni",
    "product": "OMNO2d v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMNO2d_003_ColumnAmountNO2TropCloudScreened&location=%5B23.978%2C82.628%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T17:55:00Z",
+   "retrieved_at": "2026-11-14T19:41:06Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T17:55:00Z"
+  "generated_at": "2026-11-14T19:41:06Z"
  }
 }

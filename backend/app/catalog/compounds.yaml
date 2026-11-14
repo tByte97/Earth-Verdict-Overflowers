@@ -34,13 +34,14 @@ aod:
   units: "AOD"
   decimals: 3
   definition: "How much smoke, dust, and haze floating in the air blocks sunlight from reaching the ground."
-  caveat: "MERRA-2 aerosol reanalysis (0.5° × 0.625°) assimilating MODIS and AERONET; includes natural dust and wildfire smoke alongside local pollution."
+  caveat: "Model reanalysis, not a direct satellite measurement: MERRA-2 (0.5° × 0.625°) assimilates MODIS and AERONET, but its emissions come from inventories, so a new plant may not appear in it. Includes natural dust and wildfire smoke alongside local pollution."
   product: "M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°)"
   years: [2000, 2025]
   giovanni_id: M2T1NXAER_5_12_4_TOTEXTTAU
   factor: 1.0
   min_valid_days: 10
   local_signal: true
+  kind: reanalysis
 
 co2:
   label: "Carbon dioxide (XCO₂)"

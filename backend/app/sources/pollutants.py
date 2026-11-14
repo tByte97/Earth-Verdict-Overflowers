@@ -10,6 +10,7 @@ from . import giovanni
 from .cache import get_text
 
 NOAA_CO2_URL = "https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_gl.txt"
+NOAA_CO2_MAX_AGE_S = 7 * 24 * 3600  # NOAA adds a month roughly monthly
 _EARTH_RADIUS_KM = 6371.0
 _DEFAULT_RING_KM = 120.0
 _MIN_CONTROL_POINTS = 5
@@ -62,8 +63,10 @@ def fetch_site_and_control(
     Giovanni's ``/timeseries`` REST endpoint only accepts single ``[lat,lon]`` point
     queries (bbox / area-average queries return 400 "Location parameter is invalid"),
     so site and each of the 8 ring points are fetched as cached point time series with
-    at most 4 concurrent requests. Months with fewer than ``min_control_points`` (5/8)
-    valid control points yield ``None`` for the control series.
+    at most 4 concurrent requests. Ring points sit at different levels, so each month's control
+    value is the mean of the points' deviations from their own long-term mean, plus the ring's
+    overall mean: a cloudy month that drops one point no longer shifts the series. Months with
+    fewer than ``min_control_points`` (5/8) valid control points yield ``None``.
     """
     compound = get_compound(compound_id)
     if compound is None:
@@ -104,11 +107,21 @@ def fetch_site_and_control(
     control_urls: list[str] = []
     if include_control:
         ring_results = results[1:]
+        point_means: list[Optional[float]] = []
+        for r in ring_results:
+            vals = [v for v in r["monthly"] if v is not None]
+            point_means.append(sum(vals) / len(vals) if vals else None)
+        known = [m for m in point_means if m is not None]
+        ring_level = sum(known) / len(known) if known else 0.0
         control_series = []
         for idx in range(len(month_strs)):
-            vals = [r["monthly"][idx] for r in ring_results if r["monthly"][idx] is not None]
-            if len(vals) >= min_control_points:
-                control_series.append(round(sum(vals) / len(vals), prec))
+            devs = [
+                r["monthly"][idx] - mean
+                for r, mean in zip(ring_results, point_means)
+                if mean is not None and r["monthly"][idx] is not None
+            ]
+            if len(devs) >= min_control_points:
+                control_series.append(round(ring_level + sum(devs) / len(devs), prec))
             else:
                 control_series.append(None)
         for (label, p_lat, p_lon), r in zip(coords[1:], ring_results):
@@ -139,7 +152,7 @@ def _validate_noaa_co2(text: str) -> None:
 
 def fetch_noaa_co2() -> dict:
     """Fetch global monthly mean CO2 (ppm) from NOAA Global Monitoring Laboratory."""
-    text = get_text(NOAA_CO2_URL, ext="txt", validate=_validate_noaa_co2)
+    text = get_text(NOAA_CO2_URL, ext="txt", validate=_validate_noaa_co2, max_age_s=NOAA_CO2_MAX_AGE_S)
     months: list[str] = []
     values: list[Optional[float]] = []
 

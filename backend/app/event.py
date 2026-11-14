@@ -24,7 +24,7 @@ from .models import (
     WindowSummary,
 )
 from .stats.co2 import plant_contribution, summarize_global_co2, what_if_concentration
-from .stats.event import EventStatsResult, analyze_event
+from .stats.event import MIN_PLACEBOS, EventStatsResult, analyze_event
 from .verdict import sig3
 
 EVENT_STATS_ENGINE = "backend.app.stats.event v1"
@@ -60,18 +60,31 @@ def _parse_ym(ym: str) -> tuple[int, int]:
     return year, month
 
 
+def event_month_bounds(compound: CompoundDef, window_years: int) -> tuple[str, str]:
+    """Earliest and latest event_month whose full before and after windows fit in the record."""
+    return f"{compound.first_year + window_years}-01", f"{compound.last_year - window_years + 1}-01"
+
+
 def validate_event_spec(spec: EventSpec) -> CompoundDef:
     compound = get_compound(spec.compound_id)
     if compound is None:
         raise CheckError("unknown_variable", f"Unknown compound '{spec.compound_id}'.")
-    year, _ = _parse_ym(spec.event_month)
-    if year < compound.first_year or year > compound.last_year:
+    if not compound.local_signal:
         raise CheckError(
             "bad_request",
-            f"{compound.label} covers {compound.first_year}–{compound.last_year}; event_month '{spec.event_month}' is outside that range.",
+            f"{compound.label} mixes around the globe within weeks, so a single site cannot be compared "
+            "with its surroundings. Use /api/co2-impact to estimate a source's effect instead.",
         )
     if not 1 <= spec.window_years <= 5:
         raise CheckError("bad_request", "window_years must be between 1 and 5.")
+    _parse_ym(spec.event_month)
+    earliest, latest = event_month_bounds(compound, spec.window_years)
+    if not earliest <= spec.event_month <= latest:
+        raise CheckError(
+            "bad_request",
+            f"{compound.label} covers {compound.first_year}–{compound.last_year}. With a {spec.window_years}-year "
+            f"window on each side, event_month must be between {earliest} and {latest}.",
+        )
     return compound
 
 
@@ -95,7 +108,10 @@ def _format_steps(
             id="data",
             title="Monthly satellite data",
             value=f"{valid_site} of {total_months} months",
-            detail=f"Monthly {compound.label} at {spec.place.name} from {compound.product} ({data.months[0]} to {data.months[-1]}).",
+            detail=(
+                f"Monthly {compound.label} at {spec.place.name} from {compound.product} ({data.months[0]} to {data.months[-1]})."
+                + (" This is a model reanalysis, not a direct satellite measurement." if compound.kind == "reanalysis" else "")
+            ),
         ),
         EventStep(
             id="seasons",
@@ -173,15 +189,15 @@ def _format_steps(
         )
     )
 
-    if not stats.placebo:
-        placebo_val = "0 valid fake dates"
-        placebo_detail = "No non-overlapping shifted dates fit inside the available record to rule out a pre-existing trend."
+    if len(stats.placebo) < MIN_PLACEBOS:
+        placebo_val = f"{len(stats.placebo)} fake dates (need {MIN_PLACEBOS})"
+        placebo_detail = "Too few non-overlapping fake dates fit inside the record to rule out a pre-existing trend."
     else:
         placebo_val = f"{stats.placebo_larger} of {len(stats.placebo)} fake dates match"
         placebo_detail = (
-            "No non-overlapping fake event date showed an equally large, significant jump."
+            "No fake event date, a whole number of years away, showed a shift as large as the real date."
             if stats.placebo_larger == 0
-            else "At least one fake event date also shows a significant shift as large as the real date, pointing to a broader trend."
+            else "At least one fake event date shows a shift as large as the real date, pointing to a broader trend or ordinary year-to-year swings."
         )
     steps.append(
         EventStep(
@@ -194,10 +210,13 @@ def _format_steps(
 
     verdict_label = "Clear change" if stats.verdict == "clear_change" else "Not proven"
     verdict_detail = {
-        "clear_change": f"Significant {stats.direction} after {spec.event_month} vs surroundings, and fake dates do not show it.",
+        "clear_change": (
+            f"Significant {stats.direction} after {spec.event_month} vs surroundings, and fake dates do not show it. "
+            "This shows a change at that time, not proof that the event caused it."
+        ),
         "not_significant": "Difference after the event does not rise clearly above month-to-month noise.",
         "placebo_also_changes": "A change occurred, but fake event dates show just as big a shift, suggesting an ongoing trend rather than this event.",
-        "no_placebo": "Not enough non-overlapping history to run the fake-dates placebo check.",
+        "no_placebo": "Fewer than 3 fake event dates fit in the record, so a pre-existing trend cannot be ruled out.",
         "too_short": "Too few valid months in the before or after window.",
     }[stats.reason]
     steps.append(
@@ -394,7 +413,6 @@ def get_global_co2_summary() -> tuple[Co2GlobalSummary, str]:
         sen_slope_ppm_per_year=round(summary.sen_slope_ppm_per_year, 3),
         sen_ci_low=round(summary.sen_ci_low, 3),
         sen_ci_high=round(summary.sen_ci_high, 3),
-        mk_p=sig3(summary.mk_p),
         series=series,
     )
     return model, raw["url"]
