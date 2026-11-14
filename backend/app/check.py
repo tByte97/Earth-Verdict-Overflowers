@@ -13,6 +13,7 @@ from typing import Optional, Sequence
 
 from .catalog import VariableDef, get_variable
 from .models import CaseSpec, CheckResult
+from .scenarios import nearby_scenarios
 from .stats import build_extrapolation, months_for_season, seasonal_series
 from .stats.witness import compare_rates
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
@@ -304,4 +305,5 @@ def run_check(spec: CaseSpec) -> CheckResult:
         station = fetch_station(var, lat, lon, start, spec.end_year)
     except SourceUnavailable:
         station = None  # the witness is optional; the verdict says "no station"
-    return assemble_result(spec, var, main_series, station)
+    scen = nearby_scenarios(spec.variable_id, spec.season, lat, lon)
+    return assemble_result(spec, var, main_series, station, scenarios=scen)

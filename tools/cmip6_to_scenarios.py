@@ -13,62 +13,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CMIP6_DIR = ROOT / "data" / "cmip6"
 
-VAR_MAP = {
-    "air_temp": "tas",
-    "tas": "tas",
-    "precip": "pr",
-    "pr": "pr",
-}
-
-SCENARIO_LABELS = {
-    "ssp126": "The world cuts emissions fast",
-    "ssp245": "Roughly as now",
-    "ssp585": "Emissions keep growing",
-}
-
-SCENARIO_NOTE = "These are climate-model scenarios, not a forecast. Which one happens depends on what people do."
+sys.path.insert(0, str(ROOT / "backend"))
+from app.scenarios import SCENARIO_LABELS, VAR_MAP  # noqa: E402,F401
+from app.scenarios import cmip6_to_scenarios as _to_scenarios  # noqa: E402
 
 
 def cmip6_to_scenarios(cmip6_data, variable_id="air_temp", season="JJA", baseline_value=0.0, mode="horizons"):
     """Build a dict matching backend.app.models.Scenarios from a loaded CMIP6 city JSON."""
-    cmip_var = VAR_MAP.get(variable_id)
-    if not cmip_var:
-        raise ValueError(f"Unsupported variable_id {variable_id!r}; expected one of {sorted(VAR_MAP)}")
-    if season not in ("JJA", "DJF", "year"):
-        raise ValueError(f"Unsupported season {season!r}; expected 'JJA', 'DJF', or 'year'")
-
-    models = cmip6_data["models"]
-    digits = 2 if cmip_var == "tas" else 1
-
-    if mode == "horizons":
-        years = cmip6_data["horizons"]["years"]
-        block = cmip6_data["horizons"]["variables"][cmip_var][season]
-    elif mode == "annual":
-        years = cmip6_data["annual"]["ssp_years"]
-        block = cmip6_data["annual"]["variables"][cmip_var][season]
-    else:
-        raise ValueError(f"Unsupported mode {mode!r}; expected 'horizons' or 'annual'")
-
-    paths = []
-    for scen_id, label in SCENARIO_LABELS.items():
-        s_data = block[scen_id]
-        paths.append({
-            "id": scen_id,
-            "label": label,
-            "years": list(years),
-            "median": [round(float(v), digits) for v in s_data["median"]],
-            "low": [round(float(v), digits) for v in s_data["low"]],
-            "high": [round(float(v), digits) for v in s_data["high"]],
-        })
-
-    return {
-        "synthetic": False,
-        "source": f"NASA NEX-GDDP-CMIP6 ({len(models)}-model ensemble: {', '.join(models)})",
-        "baseline_period": cmip6_data["baseline_period"],
-        "baseline_value": round(float(baseline_value), digits),
-        "note": SCENARIO_NOTE,
-        "paths": paths,
-    }
+    sc = _to_scenarios(cmip6_data, variable_id, season, mode)
+    sc["baseline_value"] = round(float(baseline_value), 2 if VAR_MAP[variable_id] == "tas" else 1)
+    return sc
 
 
 def load_cmip6_scenarios(city_key, variable_id="air_temp", season="JJA", baseline_value=0.0, mode="horizons"):

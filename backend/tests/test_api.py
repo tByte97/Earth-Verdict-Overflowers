@@ -149,3 +149,18 @@ def test_grid_layer():
 
 def test_places_short_query_is_empty():
     assert client.get("/api/places", params={"q": "K"}).json() == []
+
+
+def test_live_check_reuses_nearby_cmip6(fake_sources):
+    r = client.post("/api/check", json=spec())
+    sc = r.json()["scenarios"]
+    assert sc is not None and sc["synthetic"] is False
+    assert [p["id"] for p in sc["paths"]] == ["ssp126", "ssp245", "ssp585"]
+    assert sc["baseline_value"] is not None
+    assert any(p["source"] == "NASA NCCS" for p in r.json()["provenance"])
+
+
+def test_no_scenarios_far_away_or_for_other_variables(fake_sources):
+    far = dict(KYIV, place_id="x", name="Somewhere", lat=10.0, lon=10.0)
+    assert client.post("/api/check", json=spec(place=far)).json()["scenarios"] is None
+    assert client.post("/api/check", json=spec(variable_id="snow_depth", season="DJF")).json()["scenarios"] is None
