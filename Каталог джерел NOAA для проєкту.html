@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Джерела даних NOAA для проєкту</title><style>
+*{box-sizing:border-box}body{margin:0;background:#edf1f4;color:#19232d;font:16px/1.6 'Segoe UI',Arial,sans-serif}main{max-width:1060px;margin:36px auto;background:white;padding:54px 64px}h1,h2,h3{color:#000;line-height:1.25}h1{font-size:34px;margin:0 0 22px}h2{font-size:25px;margin:44px 0 16px}h3{font-size:19px;margin:28px 0 12px}p{margin:10px 0 16px}a{color:#145b86;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;margin:18px 0 24px;font-size:14px;line-height:1.45}th,td{border:1px solid #d9d9d9;padding:11px 13px;vertical-align:middle}th{background:#e5edf3;color:#000;text-align:left}tbody tr:nth-child(even){background:#f6f8fa}td.num{text-align:center;white-space:nowrap}li{margin:7px 0}.meta,.caption{color:#4e5d69;font-size:14px}.caption{margin-top:-12px}.toc{columns:2;column-gap:38px;padding-left:22px}.toc li{break-inside:avoid}.formula{font-family:Consolas,monospace;overflow-wrap:anywhere}thead{display:table-header-group}tr{break-inside:avoid}h2,h3{break-after:avoid}p{orphans:3;widows:3}@media(max-width:750px){main{margin:0;padding:28px 20px}h1{font-size:28px}.toc{columns:1}table{font-size:12px}td,th{padding:7px}}@media print{@page{size:A4;margin:18mm 16mm}body{background:white;font-size:10.5pt}main{max-width:none;margin:0;padding:0}h1{font-size:24pt}h2{font-size:17pt;margin-top:24pt}h3{font-size:12pt}table{font-size:9pt}th,td{padding:6pt}a{color:#000;text-decoration:none}.toc{columns:1}}
+
+nav{margin:24px 0}nav a{display:inline-block;margin:4px 12px 4px 0}table{table-layout:auto}td{overflow-wrap:anywhere}h2{scroll-margin-top:20px}.meta{margin-bottom:24px}
+</style></head><body><main><h1 id="section-1">Джерела даних NOAA для проєкту Детектив земної поверхні</h1>
+<p>Дата перевірки — 14 листопада 2026 року. Географія проєкту — вся планета. Час — максимально доступний придатний період кожного продукту.</p>
+<p><strong>Результат:</strong> знайдено джерела для температури, опадів, NDVI, LAI/FAPAR, вологості ґрунту, снігу, морського льоду, хмар, аерозолів, радіації, океанічних характеристик, земного покриву й циклонів. Вони розташовані в CDO та пов’язаних архівах NOAA. Не всі попередньо перелічені змінні мають підтверджений глобальний продукт у перевіреному маршруті.</p>
+<p><strong>Що містить файл:</strong> перевірені назви наборів, змінні, періоди, роздільність, доступ, обмеження та посилання. Це каталог для отримання даних; повні числові архіви всіх спостережень не завантажені й не вкладені.</p>
+<nav aria-label="Зміст"><a href="#section-2">1 Відповідність усім потрібним показникам</a><a href="#section-3">2 Станційні набори CDO та глобальна температура</a><a href="#section-9">3 Супутникові опади</a><a href="#section-10">4 Рослинність і земний покрив</a><a href="#section-11">5 Ґрунт водний баланс і запаси води</a><a href="#section-15">6 Сніг морський лід і полярна поверхня</a><a href="#section-16">7 Атмосфера хмарність аерозолі та радіація</a><a href="#section-17">8 Океан</a><a href="#section-18">9 Моделі та реаналізи</a><a href="#section-19">10 Пожежі екстремальні явища та кліматичні коливання</a><a href="#section-20">11 Метадані допоміжна географія та якість</a><a href="#section-21">12 Програмне отримання даних</a><a href="#section-24">13 Що треба розрахувати у власному інструменті</a><a href="#section-25">14 Рекомендований початковий комплект</a><a href="#section-26">15 Журнал перевірених розділів і обмежень</a></nav>
+<p><strong>Межі перевірки:</strong> переглянуто основні посилання головної CDO, Data Tools, FAQ, API, розділи CDR і моделей та релевантні картки продуктів. Це не повний рекурсивний обхід усіх сторінок і файлів NOAA. Службові посилання приватності та відомств не є джерелами потрібних змінних. Недоступні сторінки й суперечності позначено нижче.</p>
+<h2 id="section-2">1 Відповідність усім потрібним показникам</h2>
+<p>Позначення: <strong>CDO</strong> — станційні дані або інструменти CDO; <strong>CDR</strong> — перехід із CDO до Climate Data Records; <strong>моделі</strong> — перехід із CDO до модельних продуктів; <strong>додатково NCEI</strong> — знайдено пошуком у NCEI, а не безпосередньо в API CDO.</p>
+<table><thead><tr><th scope="col">Потрібні дані</th><th scope="col">Знайдене джерело</th><th scope="col">Підсумок</th></tr></thead><tbody>
+<tr><td>Середня мінімальна максимальна температура повітря</td><td>GHCNd, ISD/GSOD, GSOM/GSOY; NOAAGlobalTemp</td><td>CDO для станцій; глобальна сітка — окремий продукт NCEI</td></tr>
+<tr><td>Температура поверхні суші</td><td>Hydrological Properties; Polar Pathfinder Extended</td><td>CDR; полярний продукт не є глобальним покриттям суші</td></tr>
+<tr><td>Температура поверхні океану</td><td>OISST, Pathfinder SST, WHOI SST</td><td>CDR; різні періоди та методики</td></tr>
+<tr><td>Сума й інтенсивність опадів</td><td>GHCNd, ISD; GPCP Monthly/Daily, CMORPH, PERSIANN</td><td>Є станції й супутникові сітки</td></tr>
+<tr><td>Вологі та сухі дні</td><td>Обчислити з добових опадів</td><td>Потрібно визначити поріг і правила пропусків</td></tr>
+<tr><td>NDVI</td><td>NDVI CDR</td><td>Знайдено глобальний щоденний продукт</td></tr>
+<tr><td>EVI</td><td>VIIRS Vegetation Index EDR IDPS</td><td>Знайдено історичний продукт 2012–2020; актуальне продовження EVI не підтверджене</td></tr>
+<tr><td>LAI й поглинання світла рослинами</td><td>LAI/FAPAR CDR</td><td>Знайдено глобальний продукт</td></tr>
+<tr><td>Вологість ґрунту</td><td>SMOPS; CPC Global Soil Moisture</td><td>Додатково NCEI та NOAA CPC; супутникова й модельна оцінки різні</td></tr>
+<tr><td>Температура ґрунту</td><td>GHCNd SN*# і SX*#</td><td>Є в документації станцій; глобальне рівномірне покриття не підтверджене</td></tr>
+<tr><td>Випаровування</td><td>GHCNd EVAP; Ocean Heat Fluxes</td><td>EVAP — випаровувальна посудина; океанічний потік — енергетична величина</td></tr>
+<tr><td>Евапотранспірація та стік</td><td>Кандидат — реаналізи CFS</td><td>Конкретні поля й глобальний довгий ряд тут не підтверджені</td></tr>
+<tr><td>Площа й рівень озер та водосховищ</td><td>Повний глобальний продукт не підтверджений</td><td>Потрібне додаткове джерело</td></tr>
+<tr><td>Витрата річок</td><td>Повний глобальний продукт не підтверджений</td><td>Станційний GAHT не замінює витрату</td></tr>
+<tr><td>Загальні запаси води та підземні води</td><td>Повний глобальний продукт не підтверджений</td><td>Вологість верхнього шару ґрунту не є загальними запасами води</td></tr>
+<tr><td>Сніг товщина й водний еквівалент</td><td>GHCNd; Snow Cover Extent; Hydrological Properties</td><td>Поширення снігу CDR — лише Північна півкуля; інші продукти мають свої маски</td></tr>
+<tr><td>Морський лід</td><td>Sea Ice Concentration; Polar Pathfinder Extended</td><td>Концентрація та окремо товщина; поширення можна обчислювати</td></tr>
+<tr><td>Маса льодовиків і наземних льодовикових щитів</td><td>Підтвердженого глобального ряду не знайдено</td><td>Морський лід не замінює наземний</td></tr>
+<tr><td>Рівень моря</td><td>Ocean Heat Salt Sea Level; HYCOM</td><td>Компоненти аномалій і модельна висота; не тотожні повному спостережному рівню моря</td></tr>
+<tr><td>Солоність течії хлорофіл</td><td>WOD; HYCOM; Ocean Heat Salt</td><td>WOD має профілі й біологічні вимірювання; HYCOM — модельні поля</td></tr>
+<tr><td>Вітер вологість тиск</td><td>ISD, GHCNd; Ocean Near-Surface Atmosphere</td><td>Є станції та продукт над незамерзлим океаном</td></tr>
+<tr><td>Хмарність</td><td>PATMOS-x, ISCCP, AVHRR Clouds, Polar Pathfinder</td><td>CDR з різним покриттям і періодами</td></tr>
+<tr><td>Радіація</td><td>OLR Daily/Monthly, Polar Pathfinder, TSI/SSI</td><td>Не змішувати випромінювання в космосі, на верхній межі атмосфери й біля поверхні</td></tr>
+<tr><td>Аерозолі</td><td>AOT Over Oceans</td><td>Оптична товщина над океаном; не PM2.5 біля землі</td></tr>
+<tr><td>Земний покрив</td><td>VIIRS Surface Type EDR</td><td>Додатково NCEI/CLASS; 17 класів; потрібна перевірка узгодженості ряду</td></tr>
+<tr><td>Пожежі</td><td>VIIRS Active Fires EDR</td><td>Знайдена картка; повний текст не завантажився; вигоріла площа окремо не підтверджена</td></tr>
+<tr><td>Зливи хвилі спеки посухи</td><td>Обчислити з придатних рядів; Drought.gov, Daily Records</td><td>Подієвий каталог і довгостроковий тренд — різні результати</td></tr>
+<tr><td>Повені</td><td>Storm Events і SWDI; опади як чинник</td><td>Каталоги переважно США; глобальна карта затоплення не підтверджена</td></tr>
+<tr><td>Циклони</td><td>IBTrACS</td><td>Глобальний архів траєкторій</td></tr>
+<tr><td>ENSO та інші коливання</td><td>CPC RONI/ONI</td><td>NOAA CPC; інші індекси потрібно добирати окремо</td></tr>
+</tbody></table>
+<h2 id="section-3">2 Станційні набори CDO та глобальна температура</h2>
+<h3 id="section-4">GHCN Daily</h3>
+<p><a href="https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily">Опис GHCNd</a> — добові станційні спостереження по світу. Основні показники: мінімальна й максимальна температура, опади, свіжий сніг і висота снігу. Мережа нерівномірна; частина станцій вимірює лише опади. Початок і кінець потрібно брати з інвентарю для кожної змінної та станції.</p>
+<p>Доступ: <a href="https://www.ncei.noaa.gov/cdo-web/search">CDO Search</a>, <a href="https://www.ncei.noaa.gov/pub/data/ghcn/daily/">архів ASCII</a>, <a href="https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt">інвентар станцій</a>, <a href="https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-inventory.txt">інвентар змінних і періодів</a>. Великі інвентарні файли перевищили ліміт браузерного читання, тому їхній повний вміст не опрацьовано.</p>
+<h3 id="section-5">Коди змінних GHCNd</h3>
+<p>Одиниці нижче стосуються сирих файлів .dly; експорт CDO може бути вже перерахований. <a href="https://www.ncei.noaa.gov/pub/data/ghcn/daily/readme.txt">README</a> та <a href="https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/doc/GHCND_documentation.pdf">документація експорту</a>.</p>
+<table><thead><tr><th scope="col">Код</th><th scope="col">Показник</th><th scope="col">Сирі одиниці</th></tr></thead><tbody>
+<tr><td>TMAX TMIN TAVG TAXN TOBS</td><td>Максимальна мінімальна середня температура й температура спостереження</td><td>0,1 °C</td></tr>
+<tr><td>PRCP</td><td>Опади</td><td>0,1 мм</td></tr>
+<tr><td>SNOW SNWD</td><td>Свіжий сніг висота снігу</td><td>мм</td></tr>
+<tr><td>WESD WESF</td><td>Водний еквівалент снігу на землі й снігопаду</td><td>0,1 мм</td></tr>
+<tr><td>AWND WSFG</td><td>Середній вітер порив</td><td>0,1 м/с</td></tr>
+<tr><td>AWDR</td><td>Напрямок вітру</td><td>градуси</td></tr>
+<tr><td>RHAV RHMN RHMX</td><td>Відносна вологість</td><td>%</td></tr>
+<tr><td>ADPT AWBT</td><td>Точка роси температура змоченого термометра</td><td>0,1 °C</td></tr>
+<tr><td>ASLP ASTP</td><td>Тиск на рівні моря й станції</td><td>0,1 гПа</td></tr>
+<tr><td>ACMC ACMH ACSC ACSH</td><td>Хмарність</td><td>%</td></tr>
+<tr><td>EVAP</td><td>Випаровувальна посудина</td><td>0,1 мм</td></tr>
+<tr><td>SN*# SX*#</td><td>Мінімальна максимальна температура ґрунту</td><td>0,1 °C</td></tr>
+<tr><td>FRGB FRGT FRTH</td><td>Межі й товщина мерзлого шару</td><td>см</td></tr>
+<tr><td>THIC</td><td>Товщина льоду на воді</td><td>0,1 мм</td></tr>
+<tr><td>PSUN TSUN</td><td>Сонячне сяйво</td><td>% і хвилини</td></tr>
+</tbody></table>
+<p>Ґрунтові коди містять тип покриття та глибину. Наявність коду не гарантує даних у кожній станції. TAXN=(TMAX+TMIN)/2; це не завжди те саме, що TAVG. Використовувати потрібно також MFLAG, QFLAG, SFLAG та коди пропусків.</p>
+<h3 id="section-6">ISD та Global Summary of the Day</h3>
+<p><a href="https://www.ncei.noaa.gov/products/land-based-station/integrated-surface-database">ISD</a> — глобальні погодинні й синоптичні вимірювання з історією від 1901 року. Поля: температура, точка роси, вітер, пориви, хмари, тиск, видимість, опади за різні інтервали та сніг. GSOD містить добові підсумки. Покриття й безперервність залежать від станції. Доступні ASCII та похідні CSV; для великих обсягів рекомендований HTTPS-архів. Новий каталог також перелічує GHCNh Version 1 — потрібно обирати поточний продукт і не змішувати схеми ISD та GHCNh.</p>
+<h3 id="section-7">Місячні річні й локальні підсумки</h3>
+<p><a href="https://www.ncei.noaa.gov/access/search/index.html">Каталог NCEI</a> містить <a href="https://www.ncei.noaa.gov/access/search/datasets/global-historical-climatology-network-hourly/">GHCNh</a>, <a href="https://www.ncei.noaa.gov/access/search/datasets/global-summary-of-the-month/">GSOM</a>, <a href="https://www.ncei.noaa.gov/access/search/datasets/global-summary-of-the-year/">GSOY</a> і <a href="https://www.ncei.noaa.gov/access/search/datasets/local-climatological-data-v2/">LCD v2</a>. Динамічні картки не надали повних схем, тому точні глобальні дати й поля для них тут не заявлені. <a href="https://www.ncei.noaa.gov/cdo-web/datatools/lcd">LCD у CDO</a> охоплює переважно США та вибрані території, а не всю планету.</p>
+<h3 id="section-8">NOAAGlobalTemp</h3>
+<p><a href="https://www.ncei.noaa.gov/products/land-based-station/noaa-global-temp">Продукт</a>: версія 6.1.0; глобальна сітка 5° × 5°; місячні значення від 1850 року; річні й місячні ряди суші океану та разом. Аномалії поточного продукту мають базу 1991–2020. Доступ — NetCDF, ASCII, HTTPS, THREDDS. Температура повітря над сушею відрізняється від температури самої поверхні. Це окремий продукт NCEI, не універсальна кінцева точка CDO API.</p>
+<h2 id="section-9">3 Супутникові опади</h2>
+<p>Маршрут: CDO → Climate Data Records → Atmospheric CDRs → продукт.</p>
+<table><thead><tr><th scope="col">Набір і джерело</th><th scope="col">Період та крок</th><th scope="col">Простір і обмеження</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/precipitation-gpcp-monthly">GPCP Monthly</a></td><td>Від січня 1979; місяць</td><td>Глобально 2,5°; супутники й опадоміри; є оцінки похибки</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/precipitation-gpcp-daily">GPCP Daily</a></td><td>Від жовтня 1996; доба</td><td>Глобально 1°</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/precipitation-cmorph">CMORPH</a></td><td>Від січня 1998; до 30 хвилин</td><td>На картці 8 км і три варіанти часопросторового виходу; фактичні широтні межі перевірити у файлі</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/precipitation-persiann">PERSIANN CDR</a></td><td>Добові; старт потребує перевірки версії</td><td>0,25°; 60° пд. ш. — 60° пн. ш.; полюси не охоплює</td></tr>
+</tbody></table>
+<p>Прямі перевірені каталоги: <a href="https://www.ncei.noaa.gov/data/global-precipitation-climatology-project-gpcp-monthly/access/">GPCP Monthly</a>, <a href="https://www.ncei.noaa.gov/data/global-precipitation-climatology-project-gpcp-daily/access/">GPCP Daily</a>, <a href="https://www.ncei.noaa.gov/data/cmorph-high-resolution-global-precipitation-estimates/access/">CMORPH</a>, <a href="https://www.ncei.noaa.gov/data/precipitation-persiann/access/">PERSIANN</a>.</p>
+<p>Не всі поля є сумою в мм: продукт може містити швидкість або середню інтенсивність. Для місячної суми потрібно врахувати units, time bounds і тривалість місяця. Вологі та сухі дні, тривалість сухих серій, аномалії й частку норми обчислювати після перевірки пропусків.</p>
+<p><strong>Суперечність:</strong> картка PERSIANN зазначає 1982–present, Variable Explorer — 1983–present. Точний старт не можна фіксувати без версії та списку файлів. CMORPH також описаний у Variable Explorer як добовий продукт 0,25°, а окрема картка — як 8 км / 30 хвилин: це різні виходи.</p>
+<h2 id="section-10">4 Рослинність і земний покрив</h2>
+<table><thead><tr><th scope="col">Продукт</th><th scope="col">Змінні</th><th scope="col">Період сітка та доступ</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/normalized-difference-vegetation-index">NDVI CDR</a></td><td>Безрозмірний NDVI</td><td>Від 1981 до приблизно 10 днів перед поточною датою за описом; щодня; 0,05°; AVHRR і VIIRS; Download THREDDS хмара</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/leaf-area-index-and-fapar">LAI FAPAR CDR</a></td><td>LAI та частка поглинутої фотосинтетично активної радіації</td><td>0,05° щодня; AVHRR 1981–2013, VIIRS від 2014; Download THREDDS хмара</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/surface-reflectance">Surface Reflectance</a></td><td>Відбивна здатність і яскравісні температури</td><td>Щодня 0,05°; AVHRR 1981–2013, VIIRS від 2014; не готова карта класів покриву</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc:C01421">VIIRS Surface Type EDR</a></td><td>17 класів IGBP</td><td>Від 29.01.2013 за метаданими; глобально 1 км; оновлення щодня; HDF5; CLASS і хмарні архіви</td></tr>
+</tbody></table>
+<p>Каталоги для завантаження: <a href="https://www.ncei.noaa.gov/data/land-normalized-difference-vegetation-index/access/">NDVI</a>, <a href="https://www.ncei.noaa.gov/data/land-leaf-area-index-and-fapar/access/">LAI FAPAR</a>.</p>
+<p>NDVI й FAPAR безрозмірні; LAI — відношення площ. Масштабування сирих цілих значень і QA потрібно читати з файлів. Зміна сенсора може впливати на тренд. Класи покриву дають змогу визначати частки лісів угідь і забудови, але щоденне оновлення класифікації не доводить реальної щоденної зміни землекористування.</p>
+<p><strong>Додатково знайдено EVI:</strong> <a href="https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc%3AC01423">VIIRS Vegetation Index EDR IDPS</a> містить NDVI та EVI, глобальні денні L2 дані 375 м у надирі, HDF5. Метадані вказують 02.05.2012–04.06.2020; продукт позначений deprecated. Не вважати його чинним довгим CDR.</p>
+<p>У цій картці вказано заміну C00939, але <a href="https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc:C00939">відкрита картка C00939</a> описує тижневий згладжений NDVI, а не підтверджений EVI: від 12.05.2014, NetCDF4, 15-тижневе вікно згладжування. Тому продовження EVI потребує окремої перевірки, а згладжений NDVI має часову залежність і не підходить для незалежної перевірки кожного тижня без її врахування.</p>
+<h2 id="section-11">5 Ґрунт водний баланс і запаси води</h2>
+<h3 id="section-12">SMOPS</h3>
+<p><a href="https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc:C00994">SMOPS NCEI</a>: глобальна вологість верхніх 1–5 см ґрунту, добова сітка 0,25°; архів від 15.03.2017. Поєднує кілька супутникових сенсорів; містить QA й метадані; NetCDF, доступ через CLASS. Картка описує об’ємну вологість у відсотках vol/vol — одиниці й шкалу перевірити у файлі. Це не вологість усього кореневого шару й не підземні води.</p>
+<h3 id="section-13">Модельна вологість CPC</h3>
+<p><a href="https://www.cpc.ncep.noaa.gov/soilmst/sm_glb.html">CPC Global Soil Moisture</a>: розрахунок на основі глобальних місячних температури й опадів CAMS від 1979 року; Gaussian grid T62; посилання на FTP і карти. Це модельний продукт NOAA поза CDO. На відкритій сторінці недостатньо інформації для фіксації одиниць і вертикального шару.</p>
+<h3 id="section-14">Випаровування та модельні кандидати</h3>
+<p>GHCNd EVAP вимірює випаровування з посудини. <a href="https://www.ncei.noaa.gov/products/climate-data-records/ocean-heat-fluxes">Ocean Heat Fluxes</a> містить прихований і відчутний теплові потоки над незамерзлим океаном: січень 1988 — серпень 2021, 0,25°, 3 години. Прихований потік не є готовою евапотранспірацією суші в мм.</p>
+<p>Для глобальних евапотранспірації стоку та температури ґрунту реаналізи є кандидатами, але конкретні поля не підтверджені на оглядовій сторінці. Глобальні числові продукти площі озер рівнів водосховищ витрат річок загальних запасів води й підземних вод у цьому обході не встановлені. Це прогалини пошуку, а не доказ відсутності таких даних у всіх архівах NOAA.</p>
+<p><strong>Додаткові часткові джерела водних даних:</strong> <a href="https://www.ncei.noaa.gov/products/paleoclimatology/lake-level-reconstruction">Lake Level Reconstruction</a> містить палеокліматичні дослідження рівнів озер; це не сучасний регулярний глобальний моніторинг. <a href="https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncei:CO-OPS_Waterlevel_Collection">CO-OPS Water Level Collection</a> містить рівні води на узбережжі США та Великих озерах, з хвилинними погодинними добовими й місячними продуктами. Для цієї архівної колекції вказано початок 01.03.2018; це не початок усіх спостережень CO-OPS. Частина архіву доступна лише через запит NCEI; звернень не надсилалося. Обидва джерела не закривають потребу у всій планеті.</p>
+<h2 id="section-15">6 Сніг морський лід і полярна поверхня</h2>
+<table><thead><tr><th scope="col">Продукт</th><th scope="col">Показники</th><th scope="col">Період простір крок</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/snow-cover-extent">Snow Cover Extent</a></td><td>Поширення снігу</td><td>Північна півкуля; 1966 — травень 1999 тижнево, від червня 1999 щодня</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/sea-ice-concentration">Sea Ice Concentration</a></td><td>Концентрація льоду початок танення</td><td>Обидві полярні області; від 1978; 25 км; добові й місячні; окремі Preliminary та Final через NSIDC</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/extended-avhrr-polar-pathfinder">Polar Pathfinder Extended</a></td><td>Товщина морського льоду альбедо поверхнева радіація температура поверхні та хмари</td><td>Арктика й Антарктика; від 1982; EASE 25 км; двічі на добу за місцевим сонячним часом</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/hydrological-properties">Hydrological Properties</a></td><td>LST морський лід сніг SWE опади водяна пара вода й лід у хмарах</td><td>Загальний запис від 1998; AMSU-A приблизно 48 км, AMSU-B/MHS 16 км; доступність окремих полів різна</td></tr>
+</tbody></table>
+<p>Прямі каталоги: <a href="https://www.ncei.noaa.gov/data/snow-cover-extent/access/">Snow Cover</a>, <a href="https://www.ncei.noaa.gov/data/hydrological-properties/access/">Hydrological Properties</a>.</p>
+<p>Розрізняти поширення льоду extent, площу area, концентрацію, товщину й масу. Поширення можна обчислювати за обраним порогом концентрації та площею комірок. Тривалість снігового покриву — похідний показник. Дані маси наземних льодовиків не встановлені.</p>
+<p>Для Hydrological Properties загальний старт 1998 не означає старт усіх змінних: Variable Explorer наводить для окремих полів 2000 або 2005 та різні агрегації. Остаточні параметри брати з конкретного файлу.</p>
+<h2 id="section-16">7 Атмосфера хмарність аерозолі та радіація</h2>
+<table><thead><tr><th scope="col">Продукт</th><th scope="col">Що містить</th><th scope="col">Покриття та час</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/cloud-properties-patmos">PATMOS-x</a></td><td>Тип оптична товщина випромінювальна здатність температура тиск і висота верхівки хмар</td><td>Глобально 0,1°; картка від 1979; Variable Explorer від 1981 — перевірити версію</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/cloud-properties-isccp">ISCCP H-Series</a></td><td>Кількість тип оптична товщина температура тиск і водозапас хмар</td><td>Картка 1983–2017; огляд наводить 1° і 3 години; продовження не підтверджене</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/avhrr-cloud-properties-nasa">AVHRR Cloud Properties NASA</a></td><td>Хмарні властивості та супутні поверхневі й радіаційні поля</td><td>Огляд: 1978–2016, глобально 4 км, двічі на добу; точні поля читати у продукті</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/avhrr-aerosol-optical-thickness">AOT Over Oceans</a></td><td>Оптична товщина аерозолю</td><td>Над океанами; від 1981; доба місяць; 0,1°</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/ocean-near-surface-atmosphere">Ocean Near-Surface Atmosphere</a></td><td>Температура повітря вітер питома вологість</td><td>Незамерзлий океан; 01.1988–08.2021; 0,25°; 3 години</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/outgoing-longwave-radiation-daily">OLR Daily</a></td><td>Вихідне довгохвильове випромінювання</td><td>Від 1979; добове; сітку й одиниці перевірити у файлі</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/outgoing-longwave-radiation-monthly">OLR Monthly</a></td><td>Те саме в місячній агрегації</td><td>Від 1979; місяць</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/total-solar-irradiance">Total Solar Irradiance</a></td><td>Інтегральний сонячний потік на верхній межі атмосфери</td><td>Вт/м²; модельні оцінки за днями місяцями роками; не поверхнева сонячна радіація</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/solar-spectral-irradiance">Solar Spectral Irradiance</a></td><td>Сонячний потік за довжиною хвилі</td><td>Вт/(м²·нм), верхня межа атмосфери; період залежить від підпродукту</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/ozone-esrl">Ozone ESRL</a></td><td>Озонові дані</td><td>Додаткова змінна атмосфери; рівні й одиниці потребують окремого вибору</td></tr>
+</tbody></table>
+<p>Відносна вологість %, питома вологість кг/кг і водяна пара в атмосферному стовпі — різні величини. Яскравісна температура не є автоматично температурою повітря. OLR, сонячна енергія та поверхневі потоки також не взаємозамінні.</p>
+<h2 id="section-17">8 Океан</h2>
+<table><thead><tr><th scope="col">Продукт</th><th scope="col">Показники</th><th scope="col">Період сітка доступ</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/products/optimum-interpolation-sst">OISST v2.1</a></td><td>Температура поверхні океану й аномалія</td><td>Від 01.09.1981; доба; глобально 0,25°; NetCDF і THREDDS; поєднання супутників суден буїв і Argo</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/pathfinder-sea-surface-temperature">Pathfinder SST</a></td><td>Денна нічна SST</td><td>1981–2023; 4 км за карткою; AVHRR; двічі на добу</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/sea-surface-temperature-whoi">WHOI SST</a></td><td>SST</td><td>Огляд: 1988–2021, 0,25°, 3 години; перевірити вибраний підпродукт</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/global-ocean-heat-content">Ocean Heat Content CDR</a></td><td>Аномалія теплозапасу</td><td>Від 1955; квартальні річні й п’ятирічні оцінки; шари 0–700 і 0–2000 м; океан і басейни</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/ocean-heat-salt-sea-level">Ocean Heat Salt Sea Level</a></td><td>Тепло солоність і компоненти аномалії рівня моря</td><td>Ряди на основі профілів; опис посилається на кліматологію 1955–2006; не подавати як повний альтиметричний рівень моря</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/world-ocean-database">World Ocean Database</a></td><td>Температура солоність кисень поживні речовини планктон хлорофіл</td><td>Глобальні нерівномірні профілі; час глибина й метод залежать від вимірювання; є NetCDF і QA</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/world-ocean-atlas">World Ocean Atlas</a></td><td>Кліматологічні океанічні поля</td><td>Усереднені поля; не підміняти ними щоденні спостереження</td></tr>
+</tbody></table>
+<p><a href="https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/">Прямий архів OISST</a> відкривається. Деякі хлорофільні вимірювання WOD є некаліброваними флуорометричними показами; потрібні одиниці метод та калібрування. Для карти супутникового хлорофілу як окремого глобального CDR джерело тут не підтверджене.</p>
+<h2 id="section-18">9 Моделі та реаналізи</h2>
+<p>Маршрут: CDO → Climate Models → Reanalysis або Ocean Models.</p>
+<table><thead><tr><th scope="col">Продукт</th><th scope="col">Підтверджені параметри</th><th scope="col">Обмеження</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/climate-forecast-system">CFS CFSR CFSv2</a></td><td>Глобальна система суші океану атмосфери; погодинні дані 0,5° за оглядом; CFSR 01.01.1979–31.03.2011; CFSv2 від 01.04.2011; GRIB2 BUFR</td><td>Аналіз прогноз і повторний прогноз різні; не зшивати без перевірки; роздільність залежить від поля</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/reanalysis-1-2">Reanalysis 1 і 2</a></td><td>Reanalysis-1 від 1948; 2,5°; Reanalysis-2 у NCEI шестигодинні 1979–09.2005, місячні до 03.2006</td><td>Продовження через CPC; зміна супутникового входу 1979 може впливати на однорідність</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/frnmoc-navy-global-hybrid-ocean">Navy HYCOM</a></td><td>Температура солоність компоненти течій висота; глобальна поверхня від 05.03.2013; 1/12°; 3-годинний вихід; NetCDF TDS ERDDAP</td><td>Операційні прогнози; глобальна поверхня не означає повне глобальне 3D покриття архіву</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/global-navy-coastal-ocean">Global NCOM</a></td><td>Глобальна поверхня 03.05.2009–23.03.2013; 1/8°; 6 годин</td><td>Статичний архів не оновлюється; короткий для кліматичного тренду</td></tr>
+</tbody></table>
+<h2 id="section-19">10 Пожежі екстремальні явища та кліматичні коливання</h2>
+<p><strong>Пожежі.</strong> <a href="https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc%3AC00971">VIIRS Active Fires EDR from NDE</a> — в індексованому описі NCEI підтверджені маска активних пожеж і потужність теплового випромінювання на рівні пікселя. Повне відкриття завершилося тайм-аутом; точні часові межі й роздільність цього продукту тут не фіксуються. Активний осередок не є вигорілою площею. Потрібен окремий продукт для площі згарищ.</p>
+<p><strong>Циклони.</strong> <a href="https://www.ncei.noaa.gov/products/international-best-track-archive">IBTrACS</a>: глобальні траєкторії й інтенсивність із багатьох агентств; CSV NetCDF Shapefile; є піднабір since1980. Повний архів має ранні спостереження з XIX століття, але їхня повнота змінюється. Для трендів враховувати епоху супутникових спостережень і різні періоди усереднення вітру.</p>
+<p><strong>Погодні події.</strong> <a href="https://www.ncei.noaa.gov/access/storm-events-database/">Storm Events</a> і <a href="https://www.ncei.noaa.gov/products/severe-weather-data-inventory">SWDI</a> — не глобальні каталоги всіх катастроф. SWDI охоплює США; є CSV XML Shapefile KMZ, карта й REST. Відсутність запису не означає відсутності явища; радарний сигнал може означати ймовірну умову, а не підтверджену подію.</p>
+<p><strong>ENSO.</strong> <a href="https://cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/">RONI NOAA CPC</a> — тримісячне ковзне середнє відносного індексу Niño 3.4; доступний ряд від 1950 року. Сторінка описує базу 1991–2020 та віднімання середньої тропічної аномалії. <a href="https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v6/index.php">ONI</a> залишається окремим рядом. Поточна документація CPC вказує використання RONI для офіційного моніторингу; останні оцінки можуть уточнюватися.</p>
+<p><strong>Посуха та рекорди.</strong> <a href="https://www.drought.gov/">Drought.gov</a> — портал даних і моніторингу, а не один однорідний глобальний набір. <a href="https://www.ncei.noaa.gov/cdo-web/datatools/records">Daily Weather Records</a> — інструмент рекордів; рекорд не є тестом тренду. Для власних посух хвиль спеки та злив потрібні визначення подій і часові ряди.</p>
+<h2 id="section-20">11 Метадані допоміжна географія та якість</h2>
+<p><a href="https://www.ncei.noaa.gov/access/homr/">HOMR</a> — історія станцій, координати висота й зміни. Посилання Viewing a List of Stations із головної CDO повернуло 404; прямий HOMR відкривається. У CDO можуть показуватися останні координати станції, тому для довгих рядів важлива історія.</p>
+<p>Для кожної змінної зберігати: значення, одиниці, масштаб, початок і кінець інтервалу, координати, геометрію комірки, CRS, роздільність, висоту або глибину, базовий період, QA, невизначеність, пропуски, частку покриття, джерело, версію, дату отримання та ліцензію.</p>
+<p>Потрібні допоміжні шари: межі регіонів країн і басейнів, маска суші й океану, рельєф та площі комірок. CDO має географічний пошук, але окремі глобальні файли цих шарів у цьому обході не підібрані. Міжнародні межі й площі комірок не є погодними спостереженнями.</p>
+<p>У картках CDR є Download, Algorithm Description, User Guide або Technical Note, DOI та Use Agreement. Це джерела точних назв змінних шкал QA й обмежень; не можна поширювати одиниці одного продукту на всі інші. Усі пов’язані алгоритмічні PDF та вихідний код рекурсивно не аналізувалися.</p>
+<h2 id="section-21">12 Програмне отримання даних</h2>
+<h3 id="section-22">CDO API v2</h3>
+<p><a href="https://www.ncei.noaa.gov/cdo-web/webservices/v2">Документація</a>: JSON; потрібен токен; 5 запитів/с та 10 000/добу; до 1000 записів на сторінку. Кінцеві точки datasets, datatypes, datacategories, locations, locationcategories, stations, data. Для data потрібні datasetid startdate enddate. Діапазон одного запиту: до 10 років для місячних і річних, до року для інших. Є пагінація limit/offset, станційні та часові фільтри; extent відбирає станції у прямокутнику. units=metric виконує масштабування та конвертацію; без нього перетворення не виконується.</p>
+<p>Базова адреса: https://www.ncei.noaa.gov/cdo-web/api/v2/</p>
+<h3 id="section-23">NCEI Access Data Service</h3>
+<p><a href="https://www.ncei.noaa.gov/access/search/documentation/data-service/">Окрема документація</a>: GET до https://www.ncei.noaa.gov/access/services/data/v1. Параметри dataset, stations, startDate, endDate та інші залежать від продукту. Не всі набори підтримуються. Це інший API; назви параметрів не тотожні CDO v2. Для глобальних CDR краще використовувати вказані на їхніх картках каталоги та сіткові сервіси.</p>
+<p><strong>Завантаження:</strong> каталог і доступ перевірені на рівні сторінок та частини директорій; усі глобальні бінарні файли не завантажувалися. Токен не запитувався, замовлення та реєстрації не створювалися.</p>
+<h2 id="section-24">13 Що треба розрахувати у власному інструменті</h2>
+<p>Це план реалізації, а не готові виміряні поля всіх продуктів.</p>
+<ul>
+<li>Аномалія = значення мінус кліматична норма відповідного календарного періоду.</li>
+<li>Опади у відсотках від норми = 100 × значення / норма; нульова норма потребує окремого правила.</li>
+<li>Тренд і його напрямок; швидкість у фізичних одиницях за десятиліття.</li>
+<li>Довірчий інтервал й статистична значущість із врахуванням сезонності часової залежності та множинних перевірок.</li>
+<li>Площа й частка території зі зміною; регіональні середні з вагами площі.</li>
+<li>Тривалість і частота екстремальних подій за визначеним порогом.</li>
+<li>Порівняння змінних на спільному періоді й узгодженій сітці; часові затримки.</li>
+</ul>
+<p>Статистично значущий тренд не тотожний великому чи екологічно важливому ефекту. Рекорд ранги й аномалії не замінюють тесту тренду.</p>
+<h2 id="section-25">14 Рекомендований початковий комплект</h2>
+<table><thead><tr><th scope="col">Завдання</th><th scope="col">Основний кандидат</th><th scope="col">Що перевірити перед використанням</th></tr></thead><tbody>
+<tr><td>Довга історія температури</td><td>NOAAGlobalTemp</td><td>Версію базу аномалій і площі комірок</td></tr>
+<tr><td>Опади суші й океану</td><td>GPCP Monthly</td><td>Одиниці поля похибки й актуальний кінець ряду</td></tr>
+<tr><td>Стан рослинності</td><td>NDVI CDR</td><td>QA хмари зміни сенсорів і масштаб</td></tr>
+<tr><td>Вологість ґрунту</td><td>SMOPS</td><td>Коротший ряд шар 1–5 см прогалини</td></tr>
+<tr><td>Перевірка наземними спостереженнями</td><td>GHCNd або ISD</td><td>Станційне покриття й історію HOMR</td></tr>
+<tr><td>Сніг і лід як розширення</td><td>SCE та Sea Ice Concentration</td><td>Півкулю часовий крок поріг і маски</td></tr>
+</tbody></table>
+<p>Для температури опадів і NDVI можлива історія порівняння від 1981 року, якщо вибрані файли придатні. Якщо додати саме архів SMOPS, спільний період почнеться не раніше березня 2017. Не скорочувати довгі температурні ряди до цього періоду в окремому перегляді.</p>
+<h2 id="section-26">15 Журнал перевірених розділів і обмежень</h2>
+<table><thead><tr><th scope="col">Посилання або розділ</th><th scope="col">Результат перевірки</th></tr></thead><tbody>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/">CDO головна</a></td><td>Прочитано; основні маршрути до спостережень CDR моделей супутників і подій</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/datasets">Datasets</a></td><td>Сторінка відкрилася, динамічні метадані повідомляють помилку; повний список не прочитаний</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/search">Search</a></td><td>Прочитано інструкцію; динамічний вибір набору не відображено</td></tr>
+<tr><td><a href="https://gis.ncdc.noaa.gov/maps/ncei/">Mapping Tool</a></td><td>Сторінка відкрилася без читабельного тексту карти</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/datatools">Data Tools</a></td><td>Прочитано перелік інструментів</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/datatools/findstation">Find a Station</a></td><td>Відкрито</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/datatools/selectlocation">Select a Location</a></td><td>Відкрито</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/access/us-climate-normals/">Climate Normals</a></td><td>Перехід працює; норми переважно США, не глобальний часовий ряд</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/datatools/records">Daily Records</a></td><td>Відкрито; інструмент рекордів</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/datatools/lcd">LCD</a></td><td>Відкрито; локальні дані</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/access/search/data-search/global-marine/">Marine</a></td><td>Перенаправлення; читабельних даних у відповіді немає; Data Tools описує суднові буєві й платформні спостереження від 1662</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/faq">FAQ</a></td><td>Прочитано релевантні розділи; старі поради про браузери й Flash не використані</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/webservices/v2">Web Services</a></td><td>Прочитано API</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/access/homr/">HOMR</a></td><td>Відкрито; посилання на старий звіт mshr — 404</td></tr>
+<tr><td><a href="https://www.avl.class.noaa.gov/release/index.htm">Satellite CLASS</a></td><td>Відповідь містить стару сторінку техобслуговування; поточний стан всього CLASS не встановлений</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records">Climate Data Records</a></td><td>Прочитано</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/variable-exploration">Variable Explorer</a></td><td>Прочитано тематичний перелік; розбіжності з картками позначено</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/atmospheric">Atmospheric CDR</a></td><td>Відкрито й переглянуто релевантні продукти</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/oceanic">Oceanic CDR</a></td><td>Відкрито й переглянуто продукти</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/climate-data-records/terrestrial">Terrestrial CDR</a></td><td>Відкрито й переглянуто продукти</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models">Climate Models</a></td><td>Прочитано маршрути моделей</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/reanalysis">Reanalysis</a></td><td>Переглянуто CFS і Reanalysis 1/2; NARR регіональний</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/ocean">Ocean Models</a></td><td>Переглянуто HYCOM і NCOM; інші регіональні моделі не є глобальним рішенням</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/derived">Derived Models</a></td><td>Переглянуто список; не підтверджено окремого глобального набору всіх потрібних змінних</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/weather-climate-models/service-records-retention">SRRS</a></td><td>Прочитано: спостереження прогнози графіка; не є однорідним кліматичним рядом</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/access/storm-events-database/">Storm Events</a></td><td>Сторінка без читабельного тексту; опис призначення є на CDO</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/products/severe-weather-data-inventory">SWDI</a></td><td>Прочитано дані формати й обмеження</td></tr>
+<tr><td><a href="https://www.climate.gov/">Climate.gov</a></td><td>Перехід без змістовної відповіді; не використано як джерело нових параметрів</td></tr>
+<tr><td><a href="https://www.drought.gov/">Drought.gov</a></td><td>Відкрито; портал посух</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/access/search/index.html">Publications</a></td><td>Старе посилання IPS перенаправляє до нового каталогу</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/services/certification">Certification</a></td><td>Відкрито; сервіс засвідчення, не додаткова змінна</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/cdo-web/orders">Order Status</a></td><td>Відкрито; перевірка замовлень, замовлення не створені</td></tr>
+<tr><td><a href="https://www.ncei.noaa.gov/about-us">About</a> і <a href="https://www.ncei.noaa.gov/sitemap">Sitemap</a></td><td>Відкрито; навігація</td></tr>
+</tbody></table>
+<p>Період «до теперішнього часу» наведено за описом відповідної сторінки. Він не гарантує наявності останнього дня в архіві чи кожного поля в кожній комірці. NOAA повідомляє про міграцію в хмару та можливі затримки доступу; остаточну наявність потрібно перевіряти у списку файлів.</p>
+<p><strong>Що не підтверджено повністю:</strong> актуальне продовження EVI; глобальні площі й рівні внутрішніх водойм та витрати річок; загальні й підземні запаси води; маса наземних льодовиків; глобальна вигоріла площа; довгий однорідний ряд усіх компонентів водного балансу; глобальні допоміжні межі й рельєф. Для цих позицій не наведено вигаданих дат одиниць або прямих адрес файлів.</p></main></body></html>
