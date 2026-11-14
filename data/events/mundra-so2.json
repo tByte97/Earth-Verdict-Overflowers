@@ -2,13 +2,13 @@
  "spec": {
   "compound_id": "so2",
   "place": {
-   "place_id": "ev:mundra",
+   "place_id": "ev:mundra-so2",
    "name": "Mundra UMPP, India",
    "lat": 22.823,
    "lon": 69.553
   },
   "event_month": "2012-03",
-  "event_label": "Mundra UMPP coal power plant commissioning",
+  "event_label": "Mundra coal power plant opens (India)",
   "window_years": 3,
   "use_control": true
  },
@@ -22,7 +22,34 @@
   "first_year": 2005,
   "last_year": 2025,
   "local_signal": true,
-  "kind": "satellite"
+  "kind": "satellite",
+  "event_bounds": [
+   {
+    "window_years": 1,
+    "earliest": "2006-01",
+    "latest": "2025-01"
+   },
+   {
+    "window_years": 2,
+    "earliest": "2007-01",
+    "latest": "2024-01"
+   },
+   {
+    "window_years": 3,
+    "earliest": "2008-01",
+    "latest": "2023-01"
+   },
+   {
+    "window_years": 4,
+    "earliest": "2009-01",
+    "latest": "2022-01"
+   },
+   {
+    "window_years": 5,
+    "earliest": "2010-01",
+    "latest": "2021-01"
+   }
+  ]
  },
  "site": [
   {
@@ -2164,13 +2191,13 @@
    "source": "NASA Giovanni",
    "product": "OMSO2e v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMSO2e_003_ColumnAmountSO2&location=%5B22.823%2C69.553%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T19:41:05Z",
+   "retrieved_at": "2026-11-14T20:20:00Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T19:41:05Z"
+  "generated_at": "2026-11-14T20:20:00Z"
  }
 }

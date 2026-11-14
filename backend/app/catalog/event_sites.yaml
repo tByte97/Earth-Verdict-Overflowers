@@ -1,0 +1,42 @@
+# Ready-made events for the compound slider. Dates and coordinates are public facts; the verdicts
+# are computed live (and saved in data/events/<id>.json by tools/build_events.py).
+mundra-so2:
+  label: "Mundra coal power plant opens (India)"
+  kind: opening
+  place: {name: "Mundra UMPP, India", lat: 22.823, lon: 69.553}
+  compound_id: so2
+  event_month: "2012-03"
+  window_years: 3
+  note: "First 800 MW unit of the 4,000 MW Tata Mundra plant entered service in March 2012."
+sasan-no2:
+  label: "Sasan coal power plant opens (India)"
+  kind: opening
+  place: {name: "Sasan UMPP, India", lat: 23.978, lon: 82.628}
+  compound_id: no2
+  event_month: "2013-08"
+  window_years: 3
+  note: "First 660 MW unit of the 3,960 MW Sasan plant started in 2013, next to large coal mines."
+navajo-no2:
+  label: "Navajo Generating Station closes (Arizona, USA)"
+  kind: closure
+  place: {name: "Navajo Generating Station, Page, Arizona", lat: 36.904, lon: -111.390}
+  compound_id: no2
+  event_month: "2019-11"
+  window_years: 3
+  note: "The 2,250 MW coal plant, the largest in the western US, shut down in November 2019."
+la-no2-lockdown:
+  label: "COVID-19 stay-at-home order (Los Angeles)"
+  kind: lockdown
+  place: {name: "Los Angeles, USA", lat: 34.0522, lon: -118.2437}
+  compound_id: no2
+  event_month: "2020-03"
+  window_years: 1
+  note: "California's stay-at-home order began on 19 March 2020; traffic fell sharply for weeks."
+burshtyn-aod:
+  label: "No event: Burshtyn power plant area (Ukraine)"
+  kind: check
+  place: {name: "Burshtyn, Ukraine", lat: 49.208, lon: 24.664}
+  compound_id: aod
+  event_month: "2018-01"
+  window_years: 3
+  note: "A control example: no known change in 2018, so the method should not report one."

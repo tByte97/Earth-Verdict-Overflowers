@@ -111,3 +111,27 @@ def test_key_file_format_is_tolerated(tmp_path, monkeypatch):
     f.write_text("GEMINI_API_KEY = abc123\n")
     monkeypatch.setattr(llm, "KEY_FILE", f)
     assert llm._api_key() == "abc123"
+
+
+@pytest.mark.parametrize("answer,ok", [
+    ("trend -16.7 mm", True), ("trend +16.7 mm", False), ("p = 1.11e-06", True), ("p = 0.00000111", False),
+    ("from 1998 to 2025", True), ("in 2012-03", True), ("+0,543 °C", True), ("4,000 MW", True),
+    ("NO2 and NO₂", True), ("about 20%", False), ("−16.7", True), ("1,7 ppm", False),
+])
+def test_numbers_guard_signs_commas_and_exponents(answer, ok):
+    facts = "trend -16.7 mm per decade, p = 1.11e-06, 1998-2025, event 2012-03, +0.543 °C, 4000 MW, NO₂"
+    assert llm.numbers_are_grounded(answer, facts) is ok
+
+
+def test_system_prompt_is_loaded_from_file():
+    assert llm.SYSTEM.startswith("You are the explanation assistant for Earth Verdict")
+    assert "NUMBER AND SYMBOL DISCIPLINE" in llm.SYSTEM
+
+
+def test_rate_limited_model_returns_built_in_summary(monkeypatch):
+    def busy(*a, **k):
+        raise llm._Busy()
+    monkeypatch.setattr(llm, "_call_gemini", busy)
+    j = client.post("/api/chat", json={"kind": "event", "result": _event()}).json()
+    assert j["grounded"] is False and "busy" in j["model"] and j["text"].startswith("Not proven")
+    assert not llm._cache                       # a busy answer is not cached

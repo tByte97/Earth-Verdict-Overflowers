@@ -277,7 +277,7 @@ def test_events_showcase_endpoints(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 def test_real_showcase_events_validate_and_serve_offline():
     events_dir = Path(__file__).resolve().parent.parent.parent / "data" / "events"
-    files = sorted(events_dir.glob("*.json"))
+    files = sorted(p for p in events_dir.glob("*.json") if not p.stem.startswith("_"))
     expected = {"burshtyn-aod.json", "la-no2-lockdown.json", "mundra-so2.json", "sasan-no2.json"}
     assert expected.issubset({p.name for p in files})
 
@@ -374,3 +374,44 @@ def test_control_ring_level_does_not_jump_when_a_point_drops_out(monkeypatch: py
     monkeypatch.setattr(giovanni, "fetch_daily_as_monthly", fake_daily)
     res = pollutants.fetch_site_and_control("no2", 30.0, 50.0, 2020, 2020)
     assert res["control"] == pytest.approx([4.5] * 12)
+
+
+def test_event_profile_matches_single_event_verdicts(fake_event_sources):
+    spec = {"compound_id": "no2", "place": SASAN, "window_years": 3, "use_control": True}
+    r = client.post("/api/event/profile", json=spec)
+    assert r.status_code == 200, r.text
+    prof = r.json()
+    assert prof["earliest"] == "2008-01" and prof["latest"] == "2023-01"
+    months = [p["event_month"] for p in prof["points"]]
+    assert months[0] == "2008-01" and months[-1] == "2023-01" and len(months) == 181
+    assert len(prof["site"]) == 21 * 12 and prof["control"] is not None
+    by_month = {p["event_month"]: p for p in prof["points"]}
+    # The synthetic step is at 2015-01: the profile must say clear_change there, like /api/event.
+    one = client.post("/api/event", json={**spec, "event_month": "2015-01", "event_label": "x"}).json()
+    assert by_month["2015-01"]["verdict"] == one["verdict"] == "clear_change"
+    assert by_month["2015-01"]["effect"] == pytest.approx(one["effect"], abs=1e-3)
+    assert by_month["2015-01"]["n_placebo"] == len(one["placebo"])
+    # far from the step there is no clear change
+    assert by_month["2009-06"]["verdict"] == "not_proven"
+    # the profile is cached; the series is downloaded once for profile + event
+    assert client.post("/api/event/profile", json=spec).json()["points"] == prof["points"]
+
+    no_ctrl = client.post("/api/event/profile", json={**spec, "use_control": False}).json()
+    assert no_ctrl["control"] is None
+
+    co2 = client.post("/api/event/profile", json={**spec, "compound_id": "co2"})
+    assert co2.status_code == 400
+
+
+def test_event_sites_and_compound_bounds():
+    sites = client.get("/api/event-sites").json()
+    ids = {s["id"] for s in sites}
+    assert {"mundra-so2", "navajo-no2", "burshtyn-aod"} <= ids
+    assert all(s["saved"] for s in sites)            # every preset has a precomputed result
+    comps = {c["id"]: c for c in client.get("/api/compounds").json()}
+    b = {e["window_years"]: (e["earliest"], e["latest"]) for e in comps["no2"]["event_bounds"]}
+    assert b[1] == ("2006-01", "2025-01") and b[3] == ("2008-01", "2023-01") and len(b) == 5
+    assert comps["co2"]["event_bounds"] == []
+    for s in sites:
+        lo, hi = {e["window_years"]: (e["earliest"], e["latest"]) for e in comps[s["compound_id"]]["event_bounds"]}[s["window_years"]]
+        assert lo <= s["event_month"] <= hi

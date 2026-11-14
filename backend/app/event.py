@@ -3,9 +3,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import lru_cache
+import threading
 from typing import Optional, Sequence
 
-from .catalog import CompoundDef, get_compound
+from .catalog import CompoundDef, get_compound, load_event_sites
 from .check import CheckError
 from .models import (
     Co2GlobalSummary,
@@ -16,15 +18,20 @@ from .models import (
     EventResult,
     EventSen,
     EventSpec,
+    EventProfile,
+    EventProfileSpec,
+    EventSite,
     EventStep,
     Meta,
+    Place,
+    ProfilePoint,
     MonthValue,
     PlaceboCheck,
     Provenance,
     WindowSummary,
 )
 from .stats.co2 import plant_contribution, summarize_global_co2, what_if_concentration
-from .stats.event import MIN_PLACEBOS, EventStatsResult, analyze_event
+from .stats.event import MIN_PLACEBOS, EventStatsResult, analyze_event, event_profile
 from .verdict import sig3
 
 EVENT_STATS_ENGINE = "backend.app.stats.event v1"
@@ -61,20 +68,24 @@ def _parse_ym(ym: str) -> tuple[int, int]:
 
 
 def event_month_bounds(compound: CompoundDef, window_years: int) -> tuple[str, str]:
-    """Earliest and latest event_month whose full before and after windows fit in the record."""
-    return f"{compound.first_year + window_years}-01", f"{compound.last_year - window_years + 1}-01"
+    return compound.event_month_bounds(window_years)
 
 
-def validate_event_spec(spec: EventSpec) -> CompoundDef:
-    compound = get_compound(spec.compound_id)
+def _local_compound(compound_id: str) -> CompoundDef:
+    compound = get_compound(compound_id)
     if compound is None:
-        raise CheckError("unknown_variable", f"Unknown compound '{spec.compound_id}'.")
+        raise CheckError("unknown_variable", f"Unknown compound '{compound_id}'.")
     if not compound.local_signal:
         raise CheckError(
             "bad_request",
             f"{compound.label} mixes around the globe within weeks, so a single site cannot be compared "
             "with its surroundings. Use /api/co2-impact to estimate a source's effect instead.",
         )
+    return compound
+
+
+def validate_event_spec(spec: EventSpec) -> CompoundDef:
+    compound = _local_compound(spec.compound_id)
     if not 1 <= spec.window_years <= 5:
         raise CheckError("bad_request", "window_years must be between 1 and 5.")
     _parse_ym(spec.event_month)
@@ -366,21 +377,99 @@ def fetch_event_series(
     )
 
 
-def run_event(spec: EventSpec) -> EventResult:
-    """Validate EventSpec, fetch satellite series via Giovanni, and return EventResult."""
+_series_cache: dict[tuple, EventSeriesInput] = {}
+_series_locks: dict[tuple, threading.Lock] = {}
+_series_guard = threading.Lock()
+SERIES_CACHE_SIZE = 64
+
+
+def _series(compound: CompoundDef, lat: float, lon: float, use_control: bool) -> EventSeriesInput:
+    """Site/control series, kept in memory: the slider asks for the same place many times."""
     from .sources import SourceUnavailable
 
+    key = (compound.id, round(lat, 4), round(lon, 4), use_control)
+    with _series_guard:
+        if key in _series_cache:
+            return _series_cache[key]
+        lock = _series_locks.setdefault(key, threading.Lock())
+    with lock:                              # one Giovanni download per place, even under parallel requests
+        if key in _series_cache:
+            return _series_cache[key]
+        try:
+            series = fetch_event_series(compound, lat, lon, use_control=use_control)
+        except SourceUnavailable as exc:
+            raise CheckError("source_unavailable", f"NASA Giovanni did not respond: {exc.message}") from exc
+        with _series_guard:
+            if len(_series_cache) >= SERIES_CACHE_SIZE:
+                _series_cache.pop(next(iter(_series_cache)))
+            _series_cache[key] = series
+        return series
+
+
+def run_event(spec: EventSpec) -> EventResult:
+    """Validate EventSpec, fetch satellite series via Giovanni, and return EventResult."""
     compound = validate_event_spec(spec)
-    try:
-        series = fetch_event_series(
-            compound,
-            spec.place.lat,
-            spec.place.lon,
-            use_control=spec.use_control,
-        )
-    except SourceUnavailable as exc:
-        raise CheckError("source_unavailable", f"NASA Giovanni did not respond: {exc.message}") from exc
+    series = _series(compound, spec.place.lat, spec.place.lon, spec.use_control)
     return assemble_event_result(spec, compound, series)
+
+
+@lru_cache(maxsize=128)
+def _profile_points(compound_id: str, lat: float, lon: float, window_years: int, use_control: bool) -> tuple:
+    compound = get_compound(compound_id)
+    assert compound is not None
+    data = _series(compound, lat, lon, use_control)
+    pts = event_profile(data.site, data.control if use_control else None, data.start, window_years)
+    eff = max(compound.decimals + 1, 3)
+    return tuple(
+        ProfilePoint(
+            event_month=pt.event_month,
+            effect=None if pt.effect is None else round(pt.effect, eff),
+            ci_low=None if pt.ci_low is None else round(pt.ci_low, eff),
+            ci_high=None if pt.ci_high is None else round(pt.ci_high, eff),
+            p=None if pt.p is None else sig3(pt.p),
+            verdict=pt.verdict, reason=pt.reason, n_placebo=pt.n_placebo, placebo_larger=pt.placebo_larger,
+        )
+        for pt in pts
+    )
+
+
+def run_event_profile(spec: EventProfileSpec) -> EventProfile:
+    """Verdict for every event month that fits, so the slider shows how the answer depends on the date."""
+    compound = _local_compound(spec.compound_id)
+    data = _series(compound, spec.place.lat, spec.place.lon, spec.use_control)
+    points = _profile_points(compound.id, round(spec.place.lat, 4), round(spec.place.lon, 4),
+                             spec.window_years, spec.use_control)
+    earliest, latest = compound.event_month_bounds(spec.window_years)
+    d = compound.decimals
+    return EventProfile(
+        spec=spec,
+        compound=compound.public(),
+        site=[MonthValue(month=m, value=_round_opt(v, d)) for m, v in zip(data.months, data.site)],
+        control=([MonthValue(month=m, value=_round_opt(v, d)) for m, v in zip(data.months, data.control)]
+                 if spec.use_control and data.control is not None else None),
+        earliest=earliest,
+        latest=latest,
+        points=list(points),
+        provenance=[Provenance(what=f"{compound.label} ({data.request_strategy})", source="NASA Giovanni",
+                               product=compound.product, url=data.url, retrieved_at=data.retrieved_at,
+                               license="Public domain (NASA)")],
+        meta=Meta(stub=False, stats_engine=EVENT_STATS_ENGINE, generated_at=_now()),
+    )
+
+
+def list_event_sites(saved_ids: set[str]) -> list[EventSite]:
+    return [
+        EventSite(id=sid, label=s["label"], kind=s["kind"],
+                  place=Place(place_id=f"ev:{sid}", name=s["place"]["name"], lat=s["place"]["lat"], lon=s["place"]["lon"]),
+                  compound_id=s["compound_id"], event_month=s["event_month"], window_years=int(s["window_years"]),
+                  note=s["note"], saved=sid in saved_ids)
+        for sid, s in load_event_sites().items()
+    ]
+
+
+def event_site_spec(site: EventSite) -> EventSpec:
+    return EventSpec(compound_id=site.compound_id, place=site.place, event_month=site.event_month,
+                     event_label=site.label, window_years=site.window_years, use_control=True)
 
 
 # ---------- CO2 global context & physics ----------

@@ -23,7 +23,7 @@ from pydantic import ValidationError
 from .catalog import load_compounds, load_variables
 from .check import REGIONS, CheckError, run_check
 from .llm import explain
-from .event import get_global_co2_summary, run_co2_impact, run_event
+from .event import get_global_co2_summary, list_event_sites, run_co2_impact, run_event, run_event_profile
 from .models import (
     CaseSpec,
     ChatRequest,
@@ -34,7 +34,10 @@ from .models import (
     Co2ImpactSpec,
     Compound,
     ErrorResponse,
+    EventProfile,
+    EventProfileSpec,
     EventResult,
+    EventSite,
     EventSpec,
     Place,
     Variable,
@@ -152,10 +155,21 @@ async def event(spec: EventSpec):
     return await asyncio.to_thread(run_event, spec)
 
 
+@app.post("/api/event/profile", response_model=EventProfile,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def event_profile(spec: EventProfileSpec):
+    return await asyncio.to_thread(run_event_profile, spec)
+
+
+@app.get("/api/event-sites", response_model=list[EventSite])
+async def event_sites():
+    return list_event_sites(set(_event_index()))
+
+
 def _event_index() -> dict[str, Path]:
     if not EVENTS_DIR.is_dir():
         return {}
-    return {p.stem: p for p in sorted(EVENTS_DIR.glob("*.json"))}
+    return {p.stem: p for p in sorted(EVENTS_DIR.glob("*.json")) if not p.stem.startswith("_")}
 
 
 @app.get("/api/events")
