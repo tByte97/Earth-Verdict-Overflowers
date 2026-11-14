@@ -190,3 +190,24 @@ imagery still depends on NASA GIBS availability.
 
 - Picking a point (map click or the keyboard-accessible "Use map centre" button) snaps coordinates to a 0.25° grid before they become a `point:lat,lon` place id. Confirm with the backend that it accepts this id format.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.
+
+
+## Series chart and year stripes (issue #4)
+
+`src/chart/` holds two components rendered by the verdict card between the witness badge
+and **How we checked this**:
+
+- **Year stripes** (`YearStripes.tsx`): one stripe per `series` year. Colour runs from the
+  lowest to the highest value of the record; no baseline or normal is implied, and missing
+  years are hatched. The legend shows the extremes with units.
+- **Series chart** (`SeriesChart.tsx`, Chart.js): yearly `series` points, the Sen trend from
+  `intercept + slope_per_year × (year − start_year)` and `witness.series` as a separate line
+  with `spanGaps: false`, so null years break the line. Hover tooltips name the year and say
+  **no station measurement** for gaps. Axis titles carry the variable, units and season.
+- The 95% Sen range (`ci_low`/`ci_high`, per decade) is shown as legend text. A shaded band
+  needs its outline from the backend; it is not computed in the browser.
+- The canvas is not readable by screen readers, so **Exact values for every year** lists each
+  year with the received value, the station value or its absence, and provider links.
+
+`tests/chart.test.mjs` checks the table against the canonical JSON, gap tooltips, legend
+units and the no-station and DJF cases.
