@@ -51,12 +51,4 @@ This repo is at day zero right now, so here is the direction we're building towa
 
 ---
 
-## Team
-
-We're **Overflowers** — a small, backend-focused crew (effectively ~1.5 people, led by Maksym, mostly living in Python and FastAPI) taking on the *Advanced* track at NASA Space Apps Challenge 2026.
-
-Setup and run instructions will land here as soon as our first runnable slice is pushed.
-
----
-
 *Data sources planned and explored: NASA POWER, NASA GES DISC / Giovanni Time Series Service, and NOAA NCEI. Built for the NASA Space Apps Challenge 2026; not affiliated with or endorsed by NASA.*
