@@ -12,7 +12,11 @@ export const CaseSpecSchema = z.object({
 }).strict();
 const YearValueSchema = z.object({ year: integer, value: finite.nullable() }).strict();
 const WitnessSenSchema = z.object({ slope_per_decade: finite, ci_low: finite, ci_high: finite }).strict();
-const SenSchema = WitnessSenSchema.extend({ slope_per_year: finite, intercept: finite }).strict();
+const BandPointSchema = z.object({ year: integer, low: finite, mid: finite, high: finite }).strict();
+const SenSchema = WitnessSenSchema.extend({
+  slope_per_year: finite, intercept: finite, pivot_year: finite, pivot_value: finite, band: z.array(BandPointSchema),
+}).strict();
+const BaselineSchema = z.object({ kind: z.enum(['normal_1991_2020', 'series_mean']), period: z.string(), mean: finite, n_years: integer }).strict();
 const MKSchema = z.object({ p: finite, tau: finite, z: finite, correction: z.enum(['hamed_rao', 'none']) }).strict();
 const OLSSchema = z.object({ slope_per_year: finite, p: finite, r2: finite, n_eff: finite }).strict();
 const WitnessRatesSchema = z.object({
@@ -37,17 +41,28 @@ const ExtrapolationSchema = z.object({
 }).strict().refine(value => value.paths.every(path => [path.central, path.low, path.high].every(values => values.length === value.years.length)), { message: 'Extrapolation array lengths differ' });
 const ScenariosSchema = z.object({
   synthetic: z.boolean(), source: z.string(), baseline_period: z.string(), baseline_value: finite, note: z.string(),
-  paths: z.array(z.object({ id: z.enum(['ssp126', 'ssp245', 'ssp585']), label: z.string(), years: z.array(integer), median: z.array(finite), low: z.array(finite), high: z.array(finite) }).strict()),
-}).strict().refine(value => value.paths.every(path => [path.median, path.low, path.high].every(values => values.length === path.years.length)), { message: 'Scenario array lengths differ' });
+  paths: z.array(z.object({
+    id: z.enum(['ssp126', 'ssp245', 'ssp585']), label: z.string(), years: z.array(integer), windows: z.array(z.string()),
+    median: z.array(finite), low: z.array(finite), high: z.array(finite),
+    median_value: z.array(finite), low_value: z.array(finite), high_value: z.array(finite),
+    analogs: z.array(z.object({ year: integer, analog_year: integer.nullable(), analog_value: finite.nullable(), analog_rank: integer.nullable(), beyond_record: z.boolean() }).strict()),
+  }).strict()),
+}).strict().refine(value => value.paths.every(path => [path.windows, path.median, path.low, path.high, path.median_value, path.low_value, path.high_value, path.analogs].every(values => values.length === path.years.length)), { message: 'Scenario array lengths differ' });
 export const ProvenanceSchema = z.object({ what: z.string(), source: z.string(), product: z.string(), url: z.string(), retrieved_at: z.string(), license: z.string(), version: z.string().nullable().optional() }).strict();
 export const CheckResultSchema = z.object({
-  case: CaseSpecSchema, variable: VariableSchema, series: z.array(YearValueSchema), sen: SenSchema, mk: MKSchema, ols: OLSSchema,
+  case: CaseSpecSchema, variable: VariableSchema, series: z.array(YearValueSchema), sen: SenSchema, baseline: BaselineSchema, mk: MKSchema, ols: OLSSchema,
   robustness: z.array(z.object({ start_year: integer, end_year: integer, p: finite, slope_per_decade: finite, significant: z.boolean() }).strict()),
   robustness_summary: z.object({ significant: integer, total: integer }).strict(),
   witness: WitnessSchema.nullable(), verdict: z.enum(['confirmed', 'refuted', 'not_proven']),
   reason: z.enum(['significant_trend', 'opposite_trend', 'not_significant', 'short_series', 'sources_disagree', 'not_robust']),
   years_to_wait: integer.nullable(),
-  steps: z.array(z.object({ id: z.enum(['raw', 'season', 'yearly', 'trend', 'random_check', 'robustness', 'witness', 'verdict']), title: z.string(), value: z.string(), detail: z.string() }).strict()),
+  steps: z.array(z.object({
+    id: z.enum(['raw', 'season', 'yearly', 'trend', 'random_check', 'robustness', 'witness', 'verdict']), title: z.string(), value: z.string(), detail: z.string(),
+    fields: z.array(z.string()),
+    n_months: integer.nullable(), monthly: z.array(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/), value: finite.nullable() }).strict()).nullable(),
+    months: z.array(integer.min(1).max(12)).nullable(), aggregation: z.enum(['mean', 'sum']).nullable(), years_dropped: z.array(integer).nullable(),
+    alpha: finite.nullable(), methods_agree: z.boolean().nullable(), methods_reason: z.enum(['direction_differs', 'significance_differs']).nullable(),
+  }).strict()),
   detection: DetectionSchema, extrapolation: ExtrapolationSchema, scenarios: ScenariosSchema.nullable(),
   provenance: z.array(ProvenanceSchema), meta: z.object({ stub: z.boolean(), stats_engine: z.string(), generated_at: z.string() }).strict(),
 }).strict();
