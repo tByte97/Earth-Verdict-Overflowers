@@ -169,7 +169,7 @@ async def event_sites():
 def _event_index() -> dict[str, Path]:
     if not EVENTS_DIR.is_dir():
         return {}
-    return {p.stem: p for p in sorted(EVENTS_DIR.glob("*.json"))}
+    return {p.stem: p for p in sorted(EVENTS_DIR.glob("*.json")) if not p.stem.startswith("_")}
 
 
 @app.get("/api/events")

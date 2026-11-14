@@ -277,7 +277,7 @@ def test_events_showcase_endpoints(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 def test_real_showcase_events_validate_and_serve_offline():
     events_dir = Path(__file__).resolve().parent.parent.parent / "data" / "events"
-    files = sorted(events_dir.glob("*.json"))
+    files = sorted(p for p in events_dir.glob("*.json") if not p.stem.startswith("_"))
     expected = {"burshtyn-aod.json", "la-no2-lockdown.json", "mundra-so2.json", "sasan-no2.json"}
     assert expected.issubset({p.name for p in files})
 

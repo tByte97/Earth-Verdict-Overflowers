@@ -2241,13 +2241,13 @@
    "source": "NASA Giovanni",
    "product": "OMNO2d v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMNO2d_003_ColumnAmountNO2TropCloudScreened&location=%5B34.0522%2C-118.2437%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T20:18:29Z",
+   "retrieved_at": "2026-11-14T20:20:01Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T20:18:29Z"
+  "generated_at": "2026-11-14T20:20:01Z"
  }
 }
