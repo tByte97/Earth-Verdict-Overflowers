@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Завантаження даних для Earth Verdict: NASA POWER (місячні ряди) + станція NOAA.
+
+Тільки стандартна бібліотека, нічого встановлювати не треба.
+
+Приклади:
+  python3 tools/fetch_data.py kyiv                 # одне місто зі списку
+  python3 tools/fetch_data.py kyiv lviv odesa      # кілька
+  python3 tools/fetch_data.py --all                # усі міста зі списку
+  python3 tools/fetch_data.py --lat 50.45 --lon 30.52 --name mycity
+  python3 tools/fetch_data.py kyiv --refresh       # ігнорувати кеш
+
+Результат: data/<місто>.json. Сирі відповіді API лежать у data/cache/ (повторний запуск
+працює без інтернету).
+"""
+import argparse
+import hashlib
+import json
+import math
+import sys
+import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA = ROOT / "data"
+CACHE = DATA / "cache"
+UA = {"User-Agent": "Mozilla/5.0 (EarthVerdict hackathon fetcher)"}
+
+START, END = 1981, 2025
+# °C, °C, °C, мм/добу, см снігу, волога кореневого шару 0–1, сонячна радіація МДж/м²/добу
+# (ALLSKY_SFC_SW_DWN порожній до 1984 року: дані CERES/SRB починаються пізніше)
+POWER_PARAMS = ["T2M", "T2M_MAX", "T2M_MIN", "PRECTOTCORR", "SNODP", "GWETROOT", "ALLSKY_SFC_SW_DWN"]
+NOAA_TYPES = ["TAVG", "TMAX", "PRCP"]
+
+CITIES = {
+    "kyiv": ("Київ", 50.45, 30.52),
+    "lviv": ("Львів", 49.84, 24.03),
+    "odesa": ("Одеса", 46.48, 30.73),
+    "kharkiv": ("Харків", 49.99, 36.23),
+    "warsaw": ("Варшава", 52.23, 21.01),
+}
+
+
+def get_json(url, params, refresh=False, retries=3):
+    """GET з файловим кешем. Ключ кешу — хеш повного URL."""
+    full = url + "?" + urllib.parse.urlencode(params)
+    path = CACHE / (hashlib.sha1(full.encode()).hexdigest()[:16] + ".json")
+    if path.exists() and not refresh:
+        return json.loads(path.read_text())
+    last = None
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(full, headers=UA)
+            with urllib.request.urlopen(req, timeout=120) as r:
+                data = json.loads(r.read())
+            CACHE.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(data, ensure_ascii=False))
+            return data
+        except Exception as e:  # мережа, 5xx, битий JSON
+            last = e
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"не вдалося отримати {full}: {last}")
+
+
+def months():
+    return [f"{y}-{m:02d}" for y in range(START, END + 1) for m in range(1, 13)]
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2
+    return 2 * 6371 * math.asin(math.sqrt(a))
+
+
+def fetch_power(lat, lon, refresh):
+    r = get_json(
+        "https://power.larc.nasa.gov/api/temporal/monthly/point",
+        dict(parameters=",".join(POWER_PARAMS), community="AG", latitude=lat, longitude=lon,
+             start=START, end=END, format="JSON"),
+        refresh,
+    )
+    par = r["properties"]["parameter"]
+    series = {}
+    for p in POWER_PARAMS:
+        # ключі YYYYMM; YYYY13 — річне середнє, його ми не беремо; -999 — пропуск
+        series[p] = [
+            (None if par[p].get(m.replace("-", ""), -999) <= -900 else round(par[p][m.replace("-", "")], 3))
+            for m in months()
+        ]
+    return {
+        "units": {p: r["parameters"][p]["units"] for p in POWER_PARAMS},
+        "grid_cell": r["geometry"]["coordinates"][:2],
+        "series": series,
+    }
+
+
+def fetch_station(lat, lon, refresh, max_candidates=5):
+    """Шукає станції NOAA GSOM у квадраті ±0.7°/±1.0° і бере ту, де найбільше місяців TAVG."""
+    bbox = f"{lat + 0.7},{lon - 1.0},{lat - 0.7},{lon + 1.0}"  # N,W,S,E
+    found = get_json(
+        "https://www.ncei.noaa.gov/access/services/search/v1/data",
+        dict(dataset="global-summary-of-the-month", bbox=bbox,
+             startDate=f"{START}-01-01", endDate=f"{END}-12-31", limit=20),
+        refresh,
+    )
+    cands = []
+    for x in found.get("results", []):
+        stn = x["stations"][0]
+        lon_s, lat_s = x["boundingPoints"][0]["coordinates"]
+        cands.append((haversine_km(lat, lon, lat_s, lon_s), stn["id"], stn["name"], lat_s, lon_s))
+    cands.sort()
+
+    best = None
+    for dist, sid, name, lat_s, lon_s in cands[:max_candidates]:
+        rows = get_json(
+            "https://www.ncei.noaa.gov/access/services/data/v1",
+            dict(dataset="global-summary-of-the-month", stations=sid,
+                 startDate=f"{START}-01-01", endDate=f"{END}-12-31",
+                 dataTypes=",".join(NOAA_TYPES), format="json", units="metric"),
+            refresh,
+        )
+        by_month = {row["DATE"]: row for row in rows}  # DATE має вигляд YYYY-MM
+        series = {}
+        for t in NOAA_TYPES:
+            # значення в API — рядки; відсутні місяці залишаються None
+            series[t] = [
+                (round(float(by_month[m][t]), 2) if m in by_month and by_month[m].get(t) not in (None, "") else None)
+                for m in months()
+            ]
+        covered = sum(v is not None for v in series["TAVG"])
+        print(f"    станція {sid} {name} ({dist:.0f} км): TAVG {covered} з {len(months())} місяців")
+        if best is None or covered > best["tavg_months"]:
+            best = dict(id=sid, name=name, lat=lat_s, lon=lon_s, distance_km=round(dist),
+                        tavg_months=covered, tavg_source="gsom", series=series)
+
+    if best and best["tavg_months"] < MIN_COVERAGE * len(months()):
+        daily = tavg_from_daily(best["id"], refresh)
+        n = sum(v is not None for v in daily)
+        print(f"    GSOM покриває мало, TAVG з добових GHCN-Daily: {n} з {len(months())} місяців")
+        if n > best["tavg_months"]:
+            # Увесь ряд з одного методу, без склеювання з GSOM: у Києві місячне середнє з
+            # добових систематично нижче за GSOM на ~0.27 °C, склейка дала б штучну сходинку.
+            best["series"]["TAVG"] = daily
+            best["tavg_months"] = n
+            best["tavg_source"] = f"ghcnd-daily-mean (місяць зараховано, якщо ≥ {MIN_DAYS} днів)"
+    return best
+
+
+MIN_COVERAGE = 0.9  # частка місяців, нижче якої беремо TAVG з добових
+MIN_DAYS = 25       # мінімум днів із даними, щоб порахувати місячне середнє
+
+
+def tavg_from_daily(station_id, refresh):
+    """Місячне середнє TAVG з добових GHCN-Daily, по одному запиту на рік (кешується)."""
+    days = {}
+    for y in range(START, END + 1):
+        rows = get_json(
+            "https://www.ncei.noaa.gov/access/services/data/v1",
+            dict(dataset="daily-summaries", stations=station_id,
+                 startDate=f"{y}-01-01", endDate=f"{y}-12-31",
+                 dataTypes="TAVG", format="json", units="metric"),
+            refresh,
+        )
+        for r in rows:
+            v = r.get("TAVG")
+            if v not in (None, ""):
+                days.setdefault(r["DATE"][:7], []).append(float(v))
+    return [
+        (round(sum(days[m]) / len(days[m]), 2) if len(days.get(m, [])) >= MIN_DAYS else None)
+        for m in months()
+    ]
+
+
+def run(key, name, lat, lon, refresh):
+    print(f"{name} ({lat}, {lon})")
+    print("  NASA POWER ...")
+    power = fetch_power(lat, lon, refresh)
+    print("  NOAA ...")
+    station = fetch_station(lat, lon, refresh)
+    out = {
+        "name": name, "lat": lat, "lon": lon,
+        "months_start": f"{START}-01", "months_end": f"{END}-12",
+        "retrieved": time.strftime("%Y-%m-%d"),
+        "sources": {
+            "power": "NASA POWER monthly point (MERRA-2/CERES), https://power.larc.nasa.gov",
+            "station": "NOAA NCEI Global Summary of the Month",
+        },
+        "power": power,
+        "station": station,
+    }
+    DATA.mkdir(parents=True, exist_ok=True)
+    path = DATA / f"{key}.json"
+    path.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    print(f"  збережено {path.relative_to(ROOT)} ({path.stat().st_size // 1024} КБ)")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("cities", nargs="*", help=f"ключі міст: {', '.join(CITIES)}")
+    ap.add_argument("--all", action="store_true", help="усі міста зі списку")
+    ap.add_argument("--lat", type=float)
+    ap.add_argument("--lon", type=float)
+    ap.add_argument("--name", default="custom", help="назва для власних координат")
+    ap.add_argument("--refresh", action="store_true", help="ігнорувати кеш")
+    a = ap.parse_args()
+
+    jobs = []
+    if a.lat is not None and a.lon is not None:
+        jobs.append((a.name, a.name, a.lat, a.lon))
+    keys = list(CITIES) if a.all else a.cities
+    for k in keys:
+        if k not in CITIES:
+            sys.exit(f"невідоме місто '{k}'. Доступні: {', '.join(CITIES)}")
+        n, la, lo = CITIES[k]
+        jobs.append((k, n, la, lo))
+    if not jobs:
+        ap.error("вкажи місто, --all або --lat/--lon")
+
+    for key, name, lat, lon in jobs:
+        try:
+            run(key, name, lat, lon, a.refresh)
+        except Exception as e:
+            print(f"  ПОМИЛКА для {name}: {e}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
