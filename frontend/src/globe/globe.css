@@ -53,3 +53,13 @@
 }
 .globe-tip div:first-child { font-weight:700; }
 .globe-marker:hover .globe-tip,.globe-marker:focus .globe-tip { display:block; }
+
+/* Interim slot above the case panel until the page gets its globe column. */
+.globe-slot {
+  height:min(56vh,520px);
+  min-height:300px;
+  margin-bottom:28px;
+  border:1px solid var(--line,#dbe3db);
+  border-radius:16px;
+  overflow:hidden;
+}

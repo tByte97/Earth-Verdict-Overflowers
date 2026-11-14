@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { demoCases, findPlaces, getVariables, isLive, runCheck } from './api';
 import { VerdictCard } from './VerdictCard';
+import { Globe, type PickedPoint } from './globe/Globe';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
 import './styles.css';
 
@@ -20,6 +21,7 @@ function App() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [help, setHelp] = useState(false);
+  const [picked, setPicked] = useState<PickedPoint | null>(null);
   const request = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -66,6 +68,7 @@ function App() {
       <div className="intro"><p className="eyebrow">A closer look at our changing planet</p><h1>A claim. A check.<br /><span>A clearer answer.</span></h1><p>Choose what you want to investigate.<br />See the conclusion, then explore the evidence behind it.</p></div>
       {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
       <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real observations · provisional statistics. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
+      <section className="globe-slot" aria-label="Case location"><Globe place={spec.place} station={result?.witness?.station ?? null} onPick={setPicked} /></section>
       <div className="workspace">
         <aside className="case-panel" aria-labelledby="case-heading">
           <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Your investigation</p><h2 id="case-heading">Set up a check</h2></div></div>
@@ -75,6 +78,7 @@ function App() {
             <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
+            {picked && <p className="field-help" role="status">Picked on the globe: {picked.lat.toFixed(4)}, {picked.lon.toFixed(4)}</p>}
             {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); }}>{place.name}</button></li>)}</ul>}
             <label>Variable<select required value={spec.variable_id} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">Loading variables…</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
             <label>Season<select value={spec.season} onChange={e => edit({ season: /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
