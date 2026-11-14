@@ -2,15 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CheckResult, Place } from '../types';
+import { roundCoord, type PickedPoint } from './place';
 import './globe.css';
 
 export type Station = NonNullable<CheckResult['witness']>['station'];
-export interface PickedPoint { lat: number; lon: number }
 
-// NASA POWER is gridded at 0.5° x 0.625°; snapping to 0.25° keeps picked points from creating
-// a distinct backend cache key for every pixel while staying within the grid resolution.
-const snap = (value: number) => Math.round(value * 4) / 4;
-const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: snap(lat), lon: snap(lon) });
+const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: roundCoord(lat), lon: roundCoord(lon) });
 
 const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
 // Coastlines only: the GIBS borders layer cuts Crimea off from Ukraine, and its labels use outdated names.
@@ -92,7 +89,9 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
 
   useEffect(() => {
     if (!place || !map.current) return;
-    const marker = new maplibregl.Marker({ element: markerElement('place', [place.name, coords(place.lat, place.lon)]) })
+    // A picked point's name already is its coordinates.
+    const lines = place.place_id.startsWith('pt:') ? [place.name] : [place.name, coords(place.lat, place.lon)];
+    const marker = new maplibregl.Marker({ element: markerElement('place', lines) })
       .setLngLat([place.lon, place.lat]).addTo(map.current);
     map.current.flyTo({ center: [place.lon, place.lat], zoom: 1.4, duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900 });
     return () => { marker.remove(); };

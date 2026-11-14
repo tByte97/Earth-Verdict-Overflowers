@@ -188,5 +188,5 @@ imagery still depends on NASA GIBS availability.
 
 ### Globe notes
 
-- Picking a point (map click or the keyboard-accessible "Use map centre" button) snaps coordinates to a 0.25° grid before they become a `point:lat,lon` place id. Confirm with the backend that it accepts this id format.
+- Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. Picking fills the form; the check runs only on **Check claim**.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.

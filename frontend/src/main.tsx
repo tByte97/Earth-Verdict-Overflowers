@@ -5,7 +5,7 @@ import { VerdictCard } from './VerdictCard';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CaseSpecSchema } from './schema';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
-import type { PickedPoint } from './globe/Globe';
+import { pointPlace, type PickedPoint } from './globe/place';
 import './styles.css';
 
 const Globe = lazy(() => import('./globe/Globe').then(module => ({ default: module.Globe })));
@@ -87,8 +87,9 @@ function App() {
         <section className="globe-column" aria-label="Case location">
           <div className="globe-heading"><span className="eyebrow">Explore the planet</span><p>{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</p></div>
           <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} onPick={point => {
-            setPicked(point); setSelectedPlace(true); setQuery('Selected point');
-            edit({ place: { place_id: `point:${point.lat},${point.lon}`, name: 'Selected point', lat: point.lat, lon: point.lon } });
+            const place = pointPlace(point);
+            setPicked(point); setSelectedPlace(true); setQuery(place.name);
+            edit({ place });
           }} /></Suspense></ErrorBoundary>
           <div className="globe-legend"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </section>
@@ -102,7 +103,7 @@ function App() {
             <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
-            {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(4)}, {picked.lon.toFixed(4)}</p>}
+            {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(2)}, {picked.lon.toFixed(2)}</p>}
             {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); }}>{place.name}</button></li>)}</ul>}
             <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
             <label>Season<select value={spec.season} onChange={e => edit({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
