@@ -191,3 +191,27 @@ imagery still depends on NASA GIBS availability.
 - Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. Picking fills the form; the check runs only on **Check claim**.
 - Camera: choosing a saved case or a searched place flies there in about 3.7 s (rise to orbit, turn, descend to the local view at zoom 4.75). Dragging the map or a view button interrupts the flight. A picked point leaves the camera where it is. With reduced motion the map jumps without animation. The globe unrolls into a flat map between zoom 3.2 and 4.8.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.
+
+
+## Step pipeline (issue #5)
+
+`src/steps/StepPipeline.tsx` shows the eight backend `steps` (raw → season → yearly → trend →
+chance check → robustness → station → verdict) above **How we checked this**, whose method
+table, robustness windows, exact values and data sources stay the detailed view.
+
+- Each step shows its `title`, `value` and `detail` exactly as returned. A missing step is
+  reported as "Step not supplied by the backend" instead of being skipped.
+- Mini visuals draw backend fields only: the raw step's `monthly` record, the season step's
+  `months`, a sparkline of `series`, `series` with the `sen.band` fan, the robustness windows,
+  and `series` with `witness.series` (gaps stay gaps). Nothing is fitted in the browser.
+- Under each step, the paths in its `fields` are shown with their exact values. The chance
+  step shows the threshold `alpha` and whether the methods agree (`methods_agree`,
+  `methods_reason`); the season step lists `years_dropped` when there are any.
+- The raw monthly record (`steps.N.monthly`) is left out of the exact-value table, since the
+  raw step's mini chart shows it.
+- Each step's source button is chosen by step `id` (NASA POWER, NOAA NCEI or backend
+  statistics) and opens the matching record in **Data sources**.
+- Mini visuals are small inline SVGs; Chart.js is kept for the full-size charts.
+
+`tests/steps.test.mjs` checks order and text against the canonical JSON, the mini visuals,
+the source links and a response with a missing step.
