@@ -21,7 +21,7 @@ class VariableDef:
     decimals: int
     agg: Literal["mean", "sum"]
     per_day: bool
-    source_kind: Literal["power", "giovanni"]
+    source_kind: Literal["power", "giovanni", "cag"]
     source_param: str
     product: str
     witness: Optional[str]
@@ -40,7 +40,7 @@ def load_variables() -> dict[str, VariableDef]:
     raw = yaml.safe_load(CATALOG_FILE.read_text(encoding="utf-8"))
     out: dict[str, VariableDef] = {}
     for vid, v in raw.items():
-        if v["agg"] not in ("mean", "sum") or v["source"]["kind"] not in ("power", "giovanni"):
+        if v["agg"] not in ("mean", "sum") or v["source"]["kind"] not in ("power", "giovanni", "cag"):
             raise ValueError(f"bad catalog entry {vid!r}")
         out[vid] = VariableDef(
             id=vid, label=v["label"], units=v["units"], decimals=int(v["decimals"]),

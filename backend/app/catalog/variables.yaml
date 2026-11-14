@@ -115,3 +115,15 @@ evapotranspiration:
   years: [2000, 2025]
   definition: Water that goes back into the air from soil, rivers and plants.
   caveat: Land-surface model driven by observations, not a direct measurement.
+
+global_temp:
+  label: Temperature of the planet or a continent
+  units: "°C"
+  decimals: 2
+  agg: mean
+  per_day: false
+  source: {kind: cag, param: land_ocean, product: "NOAAGlobalTemp land+ocean anomalies (Climate at a Glance)"}
+  witness: null
+  years: [1850, 2025]
+  definition: How much warmer or colder a whole region is than its 1901–2000 average, land and sea together.
+  caveat: "A difference from the long-term average, not the actual temperature; it describes a whole region, not one town."

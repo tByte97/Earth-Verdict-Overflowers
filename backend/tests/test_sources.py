@@ -389,12 +389,23 @@ def test_noaa_prcp_requires_every_day_of_month(offline_cache: Path):
         json.dumps(daily_2024),
     )
 
-    stn = best_station(50.45, 30.52, "PRCP", 2024, 2024)
-    assert stn is not None
-    assert stn.method == "ghcnd-daily-sum"
-    assert stn.monthly[0] == 46.5
-    assert stn.monthly[1] is None
-    assert stn.monthly[2] == 31.0
+    # The aggregation rule itself: a monthly total only from a complete month.
+    monthly, _ = noaa._daily_monthly_series("PRCP001", "PRCP", 2024, 2024)
+    assert monthly[0] == 46.5
+    assert monthly[1] is None
+    assert monthly[2] == 31.0
+
+    # best_station never falls back to daily for PRCP (it recovers no months but costs a request per year).
+    def no_daily(*a, **k):
+        raise AssertionError("daily fallback must not run for PRCP")
+
+    original = noaa._daily_monthly_series
+    noaa._daily_monthly_series = no_daily
+    try:
+        stn = best_station(50.45, 30.52, "PRCP", 2024, 2024)
+    finally:
+        noaa._daily_monthly_series = original
+    assert stn is not None and stn.method == "gsom"
 
 
 def test_noaa_no_station_within_max_km_returns_none(offline_cache: Path):

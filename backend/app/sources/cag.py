@@ -27,17 +27,24 @@ CAG_SEASONS = {
 CAG_END_YEAR = 2026
 
 
-def fetch_cag(region: str, season: str) -> dict:
-    """Fetch NOAA Climate at a Glance land+ocean temperature anomalies (1901-2000 base)."""
+def fetch_cag(region: str, season: str | int) -> dict:
+    """Fetch NOAA Climate at a Glance land+ocean temperature anomalies (1901-2000 base).
+
+    `season` is year/DJF/MAM/JJA/SON or a month number 1..12.
+    """
     canonical_region = _REGION_MAP.get(region.strip().lower())
     if canonical_region is None:
         raise ValueError(f"unsupported CAG region '{region}'; expected one of {CAG_REGIONS}")
 
-    season_key = season.strip().lower()
-    if season_key not in CAG_SEASONS:
-        raise ValueError(f"unsupported CAG season '{season}'; expected one of {list(CAG_SEASONS)}")
-
-    span, month = CAG_SEASONS[season_key]
+    if isinstance(season, int):
+        if not 1 <= season <= 12:
+            raise ValueError(f"unsupported CAG month {season}")
+        span, month = 1, season
+    else:
+        season_key = season.strip().lower()
+        if season_key not in CAG_SEASONS:
+            raise ValueError(f"unsupported CAG season '{season}'; expected one of {list(CAG_SEASONS)}")
+        span, month = CAG_SEASONS[season_key]
     url = f"{CAG_BASE_URL}/{canonical_region}/land_ocean/{span}/{month}/1850-{CAG_END_YEAR}/data.json"
     data = get_json(url)
 
