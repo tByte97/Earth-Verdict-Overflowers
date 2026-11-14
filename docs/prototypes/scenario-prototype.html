@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body>
+<title>Сценарії Earth Verdict</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: робоча область з графіком зліва, панель справи й вердикту справа (як права панель продукту) */
+:root{
+  --bg:#f3f6f7; --surface:#ffffff; --sunken:#e9eef1; --fg:#13202a; --muted:#566874; --line:#d6dfe4;
+  --accent:#0d6a87; --accent-soft:#d7ebf2;
+  --ok:#2c7a4c; --ok-soft:#dcefe3; --bad:#b0442c; --bad-soft:#f6e0da; --wait:#86661a; --wait-soft:#f3ead2;
+  --s1:#23877a; --s2:#b9851f; --s3:#b0442c;
+  --font-display:"Space Grotesk",system-ui,sans-serif; --font-body:"IBM Plex Sans",system-ui,sans-serif; --font-data:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d151b; --surface:#142029; --sunken:#0f1a21; --fg:#e2eaee; --muted:#8fa1ac; --line:#243540;
+  --accent:#53b4d3; --accent-soft:#163543;
+  --ok:#5fc28c; --ok-soft:#173326; --bad:#e67b60; --bad-soft:#3a1f19; --wait:#dbb75c; --wait-soft:#33290f;
+  --s1:#4cc1a9; --s2:#e0b24e; --s3:#e67b60; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d151b; --surface:#142029; --sunken:#0f1a21; --fg:#e2eaee; --muted:#8fa1ac; --line:#243540;
+  --accent:#53b4d3; --accent-soft:#163543;
+  --ok:#5fc28c; --ok-soft:#173326; --bad:#e67b60; --bad-soft:#3a1f19; --wait:#dbb75c; --wait-soft:#33290f;
+  --s1:#4cc1a9; --s2:#e0b24e; --s3:#e67b60; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-body);margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+h1{font:600 26px/1.15 var(--font-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.proto{font:500 12px/1 var(--font-data);letter-spacing:.06em;text-transform:uppercase;color:var(--wait);background:var(--wait-soft);padding:6px 10px;border-radius:4px}
+.lede{margin:0;color:var(--muted);max-width:70ch}
+.cases{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 14px var(--font-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.chip:focus-visible,.tab:focus-visible,input:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:920px){.app{grid-template-columns:minmax(0,1fr)}}
+.work{display:flex;flex-direction:column;gap:14px;min-width:0}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.tabs{grid-template-columns:minmax(0,1fr)}}
+.tab{text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.tab b{font:600 15px var(--font-display)}
+.tab span{font-size:13px;color:var(--muted)}
+.tab[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.note{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin:0}
+.note strong{color:var(--fg);font-weight:600}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 20px}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+.ctl output{font:500 13px var(--font-data);color:var(--fg);font-variant-numeric:tabular-nums}
+.ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font:500 13px var(--font-body);border:1px solid var(--line);background:var(--sunken);color:var(--fg);padding:6px 10px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{border-color:currentColor}
+.plot{width:100%;min-width:0}
+.readout{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;align-items:baseline}
+.readout .big{font:600 22px var(--font-data);font-variant-numeric:tabular-nums}
+.side{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:920px){.side{position:static}}
+.eyebrow{font:500 11px var(--font-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.claim{font:600 17px/1.3 var(--font-display);margin:0;text-wrap:balance}
+.plates{display:flex;flex-wrap:wrap;gap:6px}
+.plate{font-size:12px;background:var(--sunken);border:1px solid var(--line);padding:4px 8px;border-radius:5px}
+.plate i{font-style:normal;color:var(--muted)}
+.verdict{border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.verdict .state{font:700 20px var(--font-display)}
+.verdict .why{font-size:13px}
+.v-confirmed{background:var(--ok-soft)} .v-confirmed .state{color:var(--ok)}
+.v-refuted{background:var(--bad-soft)} .v-refuted .state{color:var(--bad)}
+.v-not_proven{background:var(--wait-soft)} .v-not_proven .state{color:var(--wait)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px}
+dt{color:var(--muted)} dd{margin:0;text-align:right;font:500 13px var(--font-data);font-variant-numeric:tabular-nums}
+.small{font-size:12px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Сценарії Earth Verdict</h1>
+    <span class="proto">Прототип · штучні дані</span>
+  </header>
+  <p class="lede">Три способи «змоделювати» зміну на одній справі. Ряди згенеровані, але статистику (Манн–Кендалл із поправкою на автокореляцію, нахил Сена, формула Weatherhead) сторінка рахує по-справжньому, тож вердикт праворуч реагує на повзунки так, як реагуватиме продукт.</p>
+
+  <div class="cases" role="group" aria-label="Справа">
+    <button class="chip" data-case="heat" aria-pressed="true">Літня спека, Київ</button>
+    <button class="chip" data-case="snow" aria-pressed="false">Сніг у Карпатах</button>
+    <button class="chip" data-case="rain" aria-pressed="false">Опади, Київ</button>
+  </div>
+
+  <div class="app">
+    <div class="work">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-A" data-mode="A" aria-selected="true"><b>А. Що, якби</b><span>Інша швидкість чи шум: коли тренд стане доведеним</span></button>
+        <button class="tab" role="tab" id="tab-B" data-mode="B" aria-selected="false"><b>Б. Продовження тренду</b><span>Тренд зупиниться, триватиме чи прискориться</span></button>
+        <button class="tab" role="tab" id="tab-C" data-mode="C" aria-selected="false"><b>В. Сценарії викидів</b><span>Пом'якшення чи погіршення до 2100 року</span></button>
+      </div>
+
+      <section class="stage" id="stage-A">
+        <p class="note"><strong>Статистика виявлення, не прогноз.</strong> Повзунки змінюють уявні дані, щоб показати, від чого залежить вердикт: швидкості зміни, мінливості між роками й довжини ряду.</p>
+        <div class="controls">
+          <div class="ctl"><label for="a-rate">Швидкість тренду <output id="a-rate-o"></output></label><input id="a-rate" type="range" min="0" max="3" step="0.05" value="1"><div class="ends"><span>немає</span><span>як у даних</span><span>×3</span></div></div>
+          <div class="ctl"><label for="a-noise">Мінливість між роками <output id="a-noise-o"></output></label><input id="a-noise" type="range" min="0.4" max="2.5" step="0.05" value="1"><div class="ends"><span>спокійно</span><span>×2.5</span></div></div>
+          <div class="ctl"><label for="a-end">Ряд до року <output id="a-end-o"></output></label><input id="a-end" type="range" min="1996" max="2025" step="1" value="2025"><div class="ends"><span>1996</span><span>2025</span></div></div>
+        </div>
+        <div id="plot-A" class="plot"></div>
+        <p class="eyebrow">Як p-значення падає з довжиною ряду</p>
+        <div id="plot-A2" class="plot"></div>
+      </section>
+
+      <section class="stage" id="stage-B" hidden>
+        <p class="note"><strong>Екстраполяція, лише ілюстрація.</strong> Лінія продовжує нинішній нахил Сена з обраним множником. Темна смуга показує невизначеність нахилу, світла додає звичайну різницю між роками.</p>
+        <div class="controls">
+          <div class="ctl"><label for="b-factor">Після 2025 тренд <output id="b-factor-o"></output></label><input id="b-factor" type="range" min="0" max="2" step="0.05" value="1"><div class="ends"><span>зупиниться</span><span>як зараз</span><span>удвічі швидше</span></div></div>
+          <div class="ctl"><label for="b-year">Подивитися на рік <output id="b-year-o"></output></label><input id="b-year" type="range" min="2030" max="2070" step="1" value="2050"><div class="ends"><span>2030</span><span>2070</span></div></div>
+        </div>
+        <div class="readout" id="b-readout"></div>
+        <div id="plot-B" class="plot"></div>
+      </section>
+
+      <section class="stage" id="stage-C" hidden>
+        <p class="note"><strong>Сценарії кліматичних моделей.</strong> У продукті тут будуть ряди NASA NEX-GDDP-CMIP6 для SSP1-2.6, SSP2-4.5 і SSP5-8.5. Зараз криві стилізовані, а повзунок плавно змішує сусідні сценарії, щоб відчути інтерфейс.</p>
+        <div class="controls">
+          <div class="ctl"><label for="c-path">Шлях викидів <output id="c-path-o"></output></label><input id="c-path" type="range" min="0" max="100" step="1" value="50"><div class="ends"><span>пом'якшення</span><span>як зараз</span><span>погіршення</span></div></div>
+          <div class="ctl"><label for="c-year">Подивитися на рік <output id="c-year-o"></output></label><input id="c-year" type="range" min="2030" max="2100" step="1" value="2050"><div class="ends"><span>2030</span><span>2100</span></div></div>
+          <div class="ctl"><span class="small">Швидкий вибір</span><div class="seg" id="c-seg">
+            <button data-p="0" style="color:var(--s1)">SSP1-2.6</button><button data-p="50" style="color:var(--s2)">SSP2-4.5</button><button data-p="100" style="color:var(--s3)">SSP5-8.5</button></div></div>
+        </div>
+        <div class="readout" id="c-readout"></div>
+        <div id="plot-C" class="plot"></div>
+      </section>
+    </div>
+
+    <aside class="side" aria-live="polite">
+      <p class="eyebrow">Справа</p>
+      <p class="claim" id="claim"></p>
+      <div class="plates" id="plates"></div>
+      <div class="verdict" id="verdict"><span class="state"></span><span class="why"></span></div>
+      <dl id="metrics"></dl>
+      <p class="small" id="side-note"></p>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.34.0/plotly-basic.min.js"></script>
+<script>
+// ---------- Справи (штучні) ----------
+const CASES = {
+  heat:{label:'Температура повітря', place:'Київ', season:'червень–серпень', unit:'°C', claim:'Літа в Києві стають спекотнішими', dir:1,
+        base:19.3, slope:0.045, sigma:0.75, phi:0.25, seed:11, dec:1, anom:'abs',
+        scen:{s1:[0.45,0.95,1.3,1.4,1.4], s2:[0.45,1.05,1.65,2.15,2.75], s3:[0.45,1.15,2.1,3.3,5.1]}},
+  snow:{label:'Глибина снігу', place:'Карпати', season:'грудень–лютий', unit:'см', claim:'У Карпатах снігу стає більше', dir:1,
+        base:41, slope:-0.32, sigma:7, phi:0.3, seed:5, dec:0, anom:'pct',
+        scen:{s1:[-12,-20,-27,-29,-30], s2:[-12,-22,-34,-44,-55], s3:[-12,-25,-44,-64,-85]}},
+  rain:{label:'Опади', place:'Київ', season:'рік', unit:'мм', claim:'У Києві стає менше опадів', dir:-1,
+        base:640, slope:-0.4, sigma:85, phi:0.1, seed:7, dec:0, anom:'pct',
+        scen:{s1:[0,1,2,2,2], s2:[0,1,2,3,3.5], s3:[0,1,2.5,4,5.5]}}
+};
+const KNOTS=[2015,2030,2050,2070,2100], Y0=1981, Y1=2025;
+const state={c:'heat', mode:'A', A:{rate:1,noise:1,end:2025}, B:{factor:1,year:2050}, C:{path:50,year:2050}};
+
+// ---------- Генерація ----------
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const NOISE={};
+function noise(c){ if(NOISE[c]) return NOISE[c]; const r=rng(CASES[c].seed), phi=CASES[c].phi, out=[]; let e=0;
+  for(let y=Y0;y<=Y1;y++){const u=Math.max(r(),1e-9),v=r(),z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); e=phi*e+Math.sqrt(1-phi*phi)*z; out.push(e)} return NOISE[c]=out }
+function series(c,rate=1,nm=1,end=Y1){ const k=CASES[c], n=noise(c), xs=[], ys=[];
+  for(let y=Y0;y<=end;y++){let v=k.base+k.slope*rate*(y-2003)+k.sigma*nm*n[y-Y0]; if(k.unit!=='°C') v=Math.max(0,v); xs.push(y); ys.push(v)} return {xs,ys} }
+
+// ---------- Статистика ----------
+const median=a=>{const s=[...a].sort((p,q)=>p-q),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+function erf(x){const t=1/(1+0.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return x>=0?y:-y}
+const Phi=z=>0.5*(1+erf(z/Math.SQRT2));
+function analyze(xs,ys){ const n=xs.length, slopes=[]; let S=0;
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){slopes.push((ys[j]-ys[i])/(xs[j]-xs[i])); S+=Math.sign(ys[j]-ys[i])}
+  slopes.sort((a,b)=>a-b); const slope=median(slopes), icpt=median(ys.map((y,i)=>y-slope*xs[i]));
+  const res=ys.map((y,i)=>y-(icpt+slope*xs[i])), mr=res.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0; for(let i=0;i<n;i++){den+=(res[i]-mr)**2; if(i) num+=(res[i]-mr)*(res[i-1]-mr)} const r1=den?num/den:0;
+  let varS=n*(n-1)*(2*n+5)/18; const infl=r1>0?(1+r1)/(1-r1):1; varS*=infl;
+  const z=S>0?(S-1)/Math.sqrt(varS):S<0?(S+1)/Math.sqrt(varS):0, p=2*(1-Phi(Math.abs(z)));
+  const N=slopes.length, C=1.96*Math.sqrt(varS), lo=slopes[Math.max(0,Math.round((N-C)/2)-1)], hi=slopes[Math.min(N-1,Math.round((N+C)/2))];
+  const sd=Math.sqrt(den/(n-1)), phi=Math.min(Math.max(r1,0),0.9);
+  const nStar=Math.abs(slope)<1e-12?Infinity:Math.pow((3.3*sd/Math.abs(slope))*Math.sqrt((1+phi)/(1-phi)),2/3);
+  return {n,slope,icpt,p,z,lo,hi,sd,r1,nStar,xbar:xs.reduce((a,b)=>a+b,0)/n} }
+function robust(xs,ys){ const s=xs[0], e=xs[xs.length-1], wins=[[s,e],[s+3,e],[s+6,e],[s,e-3],[s+3,e-3]].filter(([a,b])=>b-a+1>=15);
+  return wins.map(([a,b])=>{const i0=xs.indexOf(a),i1=xs.indexOf(b)+1, r=analyze(xs.slice(i0,i1),ys.slice(i0,i1)); return {a,b,p:r.p,slope:r.slope}}) }
+function verdict(r,rob,dir){ if(r.n<15) return {v:'not_proven',why:'Ряд закороткий: менше 15 років.'};
+  const same=rob.filter(w=>w.p<0.05&&Math.sign(w.slope)===Math.sign(r.slope)).length, need=Math.ceil(0.8*rob.length);
+  if(!(r.p<0.05)) return {v:'not_proven',why:'Тренд не відрізняється від звичайних коливань між роками. Це не означає, що змін немає.',same};
+  if(same<need) return {v:'not_proven',why:'Тренд значущий лише для частини варіантів періоду: висновок залежить від вибору років.',same};
+  return Math.sign(r.slope)===dir ? {v:'confirmed',why:'Значущий тренд у бік твердження, стійкий до вибору періоду.',same}
+                                 : {v:'refuted',why:'Значущий тренд, але в протилежний бік.',same} }
+
+// ---------- Утиліти ----------
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt=(v,d)=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(d);
+const fmtp=p=>p<0.001?'< 0.001':p.toFixed(3);
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+function interp(knots,vals,x){ if(x<=knots[0]) return vals[0]; for(let i=1;i<knots.length;i++) if(x<=knots[i]){const t=(x-knots[i-1])/(knots[i]-knots[i-1]);return vals[i-1]+t*(vals[i]-vals[i-1])} return vals[vals.length-1] }
+function pathVals(k,p){ return p<=50?mix(k.scen.s1,k.scen.s2,p/50):mix(k.scen.s2,k.scen.s3,(p-50)/50) }
+function spread(k,v){ return k.anom==='abs'?0.35+0.3*Math.abs(v):4+0.35*Math.abs(v) }
+function layout(extra){ const fg=css('--fg'),mu=css('--muted'),li=css('--line');
+  return Object.assign({margin:{l:52,r:12,t:8,b:36},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+    font:{family:'IBM Plex Sans, system-ui, sans-serif',size:12,color:fg},showlegend:false,hovermode:'x unified',
+    hoverlabel:{bgcolor:css('--surface'),bordercolor:li,font:{color:fg}},
+    xaxis:{gridcolor:li,zeroline:false,linecolor:li,tickfont:{color:mu},fixedrange:true},
+    yaxis:{gridcolor:li,zeroline:false,linecolor:li,tickfont:{color:mu},fixedrange:true}},extra) }
+const CFG={displayModeBar:false,responsive:true};
+function alpha(hex,a){const h=hex.replace('#','');const n=parseInt(h.length===3?h.split('').map(x=>x+x).join(''):h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+
+// ---------- Рендер ----------
+function current(){ const k=CASES[state.c];
+  return state.mode==='A'? series(state.c,state.A.rate,state.A.noise,state.A.end) : series(state.c) }
+
+function renderSide(){ const k=CASES[state.c], {xs,ys}=current(), r=analyze(xs,ys), rob=robust(xs,ys), v=verdict(r,rob,k.dir);
+  document.getElementById('claim').textContent='«'+k.claim+'»';
+  document.getElementById('plates').innerHTML=[['Змінна',k.label],['Місце',k.place],['Сезон',k.season],['Роки',xs[0]+'–'+xs[xs.length-1]],['Напрямок',k.dir>0?'зростає':'спадає']]
+    .map(([a,b])=>`<span class="plate"><i>${a}:</i> ${b}</span>`).join('');
+  const box=document.getElementById('verdict'); box.className='verdict v-'+v.v;
+  box.querySelector('.state').textContent={confirmed:'Підтверджено',refuted:'Спростовано',not_proven:'Не доведено'}[v.v];
+  box.querySelector('.why').textContent=v.why;
+  const wait=v.v==='not_proven'&&r.n>=15? (isFinite(r.nStar)? Math.max(0,Math.ceil(r.nStar-r.n)) : null) : null;
+  const rows=[
+    ['Швидкість за 10 років',fmt(r.slope*10,k.dec+1)+' '+k.unit],
+    ['95% інтервал',fmt(r.lo*10,k.dec+1)+' … '+fmt(r.hi*10,k.dec+1)],
+    ['p (Манн–Кендалл)',fmtp(r.p)],
+    ['Стійкість до періоду',`${v.same??rob.filter(w=>w.p<0.05&&Math.sign(w.slope)===Math.sign(r.slope)).length} з ${rob.length}`],
+    ['Автокореляція r₁',r.r1.toFixed(2)]];
+  if(v.v==='not_proven'&&r.n>=15) rows.push(['Ще чекати',wait===null?'тренду немає':wait===0?'вже достатньо*':'≈ '+wait+' р.']);
+  document.getElementById('metrics').innerHTML=rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('');
+  document.getElementById('side-note').textContent= state.mode==='A'
+    ? 'Вердикт рахується для уявних даних із повзунків ліворуч.'
+    : 'Вердикт стосується спостережень до 2025 року. Сценарії майбутнього його не змінюють.';
+}
+
+function renderA(){ const k=CASES[state.c], {xs,ys}=current(), r=analyze(xs,ys), acc=css('--accent'), mu=css('--muted');
+  const fit=xs.map(x=>r.icpt+r.slope*x), ybar=r.icpt+r.slope*r.xbar;
+  const l1=xs.map(x=>ybar+r.lo*(x-r.xbar)), l2=xs.map(x=>ybar+r.hi*(x-r.xbar));
+  const lo=xs.map((_,i)=>Math.min(l1[i],l2[i])), hi=xs.map((_,i)=>Math.max(l1[i],l2[i]));
+  Plotly.react('plot-A',[
+    {x:xs,y:lo,mode:'lines',line:{width:0},hoverinfo:'skip'},
+    {x:xs,y:hi,mode:'lines',line:{width:0},fill:'tonexty',fillcolor:alpha(acc,0.16),hoverinfo:'skip'},
+    {x:xs,y:ys,mode:'markers',marker:{size:7,color:mu},name:k.label,hovertemplate:'%{y:.'+k.dec+'f} '+k.unit+'<extra></extra>'},
+    {x:xs,y:fit,mode:'lines',line:{color:acc,width:2.5},name:'Нахил Сена',hovertemplate:'тренд %{y:.'+k.dec+'f}<extra></extra>'}],
+    layout({height:330,yaxis:Object.assign(layout().yaxis,{title:{text:k.unit,font:{color:mu}}}),xaxis:Object.assign(layout().xaxis,{range:[Y0-1,Y1+1]})}),CFG);
+  // поява сигналу
+  const full=series(state.c,state.A.rate,state.A.noise,Y1), ends=[], ps=[];
+  for(let e=Y0+14;e<=Y1;e++){const i1=full.xs.indexOf(e)+1; ends.push(e); ps.push(Math.max(analyze(full.xs.slice(0,i1),full.ys.slice(0,i1)).p,1e-6))}
+  let emerge=null; for(let i=ps.length-1;i>=0;i--){ if(ps[i]<0.05) emerge=ends[i]; else break }
+  const tr=[{x:ends,y:ps,mode:'lines+markers',line:{color:acc,width:2},marker:{size:4},hovertemplate:'до %{x}: p = %{y:.3f}<extra></extra>'},
+    {x:[Y0+14,Y1],y:[0.05,0.05],mode:'lines',line:{color:css('--bad'),width:1,dash:'dot'},hoverinfo:'skip'}];
+  const shapes=[{type:'rect',xref:'x',yref:'paper',x0:state.A.end+0.5,x1:Y1+0.5,y0:0,y1:1,fillcolor:alpha(mu,0.10),line:{width:0}}];
+  const ann=[{x:Y1,y:Math.log10(0.05),xref:'x',yref:'y',text:'поріг 0.05',showarrow:false,yshift:9,xanchor:'right',font:{size:11,color:css('--bad')}}];
+  if(emerge) ann.push({x:emerge,y:Math.log10(ps[ends.indexOf(emerge)]),text:'стабільно значущий з '+emerge,showarrow:true,arrowcolor:mu,ax:-40,ay:-28,font:{size:11,color:css('--fg')}});
+  Plotly.react('plot-A2',tr,layout({height:190,shapes,annotations:ann,yaxis:Object.assign(layout().yaxis,{type:'log',title:{text:'p',font:{color:mu}},range:[-6.2,0.1]}),xaxis:Object.assign(layout().xaxis,{range:[Y0+13,Y1+1]})}),CFG);
+}
+
+function renderB(){ const k=CASES[state.c], {xs,ys}=series(state.c), r=analyze(xs,ys), acc=css('--accent'), mu=css('--muted'), f=state.B.factor;
+  const se=(r.hi-r.lo)/(2*1.96), y25=r.icpt+r.slope*Y1, fx=[], c=[], a1=[], a2=[], b1=[], b2=[];
+  for(let t=Y1;t<=2070;t++){const h=t-Y1, m=y25+r.slope*f*h, s1=1.96*se*Math.max(f,0.15)*h, s2=Math.sqrt(s1*s1+(1.96*r.sd)**2);
+    fx.push(t); c.push(m); a1.push(m-s1); a2.push(m+s1); b1.push(m-s2); b2.push(m+s2)}
+  const clamp=k.unit!=='°C'?v=>Math.max(0,v):v=>v;
+  const i=fx.indexOf(state.B.year);
+  document.getElementById('b-readout').innerHTML=`<span class="small">У ${state.B.year} році, якщо тренд ${f===0?'зупиниться':f===1?'триватиме як зараз':'буде ×'+f.toFixed(2)}:</span>
+    <span class="big">${clamp(c[i]).toFixed(k.dec)} ${k.unit}</span>
+    <span class="small">звичайний рік у межах ${clamp(b1[i]).toFixed(k.dec)}…${clamp(b2[i]).toFixed(k.dec)} ${k.unit}; зараз ${y25.toFixed(k.dec)} ${k.unit}</span>`;
+  Plotly.react('plot-B',[
+    {x:fx,y:b1.map(clamp),mode:'lines',line:{width:0},hoverinfo:'skip'},
+    {x:fx,y:b2.map(clamp),mode:'lines',line:{width:0},fill:'tonexty',fillcolor:alpha(acc,0.10),hoverinfo:'skip'},
+    {x:fx,y:a1.map(clamp),mode:'lines',line:{width:0},hoverinfo:'skip'},
+    {x:fx,y:a2.map(clamp),mode:'lines',line:{width:0},fill:'tonexty',fillcolor:alpha(acc,0.24),hoverinfo:'skip'},
+    {x:xs,y:ys,mode:'markers',marker:{size:6,color:mu},hovertemplate:'%{y:.'+k.dec+'f} '+k.unit+'<extra></extra>'},
+    {x:xs,y:xs.map(x=>r.icpt+r.slope*x),mode:'lines',line:{color:acc,width:2.5},hoverinfo:'skip'},
+    {x:fx,y:c.map(clamp),mode:'lines',line:{color:acc,width:2.5,dash:'dash'},hovertemplate:'продовження %{y:.'+k.dec+'f}<extra></extra>'}],
+    layout({height:360,shapes:[{type:'line',x0:state.B.year,x1:state.B.year,yref:'paper',y0:0,y1:1,line:{color:mu,width:1,dash:'dot'}},
+      {type:'line',x0:Y1+0.5,x1:Y1+0.5,yref:'paper',y0:0,y1:1,line:{color:css('--line'),width:1}}],
+      annotations:[{x:Y1+0.5,y:1,yref:'paper',text:'спостереження | екстраполяція',showarrow:false,yshift:-2,font:{size:11,color:mu}}],
+      yaxis:Object.assign(layout().yaxis,{title:{text:k.unit,font:{color:mu}}})}),CFG);
+}
+
+function renderC(){ const k=CASES[state.c], {xs,ys}=series(state.c), mu=css('--muted'), p=state.C.path;
+  const ref=ys.filter((_,i)=>xs[i]>=1991&&xs[i]<=2020), m=ref.reduce((a,b)=>a+b,0)/ref.length;
+  const obs=ys.map(y=>k.anom==='abs'?y-m:100*(y/m-1)), u=k.anom==='abs'?'°C':'%';
+  const yrs=[]; for(let t=2015;t<=2100;t++) yrs.push(t);
+  const traces=[{x:xs,y:obs,mode:'markers',marker:{size:6,color:mu},hovertemplate:'спостереження %{y:.1f} '+u+'<extra></extra>'}];
+  [['s1','SSP1-2.6'],['s2','SSP2-4.5'],['s3','SSP5-8.5']].forEach(([s,name])=>{ const col=css('--'+s), v=yrs.map(t=>interp(KNOTS,k.scen[s],t));
+    traces.push({x:yrs,y:v,mode:'lines',line:{color:alpha(col,0.45),width:1.5},hovertemplate:name+' %{y:.1f}<extra></extra>'}) });
+  const pv=pathVals(k,p), sel=yrs.map(t=>interp(KNOTS,pv,t)), col=p<34?css('--s1'):p<67?css('--s2'):css('--s3');
+  traces.push({x:yrs,y:sel.map(v=>v-spread(k,v)),mode:'lines',line:{width:0},hoverinfo:'skip'});
+  traces.push({x:yrs,y:sel.map(v=>v+spread(k,v)),mode:'lines',line:{width:0},fill:'tonexty',fillcolor:alpha(col,0.18),hoverinfo:'skip'});
+  traces.push({x:yrs,y:sel,mode:'lines',line:{color:col,width:3},hovertemplate:'обраний шлях %{y:.1f} '+u+'<extra></extra>'});
+  const yv=interp(KNOTS,pv,state.C.year), sp=spread(k,yv);
+  const name=p===0?'SSP1-2.6, сильне пом\'якшення':p===50?'SSP2-4.5, середній шлях':p===100?'SSP5-8.5, погіршення':p<50?'між SSP1-2.6 і SSP2-4.5':'між SSP2-4.5 і SSP5-8.5';
+  document.getElementById('c-readout').innerHTML=`<span class="small">${state.C.year} рік, ${name}:</span>
+    <span class="big" style="color:${col}">${fmt(yv,1)} ${u}</span><span class="small">діапазон моделей ${fmt(yv-sp,1)}…${fmt(yv+sp,1)} ${u} відносно 1991–2020</span>`;
+  Plotly.react('plot-C',traces,layout({height:360,
+    shapes:[{type:'line',x0:state.C.year,x1:state.C.year,yref:'paper',y0:0,y1:1,line:{color:mu,width:1,dash:'dot'}},
+            {type:'line',x0:1980,x1:2100,y0:0,y1:0,line:{color:css('--line'),width:1}}],
+    yaxis:Object.assign(layout().yaxis,{title:{text:(k.anom==='abs'?'відхилення, ':'зміна, ')+u,font:{color:mu}}}),
+    xaxis:Object.assign(layout().xaxis,{range:[1979,2101]})}),CFG);
+  document.querySelectorAll('#c-seg button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.p===p)));
+}
+
+function outputs(){ const A=state.A,B=state.B,C=state.C;
+  document.getElementById('a-rate-o').textContent='×'+A.rate.toFixed(2);
+  document.getElementById('a-noise-o').textContent='×'+A.noise.toFixed(2);
+  document.getElementById('a-end-o').textContent=A.end+' ('+(A.end-Y0+1)+' р.)';
+  document.getElementById('b-factor-o').textContent=B.factor===0?'зупиниться':'×'+B.factor.toFixed(2);
+  document.getElementById('b-year-o').textContent=B.year;
+  document.getElementById('c-path-o').textContent=C.path<20?'пом\'якшення':C.path<=80?'середній':'погіршення';
+  document.getElementById('c-year-o').textContent=C.year; }
+
+function render(){ outputs(); renderSide();
+  ['A','B','C'].forEach(m=>{document.getElementById('stage-'+m).hidden=m!==state.mode; document.getElementById('tab-'+m).setAttribute('aria-selected',String(m===state.mode))});
+  if(state.mode==='A') renderA(); else if(state.mode==='B') renderB(); else renderC(); }
+
+// ---------- Події ----------
+const bind=(id,obj,key,parse=parseFloat)=>document.getElementById(id).addEventListener('input',e=>{state[obj][key]=parse(e.target.value);render()});
+bind('a-rate','A','rate'); bind('a-noise','A','noise'); bind('a-end','A','end',v=>parseInt(v,10));
+bind('b-factor','B','factor'); bind('b-year','B','year',v=>parseInt(v,10));
+bind('c-path','C','path',v=>parseInt(v,10)); bind('c-year','C','year',v=>parseInt(v,10));
+document.querySelectorAll('#c-seg button').forEach(b=>b.addEventListener('click',()=>{state.C.path=+b.dataset.p;document.getElementById('c-path').value=b.dataset.p;render()}));
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{state.mode=t.dataset.mode;render()}));
+document.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{state.c=ch.dataset.case;
+  document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===ch)));render()}));
+const mq=window.matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener&&mq.addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(window.Plotly) render(); else window.addEventListener('load',render);
+</script>
+
+</body></html>
