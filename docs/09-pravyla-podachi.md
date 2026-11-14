@@ -1,150 +1,156 @@
-# 09 · Правило подачі: спрощуємо без втрати даних
+# 09 · Presentation rule: simplify without losing data
 
-Обов'язковий чекліст команди візуалізації для кожного нового або зміненого екрана
-перед злиттям у `main`. Завдання: [issue #1](https://github.com/tByte97/Earth-Verdict-Overflowers/issues/1).
-Охоплює глобус, картку вердикту, графіки, сценарії, демо й пояснення в чаті.
+Required review guidance for the visualization team. Applies to every new or changed
+screen before merging into `main`: globe, verdict card, charts, scenarios and any
+implemented demo, chat or exported-result surface.
 
-Користувач без наукової підготовки має зрозуміти відповідь, а технічний читач —
-перевірити кожне число. Спрощуємо порядок і формулювання; зберігаємо дані та їхній контекст.
-Цей документ визначає правила рев'ю. Верстка компонентів виконується в окремих задачах.
+Task: [issue #1](https://github.com/tByte97/Earth-Verdict-Overflowers/issues/1).
+This task establishes the review workflow. Individual screen implementation belongs
+to the corresponding visualization issues.
 
-## 1. Три рівні інформації
+## Information hierarchy
 
-| Рівень | Що показуємо |
+| Level | Required content |
 |---|---|
-| Одразу | Питання, місце, показник, сезон, період, вердикт, швидкість зміни з одиницями й періодом розрахунку; для аномалії — також базовий період; застереження для `not_proven` |
-| Після розгортання «How we checked this» | Усі другорядні розрахунки: p, довірчі інтервали, статистики методів, перевірки стійкості, результат другого джерела, оцінка додаткових років і обмеження |
-| Походження «Data sources» | `provenance`: джерело, продукт, версія (якщо надана), запит або посилання на дані, дата отримання, ліцензія; зв'язок із конкретним показником |
+| Immediately visible | Claim, place, variable, season, analysis period, verdict, principal rate/value with units and time scale, and the not-proven caveat when applicable |
+| Expandable details | Every secondary calculation, exact received precision, uncertainty, methods, robustness windows, witness fields and limitations |
+| One-click provenance | The relevant provider or method record, input sources, product/version when supplied, request/data URL, retrieval date and license |
 
-Кнопка «Data sources» доступна без попереднього відкриття «How we checked this»:
-одне натискання біля числа відкриває відповідний запис походження. Посилання на дані
-в цьому записі дозволяє перевірити джерело. Назви кнопок мають описувати дію;
-розгортки працюють із клавіатури та повідомляють свій відкритий/закритий стан.
+The source action next to a value opens its relevant provenance or method record in one
+click, without requiring the user to open a different disclosure first. Disclosures must
+also work with a keyboard and expose their expanded/collapsed state.
 
-## 2. Числа, одиниці та періоди
+## Required checks
 
-- Жодне число з результату розрахунку не втрачається. Для кожного числового поля
-  `CheckResult` автор указує місце в інтерфейсі: картка, графік із доступною таблицею,
-  розгортка або блок походження. Це стосується й координат, часових рядів, вкладених
-  полів `witness` та всіх вікон `robustness`.
-- На графіку одиниці стоять на осі та в підказці; діапазон років — у підписі.
-  Точні значення ряду доступні в таблиці. Колір доповнюється текстом або типом лінії.
-- Поруч зі значенням указуються одиниці та період розрахунку. Для нахилу обов'язковий
-  часовий масштаб: наприклад, `°C / decade`, а для відхилення — база `relative to …`.
-  Період оцінки тренду та базовий період аномалії — різні поняття, їх підписують окремо.
-- Для безрозмірних p, tau, z, R² і часток указується «безрозмірне» в поясненні або
-  заголовку таблиці; для кількості — «роки», «спостереження» чи «вікна» відповідно.
-  Спільний заголовок одиниць і періоду допустимий у межах видимої таблиці.
-- Округлення дозволене для читабельності, але повна отримана точність доступна в
-  розгортці або таблиці. Мале ненульове p не відображається як нуль через округлення.
-- `null`, відсутнє поле чи помилка джерела означають «Data unavailable» з причиною,
-  якщо вона надана. Їх не замінюють нулем, вигаданою базою або нібито відсутнім трендом.
-- Якщо контракт не визначає одиниці інтервалу чи базу, автор фіксує блокер для бекенду.
-  Не можна вгадувати масштаб `ci_low` / `ci_high` або використовувати базу іншого продукту.
+### 1. Preserve every calculation
 
-## 3. Походження та JSON-контракт
+- Map every numeric field in `CheckResult` to the main view, an expandable block or an
+  accessible exact-value table. Include nested objects and arrays: observations, station
+  coordinates/distances, witness comparisons, uncertainty, methods and every robustness window.
+- Readable rounding is allowed only when full received precision remains accessible.
+  A small nonzero p-value must not be rounded into an apparent zero.
+- Null or absent values are not zero. Explain their actual meaning: missing observations,
+  an undetermined waiting estimate or a quantity that does not apply to the verdict.
+- Do not silently drop unsupported metadata. Record a blocker for the relevant backend
+  or screen task rather than inventing values or claiming that the check passed.
 
-- Усі числа результату й `verdict` беруться з JSON бекенду. Текст LLM не є джерелом
-  значень і не може змінити вердикт, напрямок тренду чи причину `reason`.
-- UI форматує отримані значення; нові статистики, підрахунки або перераховані одиниці
-  повертає бекенд за узгодженим контрактом. Локальна математика прототипу не замінює контракт.
-- Рев'юер простежує шлях «число в UI → поле JSON → відповідний запис `provenance`».
-  Для похідного числа показуються метод і джерела вхідних даних, включно з NOAA-свідком.
-- Якщо поточний JSON не забезпечує зв'язок із джерелом, одиниці, базу чи інші потрібні
-  метадані, це блокер інтеграції. Доповнення контракту погоджується з відповідальним
-  за бекенд за процедурою з розділу 3 ТЗ; цей чекліст сам контракт не змінює.
-- Заглушки та синтетичні дані мають постійний видимий підпис «Demo · synthetic data».
-  Їхні числа не видаються за вимірювання NASA/NOAA.
+### 2. Keep units and periods with values
 
-## 4. Формулювання вердикту
+- A trend rate needs both variable units and time scale (for example, °C / decade), plus
+  its fitted years and season. An anomaly also needs its actual reference baseline.
+- The fitted analysis period and anomaly baseline are different. Absolute observations
+  do not acquire a made-up anomaly baseline; mark it not applicable with a reason.
+- Axes, tooltips and tables keep their units and time context. Shared visible table
+  headers may supply that context. p, tau, z, R², autocorrelation and ratios are dimensionless;
+  counts identify years, observations or windows as appropriate.
+- Read confidence-interval units from the current backend contract. Do not infer the
+  scale from a nearby slope field or a historical example in the specification.
 
-| JSON `verdict` | Заголовок UI | Обов'язковий зміст пояснення |
-|---|---|---|
-| `confirmed` | Confirmed | Дані підтримують перевірюване твердження за обраним методом і періодом |
-| `refuted` | Refuted | Статистично значущий тренд має напрямок, протилежний твердженню |
-| `not_proven` | Not proven | Доказів тренду недостатньо на тлі коливань. Це не означає відсутності змін |
+### 3. Trace observations and derived results honestly
 
-Для `not_proven` застереження стоїть одразу поруч із вердиктом — також у картці
-глобуса, демо, чаті та збереженому результаті, якщо такі поверхні реалізовані.
-Воно не ховається лише в підказці чи туторіалі.
+- Check the path from UI value to JSON field to the appropriate provenance/method record.
+  A provider homepage alone is not evidence for a particular calculation.
+- Observations identify their actual provider/product. Derived statistics identify the
+  backend method and input observations. Detection simulations, trend extrapolations and
+  scenario curves must not masquerade as raw NASA/NOAA measurements.
+- Use explicit field roles or unambiguous supported metadata for source mapping. Never
+  guess the role from translated/free-text `what` descriptions or select the first provider.
+  Missing or ambiguous mappings remain explicit blockers for the affected surface.
+- Keep metadata distinctions: real observations may have provisional statistics
+  (`meta.stub`); wholly synthetic examples and stylised scenarios are labelled synthetic.
+  A saved JSON file is not automatically a synthetic dataset.
 
-Рекомендований текст для англомовного UI:
+### 4. Explain Not proven correctly
+
+For every implemented surface that shows `not_proven`, display this meaning next to the
+verdict, not only inside a tooltip, tutorial or technical disclosure:
 
 > There is not enough evidence to establish a trend against the background of variability.
 > This does not mean there is no change.
 
-Поруч додається конкретна причина з `reason`: `not_significant` — недостатня
-значущість; `short_series` — ряд закороткий; `sources_disagree` — джерела розходяться;
-`not_robust` — результат залежить від вибору років. Якщо даних недостатньо для тесту,
-не можна писати, що тест проведено й тренд незначущий. Оцінка `years_to_wait`, якщо
-повернута, підписується як умовна оцінка за поточної швидкості й мінливості, без обіцянки
-дати доведення. `null` не перетворюється на «0 років».
+Add the actual `reason`: insufficient significance, a short record, disagreement between
+sources or sensitivity to selected years. A test not performed due to a short record must
+not be described as a completed non-significant test. Never replace this verdict with
+“No change”, “Trend absent” or “Everything is stable”.
 
-Заборонені заміни `not_proven`: «No change», «Trend absent», «Everything is stable».
-Сам вердикт і статистичні пороги фронтенд не переобчислює.
+Additional waiting is a conditional backend estimate, not a guaranteed detection date.
+Distinguish total required duration, years already observed and additional years. Null
+waiting is not zero and does not establish a trend. A hypothetical speed control cannot
+change the historical verdict or its backend waiting estimate.
 
-## 5. Минулі спостереження та майбутні сценарії
+### 5. Separate past evidence from future illustrations
 
-- Окремі підписані секції або вкладки: **«Past observations · Verdict»** та
-  **«Future scenarios · Conditional estimates»**. Відмінність позначається структурою,
-  заголовком і стилем ліній, а не лише кольором.
-- Вердикт належить лише перевірці минулих даних. Зміна сценарію або повзунка майбутнього
-  не змінює картку історичного вердикту та його період.
-- Якщо історія і сценарій є на одному графіку, видимі межа їхніх періодів, різні стилі
-  ліній і легенда. У підказці кожної точки зазначено, чи це спостереження, чи сценарій.
-- Екстраполяція підписується «Illustration · trend extrapolation», кліматична модель —
-  «Model scenario» з назвою моделі/SSP і джерелом. Навчальний експеримент —
-  «Synthetic experiment · not a forecast». Штучні криві не називаються виходом моделі.
-- Припущення, горизонт, одиниці, база та доступна невизначеність видимі біля результату.
-  Майбутні значення надходять з окремого погодженого контракту; поточний `CheckResult`
-  не оголошується контрактом прогнозу.
+- Use separate labelled sections or tabs for **Past observations · Verdict** and future
+  conditional estimates. Structure, labels and line styles carry the distinction; color
+  alone is insufficient.
+- If both appear on one chart, show the boundary between their periods, a legend and
+  tooltips identifying the kind of each point.
+- Label extrapolation as an illustration, model scenarios with their model/SSP and source,
+  and synthetic experiments as synthetic. Stylised placeholder curves are not CMIP6 outputs.
+- Show supplied assumptions, horizon, units, scenario baseline and uncertainty. Changing
+  a future scenario must not change or relabel the historical verdict.
 
-## 6. Перевірка кожного екрана перед merge
+### 6. Respect the backend contract
 
-Автор додає звіт у PR, рев'юер перевіряє його до злиття. Для коду цільова гілка —
-`main`, рев'ю робить Максим згідно з ТЗ. Зміни правил готуються окремою гілкою й
-узгоджуються в `docs`. Чекліст застосовується також до спрощення вже наявного екрана.
+All statistical values and the verdict come from validated backend JSON. LLM text cannot
+supply or override rates, p-values, coordinates, years, verdicts or reasons. Deterministic
+UI wording may explain the returned enum/reason without inventing scientific conclusions.
 
-1. Перелічити змінені екрани/поверхні. Додати шлях до JSON-відповіді чи фікстури
-   без секретів і карту числових полів за шаблоном нижче.
-2. Пройти всі числові поля, включно з масивами та вкладеними об'єктами. Звірити значення,
-   одиниці, період, базу та походження. Відкрити кожну розгортку, таблицю й підказку.
-3. Перевірити `confirmed`, `refuted` і всі застосовні причини `not_proven`; окремо —
-   `witness: null`, пропуски, нуль і мале p. Тестові фікстури явно позначити як синтетичні.
-4. Відкрити джерело кожного типу показника одним натисканням. Перевірити відповідність
-   продукту, станції, методу, періоду та джерела конкретному числу.
-5. Перемкнути минуле/майбутнє та змінити сценарій. Історичний вердикт має залишитися
-   прив'язаним до своєї відповіді бекенду. Повторити після зміни місця/показника, щоб
-   виключити змішування нового графіка зі старими підписами чи походженням.
-6. Додати знімки основного стану й відкритих деталей, застереження `not_proven` та
-   розділення історії/сценаріїв. Для незастосовного пункту написати причину.
-7. Рев'юер підтверджує результат для кожного екрана. Неперевірений пункт або відсутні
-   метадані залишаються блокером; позначка чекбокса без доказів не є перевіркою.
+UI formatting and explicitly approved presentation interpolation may use supplied values.
+For example, the current detection contract permits labelled log-rate/log-duration
+interpolation between adjacent valid simulation nodes. This is an illustration, not a new
+statistical calculation. Exact nodes stay exact; missing nodes are not bridged or made zero.
 
-### Карта чисел для звіту в PR
+The source of truth for current fields and units is the
+[backend model](https://github.com/tByte97/Earth-Verdict-Overflowers/blob/main/backend/app/models.py).
+Use its typed `detection`, `extrapolation` and `scenarios` sections without treating future
+illustrations as observed evidence. Contract changes require the coordination specified in
+section 3 of the technical specification.
 
-| Екран | Поле JSON | Де видно точне значення | Одиниці | Період / база | Запис `provenance` | Результат |
+## Review workflow before merging a screen
+
+1. **Author:** list every affected screen/surface and identify the JSON response or fixture.
+2. **Author:** inventory every numeric field, including nested fields/arrays, using the
+   report below. Open all disclosures/tables and verify exact values, units, analysis
+   period, baseline where applicable and provenance/method access.
+3. **Author:** check applicable confirmed/refuted/not-proven states and reasons; witness
+   absence/disagreement; gaps, genuine zero, small nonzero p and null estimates. Exercise
+   place/period changes to exclude stale labels or provenance. Test fixtures are identified.
+4. **Author:** attach evidence for the default view, open details, not-proven caveat and
+   past/future separation. State limitations. Mark a non-applicable check with its reason;
+   do not mark an unperformed check as passed.
+5. **Reviewer:** independently verify each affected screen and its report. The specification
+   identifies Maksym as reviewer. Resolve missing values/context, misleading verdicts,
+   provenance gaps and mixed historical/future presentation before accepting the screen.
+
+| Screen/surface | JSON field(s) | Exact-value location | Units | Analysis period / baseline | Provenance or method | Result / evidence |
 |---|---|---|---|---|---|---|
-| Заповнити | Наприклад, `sen.slope_per_decade` | Картка та розгортка | З контракту | З контракту; база або «не застосовується» з причиною | Конкретний запис | pass / blocker |
+| Fill in | e.g. `sen.slope_per_decade` | Main card and details | From contract | From response; baseline or justified N/A | Specific record | pass / blocker / justified N/A |
 
-Масив дозволено описати як `series[*].value`, якщо всі елементи доступні однаковим
-способом і перевірено весь масив. Відсутній екран або функція позначається «не застосовується»;
-це не означає, що його перевірено. Звіт створюється для кожного PR з екранами.
+An array may be recorded as `series[*].value` only when the whole array is accessible and
+checked consistently. Include both original values and relevant UI formatting in evidence.
+The report is completed for each screen-changing PR; a blanket checkbox is not evidence.
 
-## 7. Включення в робочий процес
+## Adoption and task boundaries
 
-- Вхідна точка для команди — розділ 2 ТЗ та індекс документації, що посилаються сюди.
-- Шаблон [pull request](../.github/pull_request_template.md) містить цей чекліст і звіт.
-  GitHub автоматично підставляє його лише після потрапляння шаблону в default-гілку
-  (`main`). До цього автор копіює шаблон вручну; якщо правила лишаються в `docs`,
-  для PR у `main` додає посилання на цей файл у гілці `docs`.
-- Це ручне рев'ю, а не автоматична перевірка CI чи налаштований branch protection.
-  Наявність документа не засвідчує перевірку ще не реалізованих екранів.
+- This guide is linked from the documentation index and section 2 of the specification.
+- `.github/pull_request_template.md` belongs in default branch `main` so GitHub can insert
+  the review checklist automatically. The companion workflow PR adds that file; until it
+  merges, authors copy its checklist manually. Full documentation stays on branch `docs`
+  as required by the specification's Git section.
+- This is manual review guidance, not a claim that CI checks visual honesty or that branch
+  protection has been configured. No new deployment, screen implementation or statistical
+  engine is required by issue #1.
+- Existing implementation evidence is recorded in merged
+  [PR #16](https://github.com/tByte97/Earth-Verdict-Overflowers/pull/16) and its frontend
+  review notes. That evidence does not certify screens added or changed afterward.
+- Keep issue #1 open until the guide and workflow activation have been reviewed/integrated.
+  Each future screen still requires its own actual presentation review.
 
-## Підстави
+## Specification references
 
-- [Вектори розвитку](05-vektory-rozvytku.md): 1 (вердикт) і 14 (база та походження).
-- [Архітектура](07-arkhitektura-i-rozrobka.md): «Чотири принципи, з яких випливає решта».
-- [ТЗ](08-tz.md): розділи 2 (загальні вимоги) і 3 (JSON-контракт).
-- [Прототип сценаріїв](prototypes/scenario-prototype.html): бічна панель і примітки.
-  Це приклад взаємодії на штучних даних, а не підтвердження відповідності production UI.
+- [Development vectors](05-vektory-rozvytku.md): vectors 1 and 14.
+- [Architecture](07-arkhitektura-i-rozrobka.md): the four core principles.
+- [Technical specification](08-tz.md): sections 2, 3 and 6.
+- [Scenario prototype](prototypes/scenario-prototype.html): sidebar and explanatory notes;
+  an interaction reference on synthetic data, not production acceptance evidence.

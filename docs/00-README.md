@@ -18,7 +18,7 @@ NASA Space Apps 2026 · челендж *Be An Earth System Trend Detective!* · 
 | `06-ruchne-doslidzhennia.md` | Що я не зміг дослідити і передаю тобі, з покроковими інструкціями |
 | `07-arkhitektura-i-rozrobka.md` | Архітектура, контракти API, білий список змінних, порядок розробки |
 | `08-tz.md` | Технічне завдання: задачі для кожного з трьох учасників, критерії приймання, контрольні точки |
-| [09-pravyla-podachi.md](09-pravyla-podachi.md) | Обов'язкове правило подачі та чекліст рев'ю кожного екрана перед merge у `main` (issue #1) |
+| [09-pravyla-podachi.md](09-pravyla-podachi.md) | Required presentation rules and per-screen review checklist before merge to `main` (issue #1) |
 
 ## Тека `resursy/`
 
