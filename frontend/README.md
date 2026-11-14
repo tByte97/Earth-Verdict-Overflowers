@@ -23,7 +23,7 @@ Open the Local URL printed by Vite, normally http://127.0.0.1:5173.
 | File | Case | Verdict |
 |---|---|---|
 | `data/cases/kyiv-summer-heat.json` | Summers in Kyiv are getting hotter | confirmed |
-| `data/cases/lviv-drier.json` | Lviv is getting drier | refuted |
+| `data/cases/lviv-drier.json` | Lviv is getting drier | not_proven |
 | `data/cases/kyiv-winter-snow.json` | Kyiv winters have more snow | not_proven |
 
 The observations are real according to the team's data README. The statistics are

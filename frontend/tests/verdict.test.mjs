@@ -94,6 +94,8 @@ test('live mode posts edited CaseSpec, renders backend verdict and reports serve
       sent = route.request().postDataJSON();
       const result = structuredClone(fixtures[1].result);
       result.case = sent;
+      result.verdict = 'refuted';
+      result.reason = 'opposite_trend';
       delete result.detection;
       delete result.mk.r1;
       await route.fulfill({ json: result });
