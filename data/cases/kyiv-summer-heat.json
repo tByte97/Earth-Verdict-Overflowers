@@ -265,7 +265,7 @@
  "witness": {
   "station": {
    "id": "UPM00033345",
-   "name": "Kiev, Up",
+   "name": "Kyiv",
    "lat": 50.4,
    "lon": 30.5331,
    "distance_km": 6.0
@@ -462,7 +462,17 @@
   "mk": {
    "p": 8.96e-08
   },
-  "agreement": "agree"
+  "agreement": "agree",
+  "rates": {
+   "common_years": 41,
+   "main_slope_per_decade": 0.6768,
+   "witness_slope_per_decade": 0.7672,
+   "difference_per_decade": 0.0945,
+   "ci_low": -0.0281,
+   "ci_high": 0.2204,
+   "p": 0.418,
+   "consistent": true
+  }
  },
  "verdict": "confirmed",
  "reason": "significant_trend",
@@ -508,7 +518,7 @@
    "id": "witness",
    "title": "Ground station check",
    "value": "Station agrees",
-   "detail": "Kiev, Up weather station, 6 km away."
+   "detail": "Kyiv weather station, 6 km away. It changes at about the same pace as the satellite-model data."
   },
   {
    "id": "verdict",
@@ -1062,6 +1072,6 @@
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T14:40:24Z"
+  "generated_at": "2026-11-14T15:04:29Z"
  }
 }

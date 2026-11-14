@@ -107,6 +107,19 @@ class WitnessMK(Strict):
     p: float
 
 
+class WitnessRates(Strict):
+    """Чи однаково швидко змінюються реаналіз і станція (тренд ряду «станція − реаналіз»
+    на спільних роках). На вердикт не впливає: вердикт дивиться лише на напрямок."""
+    common_years: int
+    main_slope_per_decade: float      # реаналіз на тих самих роках, що й станція
+    witness_slope_per_decade: float
+    difference_per_decade: float      # > 0: станція змінюється швидше
+    ci_low: float                     # 95% інтервал різниці, на 10 років
+    ci_high: float
+    p: float
+    consistent: bool                  # True = значущої різниці швидкостей немає
+
+
 class Witness(Strict):
     station: Station
     series: list[YearValue]
@@ -115,6 +128,7 @@ class Witness(Strict):
     sen: WitnessSen
     mk: WitnessMK
     agreement: Literal["agree", "one_source", "disagree"]
+    rates: Optional[WitnessRates] = None   # None = замало спільних років (< 15)
 
 
 class Step(Strict):
