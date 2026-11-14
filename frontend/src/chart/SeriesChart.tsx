@@ -66,7 +66,7 @@ export function SeriesChart({ result: r }: { result: CheckResult }) {
   const value = hover && r.series.find(point => point.year === hover.year)?.value;
   const stationValue = hover && station.get(hover.year);
   return <figure className="series-chart" data-testid="series-chart">
-    <figcaption>Yearly {seasonName(r.case.season)} values, {period(r)} · absolute values in {units}, no baseline</figcaption>
+    <figcaption>Yearly {seasonName(r.case.season)} values, {period(r)} · absolute values in {units}</figcaption>
     <ul className="chart-legend">
       <li><i className="key-dot" aria-hidden="true" />NASA POWER reanalysis · one point per year ({units})</li>
       <li><i className="key-line" aria-hidden="true" />Trend (Sen’s slope): {number(r.sen.slope_per_decade, true)} {units} / decade over {period(r)}</li>

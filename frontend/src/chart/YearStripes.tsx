@@ -17,27 +17,29 @@ function stripeColor(t: number, low: string, high: string) {
   return `rgb(${neutral.map((c, i) => Math.round(c + (end[i] - c) * Math.min(1, Math.abs(t)))).join(',')})`;
 }
 
-// Colour is a display scale over the lowest–highest value of this record, not an anomaly.
+const baselineKinds = { normal_1991_2020: '1991–2020 normal', series_mean: 'average of the whole record' };
+
+// Colour is value − baseline.mean from the backend, on a diverging scale with zero in the middle.
 export function YearStripes({ result: r }: { result: CheckResult }) {
   const [low, high, lowLabel, highLabel] = ramps[r.variable.id] ?? ['#7a8fa6', '#b5643c', 'lower', 'higher'];
   const units = r.variable.units;
+  const { mean, period: basePeriod, kind } = r.baseline;
   const values = r.series.flatMap(point => point.value === null ? [] : [point.value]);
-  const min = Math.min(...values), max = Math.max(...values);
-  const mid = (min + max) / 2, half = (max - min) / 2 || 1;
+  const scale = Math.max(...values.map(value => Math.abs(value - mean))) || 1;
   const first = r.series[0]?.year, last = r.series.at(-1)?.year;
   return <figure className="year-stripes">
     <figcaption>Each stripe is one year · {r.variable.label}, {period(r)}</figcaption>
-    <div className="stripes" role="img" aria-label={`${r.series.length} yearly stripes from ${first} to ${last}. Colour shows how ${lowLabel} or ${highLabel} each year was within this record. Exact values are in the table below the chart.`}>
+    <div className="stripes" role="img" aria-label={`${r.series.length} yearly stripes from ${first} to ${last}. Colour shows how ${lowLabel} or ${highLabel} each year was than the ${basePeriod} average. Exact values are in the table below the chart.`}>
       {r.series.map(point => <div key={point.year} className={point.value === null ? 'stripe-missing' : undefined}
-        style={point.value === null ? undefined : { background: stripeColor((point.value - mid) / half, low, high) }}
-        title={`${point.year}: ${point.value === null ? 'no data' : `${number(point.value)} ${units}`}`} />)}
+        style={point.value === null ? undefined : { background: stripeColor((point.value - mean) / scale, low, high) }}
+        title={`${point.year}: ${point.value === null ? 'no data' : `${number(point.value)} ${units}`} · ${basePeriod} average: ${number(mean)} ${units}`} />)}
     </div>
     <div className="stripe-axis" aria-hidden="true"><span>{first}</span><span>{last}</span></div>
-    {values.length > 0 && <p className="stripe-legend">
-      <span>{lowLabel} · {number(min)} {units}</span>
+    <p className="stripe-legend">
+      <span>{lowLabel}</span>
       <span className="ramp" aria-hidden="true" style={{ background: `linear-gradient(90deg,${low},rgb(${neutral}),${high})` }} />
-      <span>{highLabel} · {number(max)} {units}</span>
-      <span className="stripe-note">Colours run from the lowest to the highest year in this record. No baseline or “normal” is implied. Hover a stripe to see its year.</span>
-    </p>}
+      <span>{highLabel}</span>
+      <span className="stripe-note">Colour is relative to the {basePeriod} average ({baselineKinds[kind]}): {number(mean)} {units} over {r.baseline.n_years} years. Grey means close to that average. Hover a stripe to see its year.</span>
+    </p>
   </figure>;
 }

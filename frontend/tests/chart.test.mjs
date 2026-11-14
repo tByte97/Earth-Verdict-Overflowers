@@ -53,14 +53,14 @@ test('legend and captions carry units, period, station and the 95% range from JS
   const { page, errors } = await open('kyiv-summer-heat');
   try {
     const chart = await page.getByTestId('series-chart').innerText();
-    assert.match(chart, /Yearly summer \(Jun–Aug\) values, 1981–2025 · JJA · absolute values in °C, no baseline/);
+    assert.match(chart, /Yearly summer \(Jun–Aug\) values, 1981–2025 · JJA · absolute values in °C/);
     assert.match(chart, /Trend \(Sen’s slope\): \+0\.6512 °C \/ decade over 1981–2025 · JJA/);
     assert.match(chart, /95% range for this rate: \+0\.4189 to \+0\.8952 °C \/ decade/);
     assert.match(chart, /Ground station Kyiv, 6 km away \(°C\)\. Breaks in the line are years with no station measurement/);
     const stripes = page.locator('.stripes > div');
     assert.equal(await stripes.count(), cases['kyiv-summer-heat'].series.length);
-    assert.equal(await stripes.first().getAttribute('title'), '1981: 19.39 °C');
-    assert.match(await page.locator('.stripe-legend').innerText(), /No baseline or “normal” is implied/);
+    assert.equal(await stripes.first().getAttribute('title'), '1981: 19.39 °C · 1991-2020 average: 20.35 °C');
+    assert.match(await page.locator('.stripe-legend').innerText(), /Colour is relative to the 1991-2020 average \(1991–2020 normal\): 20\.35 °C over 30 years\./);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
