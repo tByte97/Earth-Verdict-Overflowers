@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const files = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow'];
+const files = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow', 'global-warming-stopped'];
 const cases = Object.fromEntries(await Promise.all(files.map(async id => [id, JSON.parse(await readFile(new URL(`../../data/cases/${id}.json`, import.meta.url), 'utf8'))])));
 const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:4173';
 let browser;
@@ -90,6 +90,30 @@ test('a cross-year winter season is named in captions and the chart fits a phone
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     const box = await page.getByTestId('series-chart').boundingBox();
     assert.ok(box.x >= 0 && box.x + box.width <= 390);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('a record without a 1991–2020 normal names the whole-record average as its baseline', async () => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try {
+    const r = cases['global-warming-stopped'];
+    assert.equal(r.baseline.kind, 'series_mean');
+    // Not in the saved-case selector, so serve the canonical file through intercepted live endpoints.
+    await page.route('**/api/variables', route => route.fulfill({ json: [r.variable] }));
+    await page.route('**/api/places?*', route => route.fulfill({ json: [r.case.place] }));
+    await page.route('**/api/check', route => route.fulfill({ json: r }));
+    await page.goto(baseURL + '/?source=live');
+    await page.getByLabel('Claim', { exact: true }).fill(r.case.claim_text);
+    await page.getByLabel('Place', { exact: true }).fill('Th');
+    await page.getByRole('button', { name: r.case.place.name, exact: true }).click();
+    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
+    const legend = await page.locator('.stripe-legend').innerText();
+    assert.match(legend, /Colour is relative to the average of the whole record, 1998-2025: 0\.753 °C over 28 years\./);
+    assert.match(legend, /does not cover enough of 1991–2020 for a normal/);
+    assert.equal(await page.locator('.stripes > div').first().getAttribute('title'), `1998: ${r.series[0].value} °C · 1998-2025 average: 0.753 °C`);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

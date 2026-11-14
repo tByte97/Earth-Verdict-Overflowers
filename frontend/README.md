@@ -212,4 +212,5 @@ and **How we checked this**:
   and provider links.
 
 `tests/chart.test.mjs` checks the table against the canonical JSON, gap tooltips, legend
-units, the band and baseline legend, and the no-station and DJF cases.
+units, the band and baseline legend (including a whole-record baseline served through
+intercepted live endpoints), and the no-station and DJF cases.
