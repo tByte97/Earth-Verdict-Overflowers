@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
+sys.path.insert(0, str(ROOT / "tools"))
 from app.catalog import get_variable  # noqa: E402
 from app.check import MainSeries, StationInput, assemble_result  # noqa: E402
 from app.models import CaseSpec  # noqa: E402
@@ -62,26 +63,25 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
     return r.model_dump(mode="json"), r
 
 
-# ---------- сценарії: стилізовані, поки немає CMIP6 (#14) ----------
+# ---------- сценарії: NASA NEX-GDDP-CMIP6 (#14) ----------
 
-def stylised_heat():
-    years = [2015, 2030, 2050, 2070, 2100]
-    paths = {"ssp126": ("The world cuts emissions fast", [0.45, 0.95, 1.3, 1.4, 1.4]),
-             "ssp245": ("Roughly as now", [0.45, 1.05, 1.65, 2.15, 2.75]),
-             "ssp585": ("Emissions keep growing", [0.45, 1.15, 2.1, 3.3, 5.1])}
-    return dict(synthetic=True, source="Stylised curves for layout; will be replaced by NASA NEX-GDDP-CMIP6",
-                baseline_period="1995-2014",
-                note="These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
-                paths=[dict(id=k, label=lab, years=years, median=m, low=[round(v * 0.7, 2) for v in m],
-                            high=[round(v * 1.3, 2) for v in m]) for k, (lab, m) in paths.items()],
-                provenance=[dict(what="Future scenarios", source="Stylised placeholder", product="not CMIP6 yet",
-                                 url="https://www.nccs.nasa.gov/services/data-collections/land-based-products/nex-gddp-cmip6",
-                                 retrieved_at="2026-11-14", license="—")])
+def cmip6_scenarios(city_key, variable_id, season):
+    """Ансамбль CMIP6 з data/cmip6/<місто>.json (tools/fetch_cmip6.py); базу 1995–2014 бере assemble_result зі спостережень."""
+    from cmip6_to_scenarios import load_cmip6_scenarios
+
+    sc = load_cmip6_scenarios(city_key, variable_id=variable_id, season=season)
+    sc.pop("baseline_value", None)
+    meta = json.loads((DATA / "cmip6" / f"{city_key}.json").read_text())
+    sc["provenance"] = [dict(
+        what="Future scenarios", source="NASA NCCS", product=f"NEX-GDDP-CMIP6 v2.0, {len(meta['models'])} models, r1i1p1f1",
+        url="https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
+        retrieved_at=meta.get("retrieved", "2026-11-14"), license="CC BY 4.0 (NASA NEX-GDDP-CMIP6)")]
+    return sc
 
 
 SHOWCASE = [
     # (файл, місто, змінна, сезон, напрямок твердження, текст, сценарії)
-    ("kyiv-summer-heat", "kyiv", "air_temp", "JJA", "increase", "Summers in Kyiv are getting hotter", stylised_heat),
+    ("kyiv-summer-heat", "kyiv", "air_temp", "JJA", "increase", "Summers in Kyiv are getting hotter", True),
     ("lviv-drier", "lviv", "precip", "year", "decrease", "Lviv is getting drier, it rains less every year", None),
     ("kyiv-winter-snow", "kyiv", "snow_depth", "DJF", "increase", "Kyiv winters have more snow now", None),
 ]
@@ -107,7 +107,7 @@ def main():
         return
     CASES.mkdir(parents=True, exist_ok=True)
     for i, (fname, c, v, s, dr, claim, scen) in enumerate(SHOWCASE):
-        r, _ = build(c, v, s, dr, claim, scenarios=scen() if scen else None)
+        r, _ = build(c, v, s, dr, claim, scenarios=cmip6_scenarios(c, v, s) if scen else None)
         (CASES / f"{fname}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
         if i == 0:
             (CASES / "mock.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))

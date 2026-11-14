@@ -939,8 +939,8 @@
   ]
  },
  "scenarios": {
-  "synthetic": true,
-  "source": "Stylised curves for layout; will be replaced by NASA NEX-GDDP-CMIP6",
+  "synthetic": false,
+  "source": "NASA NEX-GDDP-CMIP6 (5-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR)",
   "baseline_period": "1995-2014",
   "baseline_value": 20.31,
   "note": "These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
@@ -949,96 +949,84 @@
     "id": "ssp126",
     "label": "The world cuts emissions fast",
     "years": [
-     2015,
      2030,
      2050,
      2070,
      2100
     ],
     "median": [
-     0.45,
-     0.95,
-     1.3,
-     1.4,
-     1.4
+     1.36,
+     1.6,
+     2.03,
+     1.69
     ],
     "low": [
-     0.32,
-     0.66,
-     0.91,
-     0.98,
-     0.98
+     0.46,
+     1.1,
+     0.72,
+     0.61
     ],
     "high": [
-     0.59,
-     1.23,
-     1.69,
-     1.82,
-     1.82
+     1.75,
+     2.64,
+     2.88,
+     2.75
     ]
    },
    {
     "id": "ssp245",
     "label": "Roughly as now",
     "years": [
-     2015,
      2030,
      2050,
      2070,
      2100
     ],
     "median": [
-     0.45,
-     1.05,
-     1.65,
-     2.15,
-     2.75
+     1.18,
+     1.95,
+     2.79,
+     3.75
     ],
     "low": [
-     0.32,
-     0.73,
-     1.15,
-     1.5,
-     1.92
+     0.99,
+     1.51,
+     1.73,
+     1.7
     ],
     "high": [
-     0.59,
-     1.37,
-     2.15,
-     2.79,
-     3.58
+     1.88,
+     2.97,
+     3.72,
+     4.55
     ]
    },
    {
     "id": "ssp585",
     "label": "Emissions keep growing",
     "years": [
-     2015,
      2030,
      2050,
      2070,
      2100
     ],
     "median": [
-     0.45,
-     1.15,
-     2.1,
-     3.3,
-     5.1
+     1.22,
+     2.5,
+     4.88,
+     6.13
     ],
     "low": [
-     0.32,
-     0.8,
-     1.47,
-     2.31,
-     3.57
+     0.58,
+     1.78,
+     3.28,
+     4.35
     ],
     "high": [
-     0.59,
-     1.49,
-     2.73,
-     4.29,
-     6.63
+     1.85,
+     3.6,
+     5.75,
+     9.62
     ]
    }
   ]
@@ -1062,16 +1050,16 @@
   },
   {
    "what": "Future scenarios",
-   "source": "Stylised placeholder",
-   "product": "not CMIP6 yet",
-   "url": "https://www.nccs.nasa.gov/services/data-collections/land-based-products/nex-gddp-cmip6",
+   "source": "NASA NCCS",
+   "product": "NEX-GDDP-CMIP6 v2.0, 5 models, r1i1p1f1",
+   "url": "https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
    "retrieved_at": "2026-11-14",
-   "license": "—"
+   "license": "CC BY 4.0 (NASA NEX-GDDP-CMIP6)"
   }
  ],
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T15:04:29Z"
+  "generated_at": "2026-11-14T17:35:20Z"
  }
 }
