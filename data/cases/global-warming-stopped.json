@@ -139,7 +139,185 @@
   "slope_per_decade": 0.25,
   "ci_low": 0.1944,
   "ci_high": 0.3,
-  "intercept": 0.328
+  "intercept": 0.328,
+  "pivot_year": 2011.5,
+  "pivot_value": 0.665,
+  "band": [
+   {
+    "year": 1998,
+    "low": 0.26,
+    "mid": 0.328,
+    "high": 0.403
+   },
+   {
+    "year": 1999,
+    "low": 0.29,
+    "mid": 0.353,
+    "high": 0.422
+   },
+   {
+    "year": 2000,
+    "low": 0.32,
+    "mid": 0.378,
+    "high": 0.441
+   },
+   {
+    "year": 2001,
+    "low": 0.35,
+    "mid": 0.403,
+    "high": 0.461
+   },
+   {
+    "year": 2002,
+    "low": 0.38,
+    "mid": 0.428,
+    "high": 0.48
+   },
+   {
+    "year": 2003,
+    "low": 0.41,
+    "mid": 0.453,
+    "high": 0.5
+   },
+   {
+    "year": 2004,
+    "low": 0.44,
+    "mid": 0.478,
+    "high": 0.519
+   },
+   {
+    "year": 2005,
+    "low": 0.47,
+    "mid": 0.503,
+    "high": 0.539
+   },
+   {
+    "year": 2006,
+    "low": 0.5,
+    "mid": 0.528,
+    "high": 0.558
+   },
+   {
+    "year": 2007,
+    "low": 0.53,
+    "mid": 0.553,
+    "high": 0.578
+   },
+   {
+    "year": 2008,
+    "low": 0.56,
+    "mid": 0.578,
+    "high": 0.597
+   },
+   {
+    "year": 2009,
+    "low": 0.59,
+    "mid": 0.603,
+    "high": 0.616
+   },
+   {
+    "year": 2010,
+    "low": 0.62,
+    "mid": 0.628,
+    "high": 0.636
+   },
+   {
+    "year": 2011,
+    "low": 0.65,
+    "mid": 0.653,
+    "high": 0.655
+   },
+   {
+    "year": 2012,
+    "low": 0.675,
+    "mid": 0.678,
+    "high": 0.68
+   },
+   {
+    "year": 2013,
+    "low": 0.694,
+    "mid": 0.703,
+    "high": 0.71
+   },
+   {
+    "year": 2014,
+    "low": 0.714,
+    "mid": 0.728,
+    "high": 0.74
+   },
+   {
+    "year": 2015,
+    "low": 0.733,
+    "mid": 0.753,
+    "high": 0.77
+   },
+   {
+    "year": 2016,
+    "low": 0.753,
+    "mid": 0.778,
+    "high": 0.8
+   },
+   {
+    "year": 2017,
+    "low": 0.772,
+    "mid": 0.803,
+    "high": 0.83
+   },
+   {
+    "year": 2018,
+    "low": 0.791,
+    "mid": 0.828,
+    "high": 0.86
+   },
+   {
+    "year": 2019,
+    "low": 0.811,
+    "mid": 0.853,
+    "high": 0.89
+   },
+   {
+    "year": 2020,
+    "low": 0.83,
+    "mid": 0.878,
+    "high": 0.92
+   },
+   {
+    "year": 2021,
+    "low": 0.85,
+    "mid": 0.903,
+    "high": 0.95
+   },
+   {
+    "year": 2022,
+    "low": 0.869,
+    "mid": 0.928,
+    "high": 0.98
+   },
+   {
+    "year": 2023,
+    "low": 0.889,
+    "mid": 0.953,
+    "high": 1.01
+   },
+   {
+    "year": 2024,
+    "low": 0.908,
+    "mid": 0.978,
+    "high": 1.04
+   },
+   {
+    "year": 2025,
+    "low": 0.928,
+    "mid": 1.003,
+    "high": 1.07
+   }
+  ]
+ },
+ "baseline": {
+  "kind": "series_mean",
+  "period": "1998-2025",
+  "mean": 0.753,
+  "n_years": 28
  },
  "mk": {
   "p": 0.000123,
@@ -771,13 +949,13 @@
    "source": "NOAA Climate at a Glance",
    "product": "NOAAGlobalTemp land+ocean anomalies (Climate at a Glance)",
    "url": "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/time-series/globe/land_ocean/12/12/1850-2026/data.json",
-   "retrieved_at": "2026-11-14T21:28:13Z",
+   "retrieved_at": "2026-11-14T21:35:50Z",
    "license": "Public domain (NOAA)"
   }
  ],
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T21:28:14Z"
+  "generated_at": "2026-11-14T21:35:50Z"
  }
 }

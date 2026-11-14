@@ -15,6 +15,7 @@ from .catalog import VariableDef, get_variable
 from .models import CaseSpec, CheckResult
 from .scenarios import add_observed_context, nearby_scenarios
 from .stats import build_extrapolation, months_for_season, seasonal_series
+from .stats.band import baseline_mean, sen_band
 from .stats.witness import compare_rates
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
 
@@ -309,6 +310,12 @@ def assemble_result(
             prov.append(p)
         scen.pop("provenance", None)
 
+    valid_years = [y for y, v in zip(years, vals) if v is not None]
+    pivot_year, pivot_value, band = sen_band(
+        valid_years, slope_per_year=main.sen.slope_per_year, ci_low_per_year=main.sen.ci_low_per_year,
+        ci_high_per_year=main.sen.ci_high_per_year, intercept_at_start=main.sen.intercept_at_start,
+        start_year=start, end_year=end, decimals=d)
+
     result = dict(
         case=dict(claim_text=spec.claim_text, variable_id=spec.variable_id, place=spec.place.model_dump(),
                   season=season, start_year=start, end_year=end, claim_direction=spec.claim_direction),
@@ -317,7 +324,9 @@ def assemble_result(
         sen=dict(slope_per_year=round(main.sen.slope_per_year, 5),
                  slope_per_decade=round(main.sen.slope_per_decade, 4),
                  ci_low=round(main.sen.ci_low_per_year * 10, 4), ci_high=round(main.sen.ci_high_per_year * 10, 4),
-                 intercept=round(main.sen.intercept_at_start, 3)),
+                 intercept=round(main.sen.intercept_at_start, 3),
+                 pivot_year=pivot_year, pivot_value=pivot_value, band=band),
+        baseline=baseline_mean(years, vals, d),
         mk=dict(p=sig3(main.mk.p), tau=round(main.mk.tau, 4), z=round(main.mk.z, 3), correction=main.mk.correction),
         ols=dict(slope_per_year=round(main.ols.slope_per_year, 5), p=sig3(main.ols.p),
                  r2=round(main.ols.r2, 4), n_eff=round(main.ols.n_eff, 1)),

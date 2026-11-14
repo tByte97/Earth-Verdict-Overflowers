@@ -54,12 +54,30 @@ class YearValue(Strict):
     value: Optional[float]  # None = за цей рік даних немає (пропуск показуємо чесно)
 
 
+class BandPoint(Strict):
+    year: int
+    low: float              # нижня межа 95% смуги нахилу, у одиницях змінної
+    mid: float              # сама лінія Сена в цей рік
+    high: float
+
+
+class Baseline(Strict):
+    """Центр для кольорів смужок років: value − mean. Лише для основного ряду."""
+    kind: Literal["normal_1991_2020", "series_mean"]   # series_mean: ряд покриває 1991–2020 гірше ніж на 24 роки з 30
+    period: str             # "1991-2020" або діапазон років ряду
+    mean: float
+    n_years: int
+
+
 class Sen(Strict):
     slope_per_year: float
     slope_per_decade: float
     ci_low: float           # 95% інтервал, на 10 років
     ci_high: float
     intercept: float        # значення лінії тренду в start_year
+    pivot_year: float       # медіана років із даними; лінія Сена проходить через (pivot_year, pivot_value)
+    pivot_value: float
+    band: list[BandPoint]   # по запису на кожен рік start_year…end_year; віяло прямих крізь опору з нахилами ci_low/ci_high (невизначеність нахилу, не окремих років)
 
 
 class MannKendall(Strict):
@@ -243,6 +261,7 @@ class CheckResult(Strict):
     variable: Variable
     series: list[YearValue]
     sen: Sen
+    baseline: Baseline
     mk: MannKendall
     ols: OLS
     robustness: list[RobustnessWindow]
