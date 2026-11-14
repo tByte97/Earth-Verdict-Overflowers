@@ -18,12 +18,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
 from .catalog import load_compounds, load_variables
 from .check import REGIONS, CheckError, run_check
+from .llm import explain
 from .event import get_global_co2_summary, run_co2_impact, run_event
 from .models import (
     CaseSpec,
+    ChatRequest,
+    ChatResponse,
     CheckResult,
     Co2GlobalSummary,
     Co2ImpactResult,
@@ -194,6 +198,17 @@ async def co2_impact(spec: Co2ImpactSpec):
 async def co2_global():
     summary, _ = await asyncio.to_thread(get_global_co2_summary)
     return summary
+
+
+# ---------- plain-language explanation / follow-up questions (Gemini) ----------
+
+@app.post("/api/chat", response_model=ChatResponse,
+          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def chat(req: ChatRequest):
+    try:
+        return await asyncio.to_thread(explain, req.kind, req.result, req.question, req.lang)
+    except ValidationError as exc:
+        return error("bad_request", f"'result' is not a valid {req.kind} result: {exc.errors()[0]['msg']}.")
 
 
 # ---------- trend layers for the globe (precomputed, FDR-corrected) ----------

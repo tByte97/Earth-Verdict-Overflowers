@@ -353,3 +353,18 @@ class Co2ImpactResult(Strict):
     global_co2: Co2GlobalSummary
     explanation: str
     provenance: list[Provenance]
+
+
+# ---------- Explanations (Gemini) ----------
+
+class ChatRequest(Strict):
+    kind: Literal["check", "event", "co2"]
+    result: dict
+    question: Optional[str] = Field(default=None, max_length=300)
+    lang: Literal["en", "uk"] = "en"
+
+
+class ChatResponse(Strict):
+    text: str
+    model: str
+    grounded: bool      # False: the model's answer used a number not in the result; text is the built-in summary
