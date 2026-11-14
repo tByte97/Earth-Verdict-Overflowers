@@ -9,6 +9,7 @@
   python3 tools/fetch_data.py --all                # усі міста зі списку
   python3 tools/fetch_data.py --lat 50.45 --lon 30.52 --name mycity
   python3 tools/fetch_data.py kyiv --refresh       # ігнорувати кеш
+  python3 tools/fetch_data.py --cag                # аномалії температури регіонів світу
 
 Результат: data/<місто>.json. Сирі відповіді API лежать у data/cache/ (повторний запуск
 працює без інтернету).
@@ -173,6 +174,35 @@ def tavg_from_daily(station_id, refresh):
     ]
 
 
+CAG_REGIONS = ["globe", "europe", "asia", "africa", "northAmerica", "southAmerica", "oceania", "arctic"]
+CAG_SEASONS = {"year": (12, 12), "jja": (3, 8), "djf": (3, 2)}  # (кількість місяців, останній місяць)
+
+
+def fetch_cag(refresh):
+    """NOAA Climate at a Glance: аномалії температури суша+океан відносно 1901–2000."""
+    base = "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/time-series"
+    out = {"source": "NOAA NCEI Climate at a Glance", "units": "°C", "base_period": "1901-2000", "regions": {}}
+    for region in CAG_REGIONS:
+        out["regions"][region] = {}
+        for season, (span, month) in CAG_SEASONS.items():
+            try:
+                d = get_json(f"{base}/{region}/land_ocean/{span}/{month}/1850-{END + 1}/data.json", {}, refresh)
+            except RuntimeError as e:
+                print(f"  CAG {region}/{season}: {e}", file=sys.stderr)
+                continue
+            years = sorted(d["data"], key=int)
+            out["regions"][region][season] = {
+                "years": [int(y) for y in years],
+                "anomaly": [d["data"][y].get("departure") if isinstance(d["data"][y], dict) else d["data"][y]
+                            for y in years],
+            }
+            last = years[-1]
+            print(f"  CAG {region:13} {season}: {years[0]}–{last}, останнє {out['regions'][region][season]['anomaly'][-1]}")
+    DATA.mkdir(parents=True, exist_ok=True)
+    (DATA / "cag.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    print(f"  збережено data/cag.json")
+
+
 def run(key, name, lat, lon, refresh):
     print(f"{name} ({lat}, {lon})")
     print("  NASA POWER ...")
@@ -204,7 +234,13 @@ def main():
     ap.add_argument("--lon", type=float)
     ap.add_argument("--name", default="custom", help="назва для власних координат")
     ap.add_argument("--refresh", action="store_true", help="ігнорувати кеш")
+    ap.add_argument("--cag", action="store_true", help="аномалії Climate at a Glance для регіонів світу")
     a = ap.parse_args()
+
+    if a.cag:
+        fetch_cag(a.refresh)
+        if not (a.cities or a.all or a.lat is not None):
+            return
 
     jobs = []
     if a.lat is not None and a.lon is not None:
