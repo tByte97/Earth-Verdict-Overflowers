@@ -5,6 +5,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 const files = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow'];
 const fixtures = await Promise.all(files.map(async id => ({ id, result: JSON.parse(await readFile(new URL(`../../data/cases/${id}.json`, import.meta.url), 'utf8')) })));
 const edgeFixtures = JSON.parse(await readFile(new URL('./fixtures/synthetic-cases.json', import.meta.url), 'utf8'));
+const syntheticScenarios = JSON.parse(await readFile(new URL('./fixtures/synthetic-scenarios.json', import.meta.url), 'utf8'));
 const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:4173';
 let browser;
 test.beforeAll(async ({ browser: sharedBrowser }) => { browser = sharedBrowser; });
@@ -188,7 +189,10 @@ test('canonical contract units, residual r1, witness gaps, provenance and future
     assert.equal(await page.locator('.source-record').filter({ hasText: 'NOAA NCEI' }).isVisible(), true);
     const verdict = await page.locator('.verdict').innerText();
     await page.locator('.future-reference > summary').click();
-    assert.match(await page.locator('.future-reference').innerText(), /stylised placeholders, not CMIP6/);
+    assert.equal(fixtures[0].result.scenarios.synthetic, false);
+    await expect(page.locator('.future-reference .caution')).toContainText('conditional model scenarios');
+    await expect(page.locator('.future-reference')).toContainText(fixtures[0].result.scenarios.source);
+    await expect(page.locator('.future-reference')).not.toContainText('stylised placeholders');
     assert.match(await page.locator('.future-reference').innerText(), /1995-2014/);
     assert.equal(await page.locator('.verdict').innerText(), verdict);
     const dimensions = await page.locator('.future-reference tbody tr').filter({ hasText: 'scenarios.paths.0.median.0' }).innerText();
@@ -398,32 +402,55 @@ test('optional witness rates and nullable source versions are accepted without l
   } finally { await page.close(); }
 });
 
-test('derived provenance uses method records regardless of free-text descriptions or record order', async () => {
-  const { page, errors } = await open();
-  try {
-    const result = structuredClone(fixtures[0].result);
-    result.provenance.reverse();
-    result.provenance.forEach(record => { record.what = 'Translated description without source role'; });
-    await page.route('**/api/variables', route => route.fulfill({ json: [result.variable] }));
-    await page.route('**/api/check', route => route.fulfill({ json: result }));
-    await page.goto(baseURL + '/?source=live');
-    await configureLive(page);
-    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
-    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
-    await page.locator('.verdict').waitFor();
-    await page.locator('.technical > summary').click();
-    const row = path => page.locator('.numeric-table tbody tr').filter({ has: page.locator('code', { hasText: new RegExp(`^${path.replaceAll('.', '\\.')}\u0024`) }) });
-    await expect(row('detection.years_needed.2').getByRole('button')).toHaveText('Detection simulation');
-    await row('detection.years_needed.2').getByRole('button').click();
-    await expect(page.locator('.sources')).toHaveAttribute('open', '');
-    await expect(page.locator('.sources h4').filter({ hasText: /^Detection simulation$/ })).toBeVisible();
-    await expect(row('series.0.value').getByRole('button')).toHaveText('NASA POWER');
-    await page.locator('.future-reference > summary').click();
-    await expect(row('extrapolation.paths.0.central.0').getByRole('button')).toHaveText('Trend extrapolation');
-    await expect(row('scenarios.paths.0.median.0').getByRole('button')).toHaveText('Stylised scenario');
-    assert.deepEqual(errors, []);
-  } finally { await page.close(); }
-});
+for (const scenarioCase of [
+  { name: 'CMIP6 model', scenarios: fixtures[0].result.scenarios, label: 'Model scenario', warning: 'conditional model scenarios' },
+  { name: 'synthetic fixture', scenarios: syntheticScenarios, label: 'Stylised scenario', warning: 'stylised placeholders, not CMIP6 model outputs' },
+]) {
+  test(`derived provenance uses method records regardless of free-text descriptions or record order (${scenarioCase.name})`, async () => {
+    const { page, errors } = await open();
+    try {
+      const result = structuredClone(fixtures[0].result);
+      result.scenarios = structuredClone(scenarioCase.scenarios);
+      if (result.scenarios.synthetic) {
+        // The test-only scenario has no CMIP6 provider; keep the real observation sources.
+        result.provenance = result.provenance.filter(record => new URL(record.url).hostname !== 'ds.nccs.nasa.gov');
+      }
+      result.provenance.reverse();
+      result.provenance.forEach(record => { record.what = 'Translated description without source role'; });
+      await page.route('**/api/variables', route => route.fulfill({ json: [result.variable] }));
+      await page.route('**/api/check', route => route.fulfill({ json: result }));
+      await page.goto(baseURL + '/?source=live');
+      await configureLive(page);
+      await page.locator('.case-parameters').evaluate(element => { element.open = true; });
+      await page.getByRole('button', { name: 'Check claim', exact: true }).click();
+      await page.locator('.verdict').waitFor();
+      await page.locator('.technical > summary').click();
+      const row = path => page.locator('.numeric-table tbody tr').filter({ has: page.locator('code', { hasText: new RegExp(`^${path.replaceAll('.', '\\.')}\u0024`) }) });
+      await expect(row('detection.years_needed.2').getByRole('button')).toHaveText('Detection simulation');
+      await row('detection.years_needed.2').getByRole('button').click();
+      await expect(page.locator('.sources')).toHaveAttribute('open', '');
+      await expect(page.locator('.sources h4').filter({ hasText: /^Detection simulation$/ })).toBeVisible();
+      await expect(row('series.0.value').getByRole('button')).toHaveText('NASA POWER');
+      const verdict = await page.locator('.verdict').innerText();
+      await page.locator('.future-reference > summary').click();
+      await expect(page.locator('.future-reference .caution')).toContainText(scenarioCase.warning);
+      await expect(page.locator('.future-reference')).toContainText(result.scenarios.source);
+      await expect(page.locator('.future-reference')).not.toContainText(result.scenarios.synthetic ? 'conditional model scenarios' : 'stylised placeholders');
+      assert.equal(await page.locator('.verdict').innerText(), verdict);
+      await expect(row('extrapolation.paths.0.central.0').getByRole('button')).toHaveText('Trend extrapolation');
+      const scenarioSource = row('scenarios.paths.0.median.0').getByRole('button');
+      await expect(scenarioSource).toHaveText(scenarioCase.label);
+      // The scenario action must open its method record directly, including from a closed disclosure.
+      await page.locator('.sources').evaluate(element => { element.open = false; });
+      await scenarioSource.click();
+      await expect(page.locator('.sources')).toHaveAttribute('open', '');
+      const methodHeading = page.locator('.sources').getByRole('heading', { name: scenarioCase.label, exact: true });
+      await expect(methodHeading).toBeVisible();
+      await expect(methodHeading.locator('..')).toContainText(result.scenarios.synthetic ? 'not measured data or CMIP6 output' : result.scenarios.source);
+      assert.deepEqual(errors, []);
+    } finally { await page.close(); }
+  });
+}
 
 test('null caveat and missing station do not leave empty or dangling descriptions', async () => {
   const { page, errors } = await open();

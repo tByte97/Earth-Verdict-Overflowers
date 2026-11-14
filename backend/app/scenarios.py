@@ -42,7 +42,9 @@ def cmip6_to_scenarios(data: dict, variable_id: str = "air_temp", season: str = 
     else:
         raise ValueError(f"Unsupported mode {mode!r}")
     digits = 2 if cmip_var == "tas" else 1
-    paths = [dict(id=sid, label=label, years=list(years),
+    win = data["horizons"].get("windows", {}) if mode == "horizons" else {}
+    windows = [win.get(str(y), str(y)) for y in years]
+    paths = [dict(id=sid, label=label, years=list(years), windows=windows,
                   median=[round(float(v), digits) for v in block[sid]["median"]],
                   low=[round(float(v), digits) for v in block[sid]["low"]],
                   high=[round(float(v), digits) for v in block[sid]["high"]])
@@ -51,6 +53,33 @@ def cmip6_to_scenarios(data: dict, variable_id: str = "air_temp", season: str = 
     return dict(synthetic=False,
                 source=f"NASA NEX-GDDP-CMIP6 ({len(models)}-model ensemble: {', '.join(models)})",
                 baseline_period=data["baseline_period"], note=SCENARIO_NOTE, paths=paths)
+
+
+def add_observed_context(scen: dict, years: list[int], values: list[Optional[float]],
+                         decimals: int) -> dict:
+    """Absolute scenario values (baseline_value + change) and, for every path and node, the
+    observed year closest to the scenario median. Needs scen["baseline_value"]."""
+    base = scen["baseline_value"]
+    obs = [(y, v) for y, v in zip(years, values) if v is not None]
+    lo = min((v for _, v in obs), default=None)
+    hi = max((v for _, v in obs), default=None)
+    ranked = sorted(obs, key=lambda yv: -yv[1])
+    rank = {y: i + 1 for i, (y, _) in enumerate(ranked)}
+    for path in scen["paths"]:
+        for k in ("median", "low", "high"):
+            path[f"{k}_value"] = [round(base + d, decimals) for d in path[k]]
+        analogs = []
+        for node, target in zip(path["years"], path["median_value"]):
+            if not obs or target > hi or target < lo:
+                analogs.append(dict(year=node, analog_year=None, analog_value=None, analog_rank=None,
+                                    beyond_record=bool(obs)))
+                continue
+            # closest value; on a tie the more recent year
+            y, v = min(obs, key=lambda yv: (abs(yv[1] - target), -yv[0]))
+            analogs.append(dict(year=node, analog_year=y, analog_value=round(v, decimals),
+                                analog_rank=rank[y], beyond_record=False))
+        path["analogs"] = analogs
+    return scen
 
 
 def _provenance(data: dict) -> dict:
@@ -66,7 +95,15 @@ def _load(path: Path) -> dict:
 
 
 def _points() -> list[Path]:
-    return sorted(CMIP6_DIR.glob("*.json")) if CMIP6_DIR.is_dir() else []
+    """Single-point ensembles (tools/fetch_cmip6.py): data/cmip6/<city>.json."""
+    if not CMIP6_DIR.is_dir():
+        return []
+    return sorted(p for p in CMIP6_DIR.glob("*.json") if not p.name.startswith("region-"))
+
+
+def _regions() -> list[Path]:
+    """Gridded ensembles (tools/fetch_cmip6_region.py): data/cmip6/region-<name>.json."""
+    return sorted(p for p in CMIP6_DIR.glob("region-*.json") if "smoke" not in p.name) if CMIP6_DIR.is_dir() else []
 
 
 def _km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -87,11 +124,54 @@ def scenarios_for_point(key: str, variable_id: str, season) -> Optional[dict]:
     return sc
 
 
-def nearby_scenarios(variable_id: str, season, lat: float, lon: float,
-                     max_km: float = SCENARIO_MAX_KM) -> Optional[dict]:
-    """Scenarios of the nearest precomputed point within max_km, else None."""
+def region_scenarios(variable_id: str, season, lat: float, lon: float) -> Optional[dict]:
+    """Scenarios of the grid cell that contains (lat, lon) in a precomputed region, else None.
+
+    Region files hold, per variable/season/scenario, median/low/high arrays shaped
+    [horizon][lat][lon] on the 0.25 degree NEX-GDDP grid (see data/cmip6/README.md).
+    """
     if variable_id not in VAR_MAP or season not in SEASONS:
         return None
+    cmip_var = VAR_MAP[variable_id]
+    digits = 2 if cmip_var == "tas" else 1
+    for path in _regions():
+        d = _load(path)
+        lats, lons = d["grid"]["lat"], d["grid"]["lon"]
+        half = 0.125
+        if not (min(lats) - half <= lat <= max(lats) + half and min(lons) - half <= lon <= max(lons) + half):
+            continue
+        i = min(range(len(lats)), key=lambda k: abs(lats[k] - lat))
+        j = min(range(len(lons)), key=lambda k: abs(lons[k] - lon))
+        block = d["variables"][cmip_var][season]
+        n = len(d["horizons"]["years"])
+        paths = []
+        for sid, label in SCENARIO_LABELS.items():
+            cols = {}
+            for key in ("median", "low", "high"):
+                vals = [block[sid][key][h][i][j] for h in range(n)]
+                if any(v is None for v in vals):
+                    return None          # no data in this cell (e.g. outside the model's land/sea mask)
+                cols[key] = [round(float(v), digits) for v in vals]
+            win = d["horizons"].get("windows", {})
+            years = list(d["horizons"]["years"])
+            paths.append(dict(id=sid, label=label, years=years, windows=[win.get(str(y), str(y)) for y in years], **cols))
+        models = d["models"]
+        return dict(synthetic=False,
+                    source=f"NASA NEX-GDDP-CMIP6 ({len(models)}-model ensemble: {', '.join(models)})",
+                    baseline_period=d["baseline_period"], note=SCENARIO_NOTE, paths=paths,
+                    provenance=[_provenance(d)])
+    return None
+
+
+def nearby_scenarios(variable_id: str, season, lat: float, lon: float,
+                     max_km: float = SCENARIO_MAX_KM) -> Optional[dict]:
+    """Scenarios for a place: its grid cell in a precomputed region, else the nearest
+    precomputed point within max_km, else None."""
+    if variable_id not in VAR_MAP or season not in SEASONS:
+        return None
+    sc = region_scenarios(variable_id, season, lat, lon)
+    if sc is not None:
+        return sc
     best = None
     for path in _points():
         d = _load(path)

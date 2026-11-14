@@ -5,8 +5,15 @@ import { VerdictCard } from './VerdictCard';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CaseSpecSchema } from './schema';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
-import type { PickedPoint } from './globe/Globe';
+import { pointPlace, type PickedPoint } from './globe/place';
 import './styles.css';
+import { Explain } from './events/Explain';
+
+const EventsWorkspace = lazy(() => import('./events/EventsWorkspace').then(m => ({ default: m.EventsWorkspace })));
+const Co2Calculator = lazy(() => import('./events/Co2Calculator').then(m => ({ default: m.Co2Calculator })));
+type Mode = 'claims' | 'events' | 'co2';
+const modes: [Mode, string][] = [['claims', 'Climate claims'], ['events', 'Pollution events'], ['co2', 'CO₂ calculator']];
+const initialMode = (): Mode => { const m = new URLSearchParams(window.location.search).get('mode'); return m === 'events' || m === 'co2' ? m : 'claims'; };
 
 const Globe = lazy(() => import('./globe/Globe').then(module => ({ default: module.Globe })));
 
@@ -28,6 +35,12 @@ function App() {
   const [catalogueLoading, setCatalogueLoading] = useState(true);
   const [help, setHelp] = useState(false);
   const [picked, setPicked] = useState<PickedPoint | null>(null);
+  const [mode, setModeState] = useState<Mode>(initialMode);
+  function setMode(m: Mode) {
+    setModeState(m);
+    const url = new URL(window.location.href); if (m === 'claims') url.searchParams.delete('mode'); else url.searchParams.set('mode', m);
+    window.history.replaceState(null, '', url);
+  }
   const request = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -83,12 +96,16 @@ function App() {
       <div className="intro"><p className="eyebrow">A closer look at our changing planet</p><h1>A claim. A check.<br /><span>A clearer answer.</span></h1><p>Choose what you want to investigate.<br />See the conclusion, then explore the evidence behind it.</p></div>
       {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
       <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real observations · provisional statistics. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
-      <div className="workspace">
+      <div className="mode-tabs" role="tablist" aria-label="What to explore">{modes.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}>{label}</button>)}</div>
+      {mode === 'events' && <ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary>}
+      {mode === 'co2' && <ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary>}
+      {mode === 'claims' && <div className="workspace">
         <section className="globe-column" aria-label="Case location">
           <div className="globe-heading"><span className="eyebrow">Explore the planet</span><p>{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</p></div>
           <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} onPick={point => {
-            setPicked(point); setSelectedPlace(true); setQuery('Selected point');
-            edit({ place: { place_id: `point:${point.lat},${point.lon}`, name: 'Selected point', lat: point.lat, lon: point.lon } });
+            const place = pointPlace(point);
+            setPicked(point); setSelectedPlace(true); setQuery(place.name);
+            edit({ place });
           }} /></Suspense></ErrorBoundary>
           <div className="globe-legend"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </section>
@@ -102,7 +119,7 @@ function App() {
             <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
-            {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(4)}, {picked.lon.toFixed(4)}</p>}
+            {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(2)}, {picked.lon.toFixed(2)}</p>}
             {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); }}>{place.name}</button></li>)}</ul>}
             <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
             <label>Season<select value={spec.season} onChange={e => edit({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -117,10 +134,10 @@ function App() {
         <section className="result-panel" aria-label="Check result" aria-busy={busy}>
           <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
           <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
-          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /><Explain kind="check" result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
         </section>
         </div>
-      </div>
+      </div>}
       <footer><span>Earth Verdict · Team Overflowers</span><p>Past observations describe evidence about change. They are not a forecast.</p></footer>
     </main>
   </>;

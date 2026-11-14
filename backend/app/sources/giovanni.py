@@ -1,6 +1,7 @@
 """NASA GES DISC Giovanni Time Series API adapter."""
 from __future__ import annotations
 
+from collections import defaultdict
 import os
 from pathlib import Path
 
@@ -13,6 +14,10 @@ GIOVANNI_URL = "https://api.giovanni.earthdata.nasa.gov"
 GIOVANNI_VARS = {
     "precip_gpm": ("GPM_3IMERGM_07_precipitation", 24, "mm/day", "GPM IMERG precipitation (satellite + gauges), 0.1 deg"),
     "evap_gldas": ("GLDAS_NOAH025_M_2_1_Evap_tavg", 86400, "mm/day", "Land evapotranspiration, GLDAS Noah 2.1, 0.25 deg"),
+    "no2": ("OMNO2d_003_ColumnAmountNO2TropCloudScreened", 1.0e-15, "10¹⁵ molecules/cm²", "OMI tropospheric NO2 column (cloud-screened), 0.25 deg"),
+    "so2": ("OMSO2e_003_ColumnAmountSO2", 1.0, "DU", "OMI planetary boundary layer SO2 column, 0.25 deg"),
+    "aod": ("M2T1NXAER_5_12_4_TOTEXTTAU", 1.0, "AOD", "MERRA-2 total aerosol extinction AOT 550 nm, 0.5x0.625 deg"),
+    "co2": ("OCO2_GEOS_L3CO2_DAY_10r_XCO2", 1.0e6, "ppm", "OCO-2 GEOS Level 3 column XCO2, 0.5x0.625 deg"),
 }
 
 
@@ -33,22 +38,22 @@ def _validate_csv(text: str) -> None:
         raise ValueError("unexpected Giovanni CSV response")
 
 
-def fetch_monthly(
-    variable: str,
+def _resolve_var(variable: str) -> tuple[str, float, str, str]:
+    if variable in GIOVANNI_VARS:
+        return GIOVANNI_VARS[variable]
+    matched = [spec for spec in GIOVANNI_VARS.values() if spec[0] == variable]
+    if not matched:
+        raise ValueError(f"unknown Giovanni variable '{variable}'")
+    return matched[0]
+
+
+def _fetch_timeseries_csv(
+    var_id: str,
     lat: float,
     lon: float,
     start_year: int,
     end_year: int,
-) -> dict:
-    """Fetch a monthly point time series from NASA Giovanni."""
-    if variable in GIOVANNI_VARS:
-        var_id, factor, units, _ = GIOVANNI_VARS[variable]
-    else:
-        matched = [spec for spec in GIOVANNI_VARS.values() if spec[0] == variable]
-        if not matched:
-            raise ValueError(f"unknown Giovanni variable '{variable}'")
-        var_id, factor, units, _ = matched[0]
-
+) -> tuple[dict[str, str], str, str, float, float]:
     token = _earthdata_token()
     lat_r = round(lat, 4)
     lon_r = round(lon, 4)
@@ -66,9 +71,21 @@ def fetch_monthly(
         ext="csv",
         validate=_validate_csv,
     )
-
     head, body = csv_text.split("Timestamp (UTC),Data", 1)
     meta = dict(line.split(",", 1) for line in head.strip().splitlines() if "," in line)
+    return meta, body, url, lat_r, lon_r
+
+
+def fetch_monthly(
+    variable: str,
+    lat: float,
+    lon: float,
+    start_year: int,
+    end_year: int,
+) -> dict:
+    """Fetch a monthly point time series from NASA Giovanni."""
+    var_id, factor, units, _ = _resolve_var(variable)
+    meta, body, url, lat_r, lon_r = _fetch_timeseries_csv(var_id, lat, lon, start_year, end_year)
     undef = float(meta.get("undef", "-9999.9"))
 
     values: dict[str, float] = {}
@@ -95,5 +112,60 @@ def fetch_monthly(
         "cell": [float(meta.get("lat", lat_r)), float(meta.get("lon", lon_r))],
         "start": f"{start_year}-01",
         "monthly": [values.get(m) for m in month_strs],
+        "url": url,
+    }
+
+
+def fetch_daily_as_monthly(
+    variable: str,
+    lat: float,
+    lon: float,
+    start_year: int,
+    end_year: int,
+    *,
+    min_valid_days: int = 10,
+    decimals: int = 4,
+) -> dict:
+    """Fetch daily/hourly Giovanni series and aggregate to monthly means requiring >= min_valid_days."""
+    var_id, factor, units, _ = _resolve_var(variable)
+    meta, body, url, lat_r, lon_r = _fetch_timeseries_csv(var_id, lat, lon, start_year, end_year)
+    undef = float(meta.get("undef", "-9999.9"))
+
+    by_month_vals: dict[str, list[float]] = defaultdict(list)
+    by_month_days: dict[str, set[str]] = defaultdict(set)
+    for line in body.strip().splitlines():
+        if "," not in line:
+            continue
+        ts, raw = line.split(",", 1)
+        val_str = raw.strip()
+        if val_str not in ("", "undef"):
+            fval = float(val_str)
+            if fval != undef:
+                ym = ts[:7]
+                by_month_vals[ym].append(fval * factor)
+                by_month_days[ym].add(ts[:10])
+
+    values: dict[str, float] = {}
+    valid_days: dict[str, int] = {}
+    for ym, vals in by_month_vals.items():
+        n_days = len(by_month_days[ym])
+        valid_days[ym] = n_days
+        if n_days >= min_valid_days:
+            values[ym] = round(sum(vals) / len(vals), decimals)
+
+    month_strs = [
+        f"{year}-{month:02d}"
+        for year in range(start_year, end_year + 1)
+        for month in range(1, 13)
+    ]
+    return {
+        "variable": var_id,
+        "units": units,
+        "source_units": meta.get("unit"),
+        "doi": meta.get("doi"),
+        "cell": [float(meta.get("lat", lat_r)), float(meta.get("lon", lon_r))],
+        "start": f"{start_year}-01",
+        "monthly": [values.get(m) for m in month_strs],
+        "valid_days": [valid_days.get(m, 0) for m in month_strs],
         "url": url,
     }
