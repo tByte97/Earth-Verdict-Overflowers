@@ -49,6 +49,9 @@ def main() -> None:
         rows.append(_fmt_row(eid, res))
         print(f"{eid}: {res.verdict} ({res.reason}), effect={res.effect}, p={res.p}")
 
+    sites = [s.model_dump(mode="json") | {"saved": True} for s in list_event_sites(set())]
+    (EVENTS_DIR / "_sites.json").write_text(json.dumps(sites, ensure_ascii=False, indent=1), encoding="utf-8")
+
     co2 = run_co2_impact(
         Co2ImpactSpec(
             mt_co2_per_year=10.0,
