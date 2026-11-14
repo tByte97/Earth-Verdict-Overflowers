@@ -102,7 +102,7 @@ Start `pnpm dev` in another terminal before browser tests. They use installed Mi
 Edge by default; set `BROWSER_EXECUTABLE` for another Chromium executable and
 `TEST_BASE_URL` for another server URL. Screenshots are saved to gitignored `test-results/`.
 
-Eight browser tests cover the three canonical snapshots, all number preservation,
+Eleven browser tests cover the three canonical snapshots, all number preservation,
 manual form submission, API error/cancellation behaviour, unit/CI/r1 alignment, witness
 null gaps, source access, historical/future separation, tutorial interaction and layout
 on desktop/mobile. Additional verdict reasons and witness agreement states use intercepted
@@ -110,3 +110,32 @@ test-only synthetic responses; these fixtures are not shipped to users.
 
 The five-second reading goal has been checked visually, not through a timed pupil study.
 The deployed app uses saved shared responses; arbitrary periods need the calculation API.
+
+
+## Consistent detection and waiting estimates (PR #17)
+
+This branch includes `fix/detection-consistency` from PR #17 so the demo uses one
+backend simulation engine for both `detection.years_needed` and `years_to_wait`.
+PR #17 remains separately reviewable; nothing has been merged into `main` by this task.
+
+`How we checked this` includes a reusable `DetectionEstimate` control:
+
+- **Total observation duration needed** comes from `detection.years_needed`.
+- **Observations already available** comes from `detection.n_years`.
+- **Additional waiting at observed rate** comes directly from `years_to_wait`, without
+  a separate frontend waiting formula. For a resolved claim it is not applicable.
+- `null` for an unproven claim reads **Not determined**, with an explanation. It never
+  becomes zero or a claim of detection. If simulated duration was already reached but
+  the observed trend is unproven, that limitation is stated explicitly.
+- Saved multiplier nodes are shown exactly. Intermediate positions interpolate linearly
+  in log-rate / log-duration coordinates per the revised backend contract. They are
+  labelled as interpolated illustrations, not fresh statistical calculations.
+- Missing endpoints are never bridged, extrapolated or treated as zero. The hypothetical
+  rate does not change the historical verdict or backend additional-waiting value.
+
+The canonical v2 snapshots show 60 total / 45 observed / 15 additional years for Lviv,
+and 150 total / 44 observed / 106 additional years for winter snow. These are conditional
+estimates, not promises. Numbers remain traceable in the exact-value tables and raw JSON.
+
+No changes to `main.tsx` or the globe layout were made for this follow-up. The colleague
+working on #2 owns the globe-left / form-and-card-right integration.

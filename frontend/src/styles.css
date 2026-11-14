@@ -817,3 +817,17 @@ footer>p {
   }
 }
 .future-reference { border-top: 2px dashed #b6c5d1; background: #f3f6fa; } .future-reference > summary { color: #455a73; } .future-reference .numeric-table { max-height: 320px; }
+
+.detection-estimate {
+  margin: 24px 0;
+  padding: 0 18px 14px;
+  background: #f4f7f0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.detection-estimate label { margin-top: 18px; }
+.detection-estimate output { float: right; font-variant-numeric: tabular-nums; }
+.detection-estimate input[type="range"] { padding: 0; accent-color: var(--green); }
+.detection-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.detection-presets button { background: white; border: 1px solid #cbd7c7; padding: 6px 9px; color: var(--green); font-size: 12px; }
+.detection-presets button[aria-pressed="true"] { background: var(--green); color: white; }

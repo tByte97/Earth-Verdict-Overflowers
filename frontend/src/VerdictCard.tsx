@@ -1,6 +1,8 @@
 import { useId, useRef } from 'react';
 import type { CheckResult } from './types';
 import { fieldContext, number, numericFields, period, safeUrl, sourceIndex } from './format';
+import { DetectionEstimate } from './DetectionEstimate';
+import { waitingExplanation } from './detection';
 
 const verdicts = { confirmed: ['Confirmed', '✓'], refuted: ['Refuted', '×'], not_proven: ['Not proven', '?'] };
 const reasons: Record<string, string> = {
@@ -38,7 +40,8 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     return <div className="table-scroll numeric-table"><table><thead><tr><th>JSON field</th><th>Exact value</th><th>Units</th><th>Period / context</th><th>Source</th></tr></thead><tbody>{rows.map(([path, value]) => {
       const ctx = fieldContext(path, r);
       const index = sourceIndex(path, r);
-      return <tr key={path}><th><code>{path}</code></th><td>{value === null ? 'Not supplied (null)' : String(value)}</td><td>{ctx.unit}</td><td>{ctx.context}</td><td>{index === undefined ? 'Not supplied' : <button type="button" className="text-button" onClick={() => openSources(index)}>{r.provenance[index].source}</button>}</td></tr>;
+      const missing = path === 'years_to_wait' ? 'Not determined (null)' : path.startsWith('detection.years_needed.') ? 'No simulation estimate (null)' : 'Not supplied (null)';
+      return <tr key={path}><th><code>{path}</code></th><td>{value === null ? missing : String(value)}</td><td>{ctx.unit}</td><td>{ctx.context}</td><td>{index === undefined ? 'Not supplied' : <button type="button" className="text-button" onClick={() => openSources(index)}>{r.provenance[index].source}</button>}</td></tr>;
     })}</tbody></table></div>;
   }
   return <article className="verdict-card" aria-labelledby={headingId}>
@@ -73,8 +76,10 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
           <div><dt>Residual autocorrelation r₁ · dimensionless</dt><dd>{number(r.detection?.phi)}</dd></div>
           <div><dt>Autocorrelation correction</dt><dd>{r.mk.correction ?? 'Not supplied'}</dd></div>
           <div><dt>Period robustness</dt><dd>{r.robustness_summary.significant} of {r.robustness_summary.total} windows significant</dd></div>
-          <div><dt>Additional observations · years</dt><dd>{number(r.years_to_wait)}{r.years_to_wait != null ? ' · conditional on current rate and variability; not a prediction' : ''}</dd></div>
+          <div><dt>Additional waiting · years</dt><dd>{r.years_to_wait === null ? r.verdict === 'not_proven' ? 'Not determined' : 'Not applicable' : number(r.years_to_wait)}</dd></div>
         </dl>
+        <p className="help-text">{waitingExplanation(r)}</p>
+        <DetectionEstimate key={JSON.stringify(r.case)} result={r} />
         <p className="help-text"><strong>p-value:</strong> under the no-trend hypothesis and test assumptions, how likely a test statistic at least this extreme would be. It is not the probability that the claim is false.</p>
         <p className="help-text"><strong>95% confidence interval:</strong> the uncertainty range for the slope under the method’s assumptions. <strong>r₁:</strong> how strongly neighbouring residuals are related. This value comes from <code>detection.phi</code>, bounded to 0–0.9 by the backend for its detection estimate; it is not a measurement of raw-series autocorrelation.</p>
         <h4>Stability across periods</h4>

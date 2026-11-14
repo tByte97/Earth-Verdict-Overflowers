@@ -38,7 +38,7 @@ test('first view is concise; every supplied number survives in the exact-value d
     const values = leaves(fixtures[0].result);
     assert.equal(await page.locator('.numeric-table tbody tr').count(), values.length);
     const cells = await page.locator('.numeric-table tbody tr td:nth-child(2)').allTextContents();
-    assert.deepEqual(cells, values.map(value => value === null ? 'Not supplied (null)' : String(value)));
+    cells.forEach((cell, i) => values[i] === null ? assert.match(cell, /\(null\)$/) : assert.equal(cell, String(values[i])));
     assert.match(await page.locator('.technical .numeric-table').innerText(), /°C \/ year/);
     await page.locator('.technical > summary').click();
     await page.getByRole('button', { name: 'Data sources' }).click();
@@ -199,6 +199,77 @@ test('all edge-case reasons and witness agreements still render using test-only 
       assert.equal(await page.locator(`.witness-${fixture.result.witness?.agreement ?? 'no_station'}`).count(), 1);
       if (fixture.result.verdict === 'not_proven') assert.equal(await page.getByText('Not enough evidence does not mean no change.', { exact: true }).isVisible(), true);
     }
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+
+test('detection shows total duration and additional wait from the same updated backend response', async () => {
+  const { page, errors } = await open();
+  try {
+    for (const fixture of fixtures) {
+      await page.getByLabel('Saved case').selectOption(fixture.id);
+      await page.locator('.technical > summary').click();
+      const detection = page.getByRole('region', { name: 'Detection duration' });
+      const index = fixture.result.detection.multipliers.indexOf(1);
+      assert.equal(await detection.getByTestId('detection-total').innerText(), String(fixture.result.detection.years_needed[index]));
+      assert.equal(await detection.getByTestId('detection-wait').innerText(), fixture.result.years_to_wait === null ? 'Not applicable' : String(fixture.result.years_to_wait));
+      if (fixture.result.years_to_wait !== null) assert.equal(fixture.result.detection.years_needed[index] - fixture.result.detection.n_years, fixture.result.years_to_wait);
+    }
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('rate control uses exact nodes, log interpolation, and never changes the verdict or backend wait', async () => {
+  const { page, errors } = await open();
+  try {
+    await page.getByLabel('Saved case').selectOption('lviv-drier');
+    await page.locator('.technical > summary').click();
+    const detection = page.getByRole('region', { name: 'Detection duration' });
+    const originalVerdict = await page.locator('.verdict').innerText();
+    const originalWait = await detection.getByTestId('detection-wait').innerText();
+    const data = fixtures[1].result.detection;
+    for (const [i, rate] of data.multipliers.entries()) {
+      await detection.getByRole('button', { name: `×${rate}`, exact: true }).click();
+      assert.equal(await detection.getByTestId('detection-total').innerText(), String(data.years_needed[i]));
+    }
+    await detection.getByRole('button', { name: '×0.75', exact: true }).click();
+    await detection.getByRole('slider').focus();
+    await detection.getByRole('slider').press('ArrowRight');
+    const rate = Number(await detection.getByRole('slider').inputValue());
+    assert.ok(rate > 0.75 && rate < 1);
+    const t = (Math.log(rate) - Math.log(0.75)) / (Math.log(1) - Math.log(0.75));
+    const expected = Math.exp(Math.log(data.years_needed[1]) + t * (Math.log(data.years_needed[2]) - Math.log(data.years_needed[1])));
+    assert.ok(Math.abs(Number(await detection.getByTestId('detection-total').innerText()) - expected) < 0.01);
+    assert.match(await detection.innerText(), /Interpolated illustration/);
+    assert.equal(await detection.getByTestId('detection-wait').innerText(), originalWait);
+    assert.equal(await page.locator('.verdict').innerText(), originalVerdict);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('missing detection points are not zero or bridged and null waiting retains its meaning', async () => {
+  const { page, errors } = await open();
+  try {
+    await page.route('**/api/variables', route => route.fulfill({ json: [fixtures[0].result.variable] }));
+    const result = structuredClone(fixtures[1].result);
+    result.years_to_wait = null;
+    result.detection.years_needed[1] = null;
+    result.detection.years_needed[2] = result.detection.n_years;
+    await page.route('**/api/check', route => route.fulfill({ json: result }));
+    await page.goto(baseURL + '/?source=live');
+    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
+    await page.locator('.verdict').waitFor();
+    await page.locator('.technical > summary').click();
+    const detection = page.getByRole('region', { name: 'Detection duration' });
+    assert.equal(await detection.getByTestId('detection-wait').innerText(), 'Not determined');
+    assert.match(await detection.innerText(), /already been reached.*remains unproven/);
+    await detection.getByRole('button', { name: '×0.75', exact: true }).click();
+    assert.equal(await detection.getByTestId('detection-total').innerText(), 'Not determined for this rate');
+    await detection.getByRole('slider').focus();
+    await detection.getByRole('slider').press('ArrowRight');
+    assert.equal(await detection.getByTestId('detection-total').innerText(), 'Not determined for this rate');
+    assert.equal(await page.getByText('Not enough evidence does not mean no change.', { exact: true }).isVisible(), true);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
