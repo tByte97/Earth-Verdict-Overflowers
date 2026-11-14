@@ -43,6 +43,28 @@ const style: maplibregl.StyleSpecification = {
   ],
 };
 
+const ORBIT_ZOOM = 2, LOCAL_ZOOM = 4.75;
+const easeIn = (t: number) => t ** 3;
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (2 - 2 * t) ** 3 / 2);
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Camera path to a new case: rise to orbit, turn the planet under it, then descend to the local view.
+// `stillWanted` turns false when a newer flight, a view button or the user takes over the camera.
+async function flyToCase(map: maplibregl.Map, center: [number, number], stillWanted: () => boolean) {
+  if (reducedMotion()) { map.jumpTo({ center, zoom: LOCAL_ZOOM }); return; }
+  // Listen after starting: easeTo stops the previous animation, whose moveend fires synchronously.
+  const leg = (options: maplibregl.EaseToOptions) => new Promise<void>(resolve => {
+    map.easeTo({ ...options, essential: true });
+    map.once('moveend', () => resolve());
+  });
+  if (map.getZoom() > ORBIT_ZOOM + 0.4) await leg({ zoom: ORBIT_ZOOM, pitch: 0, bearing: 0, duration: 1100, easing: easeIn });
+  if (!stillWanted()) return;
+  await leg({ center, zoom: ORBIT_ZOOM, duration: 1000, easing: easeInOut });
+  if (!stillWanted()) return;
+  await leg({ center, zoom: LOCAL_ZOOM, duration: 1600, easing: easeOut });
+}
+
 const coords = (lat: number, lon: number) => `${Math.abs(lat)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon)}° ${lon >= 0 ? 'E' : 'W'}`;
 
 // Tooltip text is set via textContent: names come from data, never as HTML.
@@ -68,6 +90,9 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   activePlace.current = place;
   const pick = useRef(onPick);
   pick.current = onPick;
+  const flight = useRef(0);
+  // The place shown on first load is centred by the load handler, not flown to.
+  const shownPlace = useRef(place?.place_id);
 
   useEffect(() => {
     let instance: maplibregl.Map;
@@ -90,6 +115,7 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
       if (activePlace.current) instance.setCenter([activePlace.current.lon, activePlace.current.lat]);
     });
     instance.once('idle', () => setReady(true));
+    instance.on('movestart', event => { if (event.originalEvent) flight.current++; });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
     instance.on('click', event => {
       if (event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker')) return;
@@ -105,7 +131,12 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     const lines = place.place_id.startsWith('pt:') ? [place.name] : [place.name, coords(place.lat, place.lon)];
     const marker = new maplibregl.Marker({ element: markerElement('place', lines) })
       .setLngLat([place.lon, place.lat]).addTo(map.current);
-    map.current.flyTo({ center: [place.lon, place.lat], zoom: 1.4, duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900 });
+    // A picked point keeps the camera where the user clicked; a new case flies there.
+    if (place.place_id !== shownPlace.current && !place.place_id.startsWith('pt:')) {
+      const id = ++flight.current;
+      void flyToCase(map.current, [place.lon, place.lat], () => flight.current === id);
+    }
+    shownPlace.current = place.place_id;
     return () => { marker.remove(); };
   }, [place]);
 
@@ -119,9 +150,9 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   return <div className="globe" data-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'} aria-busy={!ready && !unavailable}>
     {unavailable && <div className="map-loading" role="status">The interactive globe is unavailable in this browser. You can still choose a place and inspect every result in the panel.</div>}
     {!unavailable && <div className="globe-view-controls" aria-label="Map view">
-      <button type="button" onClick={() => map.current?.flyTo({ zoom: 1.4, duration: 600 })}>Globe view</button>
+      <button type="button" onClick={() => { flight.current++; map.current?.flyTo({ zoom: 1.4, duration: 600 }); }}>Globe view</button>
       {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
-      <button type="button" disabled={!place} onClick={() => place && map.current?.flyTo({ center: [place.lon, place.lat], zoom: 4.75, duration: 600 })}>Local view</button>
+      <button type="button" disabled={!place} onClick={() => { flight.current++; if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
     </div>}
     <div ref={container} className="globe-map" />
     {onPick && !unavailable && <p className="globe-hint">{ready ? 'Click the globe to pick coordinates' : 'Loading imagery…'}</p>}
