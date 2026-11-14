@@ -1,6 +1,7 @@
 data/*
 !data/cases/
 !data/layers/
+!data/cmip6/
 /env
 __pycache__/
 .DS_Store
