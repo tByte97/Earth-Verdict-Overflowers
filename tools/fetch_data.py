@@ -9,6 +9,8 @@
   python3 tools/fetch_data.py --all                # усі міста зі списку
   python3 tools/fetch_data.py --lat 50.45 --lon 30.52 --name mycity
   python3 tools/fetch_data.py kyiv --refresh       # ігнорувати кеш
+  python3 tools/fetch_data.py --cag                # аномалії температури регіонів світу
+  python3 tools/fetch_data.py kyiv --giovanni      # + GPM і GLDAS з Giovanni (токен Earthdata)
 
 Результат: data/<місто>.json. Сирі відповіді API лежать у data/cache/ (повторний запуск
 працює без інтернету).
@@ -19,6 +21,7 @@ import json
 import math
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -43,25 +46,35 @@ CITIES = {
 }
 
 
-def get_json(url, params, refresh=False, retries=3):
-    """GET з файловим кешем. Ключ кешу — хеш повного URL."""
-    full = url + "?" + urllib.parse.urlencode(params)
-    path = CACHE / (hashlib.sha1(full.encode()).hexdigest()[:16] + ".json")
+def get_text(url, params, refresh=False, retries=3, headers=None, ext="txt", validate=None):
+    """GET з файловим кешем. Ключ кешу — хеш URL; заголовки (і токен) в ключ і в кеш не потрапляють."""
+    full = url + ("?" + urllib.parse.urlencode(params) if params else "")
+    path = CACHE / f"{hashlib.sha1(full.encode()).hexdigest()[:16]}.{ext}"
     if path.exists() and not refresh:
-        return json.loads(path.read_text())
+        return path.read_text()
     last = None
     for attempt in range(retries):
         try:
-            req = urllib.request.Request(full, headers=UA)
-            with urllib.request.urlopen(req, timeout=120) as r:
-                data = json.loads(r.read())
+            req = urllib.request.Request(full, headers={**UA, **(headers or {})})
+            with urllib.request.urlopen(req, timeout=300) as r:
+                text = r.read().decode()
+            if validate:
+                validate(text)
             CACHE.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(data, ensure_ascii=False))
-            return data
+            path.write_text(text)
+            return text
+        except urllib.error.HTTPError as e:
+            if 400 <= e.code < 500 and e.code != 429:  # помилка запиту чи доступу: повтор не допоможе
+                raise RuntimeError(f"{e.code} для {full}: {e.read()[:200]!r}")
+            last = e
         except Exception as e:  # мережа, 5xx, битий JSON
             last = e
-            time.sleep(2 * (attempt + 1))
+        time.sleep(2 * (attempt + 1))
     raise RuntimeError(f"не вдалося отримати {full}: {last}")
+
+
+def get_json(url, params, refresh=False, retries=3, headers=None):
+    return json.loads(get_text(url, params, refresh, retries, headers, "json", validate=json.loads))
 
 
 def months():
@@ -173,7 +186,84 @@ def tavg_from_daily(station_id, refresh):
     ]
 
 
-def run(key, name, lat, lon, refresh):
+GIOVANNI = "https://api.giovanni.earthdata.nasa.gov"
+TOKEN_FILE = Path.home() / ".config" / "earthdata" / "token"
+# ключ → (ID змінної Giovanni, множник до наших одиниць, наші одиниці, опис)
+GIOVANNI_VARS = {
+    "precip_gpm": ("GPM_3IMERGM_07_precipitation", 24, "mm/day", "Опади GPM IMERG (супутники + опадоміри), 0.1°"),
+    "evap_gldas": ("GLDAS_NOAH025_M_2_1_Evap_tavg", 86400, "mm/day", "Випаровування з суші, модель GLDAS Noah 2.1, 0.25°"),
+}
+
+
+def earthdata_token():
+    import os
+    tok = os.environ.get("EARTHDATA_TOKEN") or (TOKEN_FILE.read_text().strip() if TOKEN_FILE.exists() else "")
+    if not tok:
+        sys.exit(f"немає токена Earthdata: задай EARTHDATA_TOKEN або поклади його у {TOKEN_FILE}")
+    return tok
+
+
+def fetch_giovanni(lat, lon, refresh):
+    """Місячні ряди Giovanni Time Series API для точки. Квота витрачається лише без кешу."""
+    auth = {"Authorization": "Bearer " + earthdata_token()}
+    out = {}
+    for key, (var, factor, units, label) in GIOVANNI_VARS.items():
+        csv = get_text(
+            f"{GIOVANNI}/timeseries",
+            {"data": var, "location": f"[{lat},{lon}]", "time": f"{START}-01-01T00:00:00/{END}-12-31T23:59:59"},
+            refresh, headers=auth, ext="csv",
+            validate=lambda t: t.index("Timestamp (UTC),Data"),
+        )
+        head, body = csv.split("Timestamp (UTC),Data", 1)
+        meta = dict(line.split(",", 1) for line in head.strip().splitlines() if "," in line)
+        undef = float(meta.get("undef", "-9999.9"))
+        values = {}
+        for line in body.strip().splitlines():
+            ts, v = line.split(",", 1)
+            if v.strip() not in ("", "undef") and float(v) != undef:
+                values[ts[:7]] = round(float(v) * factor, 4)
+        series = [values.get(m) for m in months()]
+        out[key] = {
+            "variable": var, "label": label, "units": units,
+            "source_units": meta.get("unit"), "doi": meta.get("doi"),
+            "cell": [float(meta.get("lat", lat)), float(meta.get("lon", lon))],
+            "series": series,
+        }
+        n = sum(v is not None for v in series)
+        print(f"    Giovanni {var}: {n} місяців ({meta.get('begin_time', '?')[:7]} – {meta.get('end_time', '?')[:7]})")
+    return out
+
+
+CAG_REGIONS = ["globe", "europe", "asia", "africa", "northAmerica", "southAmerica", "oceania", "arctic"]
+CAG_SEASONS = {"year": (12, 12), "jja": (3, 8), "djf": (3, 2)}  # (кількість місяців, останній місяць)
+
+
+def fetch_cag(refresh):
+    """NOAA Climate at a Glance: аномалії температури суша+океан відносно 1901–2000."""
+    base = "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/time-series"
+    out = {"source": "NOAA NCEI Climate at a Glance", "units": "°C", "base_period": "1901-2000", "regions": {}}
+    for region in CAG_REGIONS:
+        out["regions"][region] = {}
+        for season, (span, month) in CAG_SEASONS.items():
+            try:
+                d = get_json(f"{base}/{region}/land_ocean/{span}/{month}/1850-{END + 1}/data.json", {}, refresh)
+            except RuntimeError as e:
+                print(f"  CAG {region}/{season}: {e}", file=sys.stderr)
+                continue
+            years = sorted(d["data"], key=int)
+            out["regions"][region][season] = {
+                "years": [int(y) for y in years],
+                "anomaly": [d["data"][y].get("departure") if isinstance(d["data"][y], dict) else d["data"][y]
+                            for y in years],
+            }
+            last = years[-1]
+            print(f"  CAG {region:13} {season}: {years[0]}–{last}, останнє {out['regions'][region][season]['anomaly'][-1]}")
+    DATA.mkdir(parents=True, exist_ok=True)
+    (DATA / "cag.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    print(f"  збережено data/cag.json")
+
+
+def run(key, name, lat, lon, refresh, giovanni=False):
     print(f"{name} ({lat}, {lon})")
     print("  NASA POWER ...")
     power = fetch_power(lat, lon, refresh)
@@ -185,11 +275,15 @@ def run(key, name, lat, lon, refresh):
         "retrieved": time.strftime("%Y-%m-%d"),
         "sources": {
             "power": "NASA POWER monthly point (MERRA-2/CERES), https://power.larc.nasa.gov",
-            "station": "NOAA NCEI Global Summary of the Month",
+            "station": "NOAA NCEI Global Summary of the Month / GHCN-Daily",
         },
         "power": power,
         "station": station,
     }
+    if giovanni:
+        print("  Giovanni ...")
+        out["giovanni"] = fetch_giovanni(lat, lon, refresh)
+        out["sources"]["giovanni"] = "NASA GES DISC Giovanni Time Series API"
     DATA.mkdir(parents=True, exist_ok=True)
     path = DATA / f"{key}.json"
     path.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
@@ -204,7 +298,15 @@ def main():
     ap.add_argument("--lon", type=float)
     ap.add_argument("--name", default="custom", help="назва для власних координат")
     ap.add_argument("--refresh", action="store_true", help="ігнорувати кеш")
+    ap.add_argument("--cag", action="store_true", help="аномалії Climate at a Glance для регіонів світу")
+    ap.add_argument("--giovanni", action="store_true",
+                    help=f"додати ряди Giovanni (потрібен токен у EARTHDATA_TOKEN або {TOKEN_FILE})")
     a = ap.parse_args()
+
+    if a.cag:
+        fetch_cag(a.refresh)
+        if not (a.cities or a.all or a.lat is not None):
+            return
 
     jobs = []
     if a.lat is not None and a.lon is not None:
@@ -220,7 +322,7 @@ def main():
 
     for key, name, lat, lon in jobs:
         try:
-            run(key, name, lat, lon, a.refresh)
+            run(key, name, lat, lon, a.refresh, a.giovanni)
         except Exception as e:
             print(f"  ПОМИЛКА для {name}: {e}", file=sys.stderr)
 

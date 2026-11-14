@@ -1,0 +1,742 @@
+{
+ "case": {
+  "claim_text": "Kyiv winters have more snow now",
+  "variable_id": "snow_depth",
+  "place": {
+   "place_id": "city:kyiv",
+   "name": "Київ",
+   "lat": 50.45,
+   "lon": 30.52
+  },
+  "season": "DJF",
+  "start_year": 1982,
+  "end_year": 2025,
+  "claim_direction": "increase"
+ },
+ "variable": {
+  "id": "snow_depth",
+  "label": "Snow depth",
+  "units": "cm",
+  "definition": "How thick the snow layer on the ground is, on average.",
+  "caveat": "Modelled snow, not measured on site."
+ },
+ "series": [
+  {
+   "year": 1982,
+   "value": 19.7
+  },
+  {
+   "year": 1983,
+   "value": 17.0
+  },
+  {
+   "year": 1984,
+   "value": 19.1
+  },
+  {
+   "year": 1985,
+   "value": 27.9
+  },
+  {
+   "year": 1986,
+   "value": 18.3
+  },
+  {
+   "year": 1987,
+   "value": 28.4
+  },
+  {
+   "year": 1988,
+   "value": 17.0
+  },
+  {
+   "year": 1989,
+   "value": 13.8
+  },
+  {
+   "year": 1990,
+   "value": 16.6
+  },
+  {
+   "year": 1991,
+   "value": 13.9
+  },
+  {
+   "year": 1992,
+   "value": 17.2
+  },
+  {
+   "year": 1993,
+   "value": 17.1
+  },
+  {
+   "year": 1994,
+   "value": 17.3
+  },
+  {
+   "year": 1995,
+   "value": 16.2
+  },
+  {
+   "year": 1996,
+   "value": 18.4
+  },
+  {
+   "year": 1997,
+   "value": 16.5
+  },
+  {
+   "year": 1998,
+   "value": 18.6
+  },
+  {
+   "year": 1999,
+   "value": 25.6
+  },
+  {
+   "year": 2000,
+   "value": 20.0
+  },
+  {
+   "year": 2001,
+   "value": 17.3
+  },
+  {
+   "year": 2002,
+   "value": 21.3
+  },
+  {
+   "year": 2003,
+   "value": 20.0
+  },
+  {
+   "year": 2004,
+   "value": 17.9
+  },
+  {
+   "year": 2005,
+   "value": 20.1
+  },
+  {
+   "year": 2006,
+   "value": 16.9
+  },
+  {
+   "year": 2007,
+   "value": 14.3
+  },
+  {
+   "year": 2008,
+   "value": 12.8
+  },
+  {
+   "year": 2009,
+   "value": 18.6
+  },
+  {
+   "year": 2010,
+   "value": 35.4
+  },
+  {
+   "year": 2011,
+   "value": 14.8
+  },
+  {
+   "year": 2012,
+   "value": 22.0
+  },
+  {
+   "year": 2013,
+   "value": 49.9
+  },
+  {
+   "year": 2014,
+   "value": 17.3
+  },
+  {
+   "year": 2015,
+   "value": 16.3
+  },
+  {
+   "year": 2016,
+   "value": 16.2
+  },
+  {
+   "year": 2017,
+   "value": 20.0
+  },
+  {
+   "year": 2018,
+   "value": 14.3
+  },
+  {
+   "year": 2019,
+   "value": 33.7
+  },
+  {
+   "year": 2020,
+   "value": 16.7
+  },
+  {
+   "year": 2021,
+   "value": 19.1
+  },
+  {
+   "year": 2022,
+   "value": 17.3
+  },
+  {
+   "year": 2023,
+   "value": 14.4
+  },
+  {
+   "year": 2024,
+   "value": 14.4
+  },
+  {
+   "year": 2025,
+   "value": 14.1
+  }
+ ],
+ "sen": {
+  "slope_per_year": -0.0378,
+  "slope_per_decade": -0.378,
+  "ci_low": -1.1222,
+  "ci_high": 0.303,
+  "intercept": 18.143
+ },
+ "mk": {
+  "p": 0.442,
+  "tau": -0.0814,
+  "z": -0.769,
+  "correction": "hamed_rao"
+ },
+ "ols": {
+  "slope_per_year": 0.00954,
+  "p": 0.907,
+  "r2": 0.0003,
+  "n_eff": 44.0
+ },
+ "robustness": [
+  {
+   "start_year": 1982,
+   "end_year": 2025,
+   "p": 0.442,
+   "slope_per_decade": -0.378,
+   "significant": false
+  },
+  {
+   "start_year": 1985,
+   "end_year": 2025,
+   "p": 0.559,
+   "slope_per_decade": -0.3224,
+   "significant": false
+  },
+  {
+   "start_year": 1988,
+   "end_year": 2025,
+   "p": 0.811,
+   "slope_per_decade": 0.04,
+   "significant": false
+  },
+  {
+   "start_year": 1982,
+   "end_year": 2022,
+   "p": 0.805,
+   "slope_per_decade": 0.0573,
+   "significant": false
+  },
+  {
+   "start_year": 1985,
+   "end_year": 2022,
+   "p": 0.642,
+   "slope_per_decade": 0.1222,
+   "significant": false
+  }
+ ],
+ "robustness_summary": {
+  "significant": 0,
+  "total": 5
+ },
+ "witness": null,
+ "verdict": "not_proven",
+ "reason": "not_significant",
+ "years_to_wait": 27,
+ "steps": [
+  {
+   "id": "raw",
+   "title": "Monthly data",
+   "value": "528 months",
+   "detail": "Monthly snow depth for Київ from NASA POWER, 1982–2025."
+  },
+  {
+   "id": "season",
+   "title": "Pick the season",
+   "value": "winter (Dec–Feb)",
+   "detail": "Only the months the claim is about are kept (Dec, Jan, Feb)."
+  },
+  {
+   "id": "yearly",
+   "title": "One value per year",
+   "value": "44 years",
+   "detail": "The months of each year are averaged into one number."
+  },
+  {
+   "id": "trend",
+   "title": "Overall direction",
+   "value": "-0.4 cm per 10 years",
+   "detail": "The typical change over time, robust to single extreme years (Sen's slope)."
+  },
+  {
+   "id": "random_check",
+   "title": "Could it be chance?",
+   "value": "p = 0.442",
+   "detail": "A slope like this easily appears by chance when weather simply varies."
+  },
+  {
+   "id": "robustness",
+   "title": "Does the choice of years matter?",
+   "value": "0 of 5 periods agree",
+   "detail": "We repeat the check with the start and end shifted by a few years."
+  },
+  {
+   "id": "witness",
+   "title": "Ground station check",
+   "value": "No station",
+   "detail": "No nearby station with long enough records for this variable."
+  },
+  {
+   "id": "verdict",
+   "title": "Verdict",
+   "value": "Not proven",
+   "detail": "Year-to-year swings are larger than the change so far."
+  }
+ ],
+ "detection": {
+  "residual_sd": 6.7395,
+  "phi": 0.0,
+  "slope_per_year": -0.0378,
+  "n_years": 44,
+  "multipliers": [
+   0.5,
+   0.75,
+   1.0,
+   1.5,
+   2.0
+  ],
+  "years_needed": [
+   111.5,
+   85.1,
+   70.2,
+   53.6,
+   44.2
+  ]
+ },
+ "extrapolation": {
+  "note": "What-if line, not a forecast: it only shows where the trend would go at this pace. For physically based futures see the climate-model scenarios.",
+  "from_year": 2025,
+  "from_value": 16.5,
+  "years": [
+   2025,
+   2026,
+   2027,
+   2028,
+   2029,
+   2030,
+   2031,
+   2032,
+   2033,
+   2034,
+   2035,
+   2036,
+   2037,
+   2038,
+   2039,
+   2040,
+   2041,
+   2042,
+   2043,
+   2044,
+   2045,
+   2046,
+   2047,
+   2048,
+   2049,
+   2050
+  ],
+  "paths": [
+   {
+    "id": "stop",
+    "label": "The change stops",
+    "multiplier": 0.0,
+    "central": [
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5
+    ],
+    "low": [
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5
+    ],
+    "high": [
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.5
+    ]
+   },
+   {
+    "id": "slower",
+    "label": "Half as fast",
+    "multiplier": 0.5,
+    "central": [
+     16.5,
+     16.5,
+     16.5,
+     16.5,
+     16.4,
+     16.4,
+     16.4,
+     16.4,
+     16.4,
+     16.3,
+     16.3,
+     16.3,
+     16.3,
+     16.3,
+     16.3,
+     16.2,
+     16.2,
+     16.2,
+     16.2,
+     16.2,
+     16.1,
+     16.1,
+     16.1,
+     16.1,
+     16.1,
+     16.0
+    ],
+    "low": [
+     16.5,
+     16.5,
+     16.4,
+     16.3,
+     16.3,
+     16.2,
+     16.2,
+     16.1,
+     16.1,
+     16.0,
+     16.0,
+     15.9,
+     15.8,
+     15.8,
+     15.7,
+     15.7,
+     15.6,
+     15.6,
+     15.5,
+     15.5,
+     15.4,
+     15.3,
+     15.3,
+     15.2,
+     15.2,
+     15.1
+    ],
+    "high": [
+     16.5,
+     16.5,
+     16.5,
+     16.6,
+     16.6,
+     16.6,
+     16.6,
+     16.6,
+     16.6,
+     16.7,
+     16.7,
+     16.7,
+     16.7,
+     16.7,
+     16.7,
+     16.7,
+     16.8,
+     16.8,
+     16.8,
+     16.8,
+     16.8,
+     16.8,
+     16.9,
+     16.9,
+     16.9,
+     16.9
+    ]
+   },
+   {
+    "id": "same",
+    "label": "Same pace as 1981–2025",
+    "multiplier": 1.0,
+    "central": [
+     16.5,
+     16.5,
+     16.4,
+     16.4,
+     16.4,
+     16.3,
+     16.3,
+     16.3,
+     16.2,
+     16.2,
+     16.1,
+     16.1,
+     16.1,
+     16.0,
+     16.0,
+     16.0,
+     15.9,
+     15.9,
+     15.8,
+     15.8,
+     15.8,
+     15.7,
+     15.7,
+     15.6,
+     15.6,
+     15.6
+    ],
+    "low": [
+     16.5,
+     16.4,
+     16.3,
+     16.2,
+     16.1,
+     16.0,
+     15.8,
+     15.7,
+     15.6,
+     15.5,
+     15.4,
+     15.3,
+     15.2,
+     15.1,
+     14.9,
+     14.8,
+     14.7,
+     14.6,
+     14.5,
+     14.4,
+     14.3,
+     14.2,
+     14.0,
+     13.9,
+     13.8,
+     13.7
+    ],
+    "high": [
+     16.5,
+     16.5,
+     16.6,
+     16.6,
+     16.6,
+     16.7,
+     16.7,
+     16.7,
+     16.8,
+     16.8,
+     16.8,
+     16.9,
+     16.9,
+     16.9,
+     16.9,
+     17.0,
+     17.0,
+     17.0,
+     17.1,
+     17.1,
+     17.1,
+     17.2,
+     17.2,
+     17.2,
+     17.2,
+     17.3
+    ]
+   },
+   {
+    "id": "faster",
+    "label": "1.5× faster",
+    "multiplier": 1.5,
+    "central": [
+     16.5,
+     16.5,
+     16.4,
+     16.3,
+     16.3,
+     16.2,
+     16.2,
+     16.1,
+     16.1,
+     16.0,
+     16.0,
+     15.9,
+     15.8,
+     15.8,
+     15.7,
+     15.7,
+     15.6,
+     15.6,
+     15.5,
+     15.4,
+     15.4,
+     15.3,
+     15.3,
+     15.2,
+     15.2,
+     15.1
+    ],
+    "low": [
+     16.5,
+     16.3,
+     16.2,
+     16.0,
+     15.8,
+     15.7,
+     15.5,
+     15.3,
+     15.2,
+     15.0,
+     14.8,
+     14.7,
+     14.5,
+     14.3,
+     14.2,
+     14.0,
+     13.8,
+     13.7,
+     13.5,
+     13.3,
+     13.2,
+     13.0,
+     12.8,
+     12.6,
+     12.5,
+     12.3
+    ],
+    "high": [
+     16.5,
+     16.6,
+     16.6,
+     16.7,
+     16.7,
+     16.7,
+     16.8,
+     16.8,
+     16.9,
+     16.9,
+     17.0,
+     17.0,
+     17.1,
+     17.1,
+     17.2,
+     17.2,
+     17.2,
+     17.3,
+     17.3,
+     17.4,
+     17.4,
+     17.5,
+     17.5,
+     17.6,
+     17.6,
+     17.7
+    ]
+   }
+  ]
+ },
+ "scenarios": null,
+ "provenance": [
+  {
+   "what": "Snow depth",
+   "source": "NASA POWER",
+   "product": "SNODP (MERRA-2)",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=SNODP&community=AG&latitude=50.45&longitude=30.52&start=1981&end=2025&format=JSON",
+   "retrieved_at": "2026-11-14",
+   "license": "Public domain (NASA)"
+  }
+ ],
+ "meta": {
+  "stub": true,
+  "stats_engine": "provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
+  "generated_at": "2026-11-14T14:12:30Z"
+ }
+}
