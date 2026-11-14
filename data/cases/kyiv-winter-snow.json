@@ -206,9 +206,9 @@
   "intercept": 18.143
  },
  "mk": {
-  "p": 0.442,
+  "p": 0.511,
   "tau": -0.0814,
-  "z": -0.769,
+  "z": -0.658,
   "correction": "hamed_rao"
  },
  "ols": {
@@ -221,35 +221,35 @@
   {
    "start_year": 1982,
    "end_year": 2025,
-   "p": 0.442,
+   "p": 0.511,
    "slope_per_decade": -0.378,
    "significant": false
   },
   {
    "start_year": 1985,
    "end_year": 2025,
-   "p": 0.559,
+   "p": 0.627,
    "slope_per_decade": -0.3224,
    "significant": false
   },
   {
    "start_year": 1988,
    "end_year": 2025,
-   "p": 0.811,
+   "p": 0.842,
    "slope_per_decade": 0.04,
    "significant": false
   },
   {
    "start_year": 1982,
    "end_year": 2022,
-   "p": 0.805,
+   "p": 0.816,
    "slope_per_decade": 0.0573,
    "significant": false
   },
   {
    "start_year": 1985,
    "end_year": 2022,
-   "p": 0.642,
+   "p": 0.659,
    "slope_per_decade": 0.1222,
    "significant": false
   }
@@ -261,7 +261,7 @@
  "witness": null,
  "verdict": "not_proven",
  "reason": "not_significant",
- "years_to_wait": 27,
+ "years_to_wait": 109,
  "steps": [
   {
    "id": "raw",
@@ -290,7 +290,7 @@
   {
    "id": "random_check",
    "title": "Could it be chance?",
-   "value": "p = 0.442",
+   "value": "p = 0.511",
    "detail": "A slope like this easily appears by chance when weather simply varies."
   },
   {
@@ -313,7 +313,7 @@
   }
  ],
  "detection": {
-  "residual_sd": 6.7395,
+  "residual_sd": 6.8192,
   "phi": 0.0,
   "slope_per_year": -0.0378,
   "n_years": 44,
@@ -325,11 +325,11 @@
    2.0
   ],
   "years_needed": [
-   111.5,
-   85.1,
-   70.2,
-   53.6,
-   44.2
+   112.3,
+   85.7,
+   70.8,
+   54.0,
+   44.6
   ]
  },
  "extrapolation": {
@@ -545,7 +545,7 @@
    },
    {
     "id": "same",
-    "label": "Same pace as 1981–2025",
+    "label": "Same pace as 1982–2025",
     "multiplier": 1.0,
     "central": [
      16.5,
@@ -736,7 +736,7 @@
  ],
  "meta": {
   "stub": true,
-  "stats_engine": "provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
-  "generated_at": "2026-11-14T14:12:30Z"
+  "stats_engine": "backend.app.stats v1",
+  "generated_at": "2026-11-14T14:29:04Z"
  }
 }

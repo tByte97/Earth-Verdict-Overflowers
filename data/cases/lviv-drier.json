@@ -59,7 +59,7 @@
   },
   {
    "year": 1990,
-   "value": 636.4
+   "value": 636.3
   },
   {
    "year": 1991,
@@ -210,9 +210,9 @@
   "intercept": 656.835
  },
  "mk": {
-  "p": 0.00787,
+  "p": 0.0703,
   "tau": 0.1879,
-  "z": 2.658,
+  "z": 1.81,
   "correction": "hamed_rao"
  },
  "ols": {
@@ -225,47 +225,47 @@
   {
    "start_year": 1981,
    "end_year": 2025,
-   "p": 0.00787,
+   "p": 0.0703,
    "slope_per_decade": 21.807,
-   "significant": true
+   "significant": false
   },
   {
    "start_year": 1984,
    "end_year": 2025,
-   "p": 0.00747,
+   "p": 0.0637,
    "slope_per_decade": 23.2036,
-   "significant": true
+   "significant": false
   },
   {
    "start_year": 1987,
    "end_year": 2025,
-   "p": 0.00986,
+   "p": 0.101,
    "slope_per_decade": 23.2036,
-   "significant": true
+   "significant": false
   },
   {
    "start_year": 1981,
    "end_year": 2022,
-   "p": 0.00231,
+   "p": 0.0909,
    "slope_per_decade": 20.9892,
-   "significant": true
+   "significant": false
   },
   {
    "start_year": 1984,
    "end_year": 2022,
-   "p": 0.0145,
+   "p": 0.0955,
    "slope_per_decade": 22.6154,
-   "significant": true
+   "significant": false
   }
  ],
  "robustness_summary": {
-  "significant": 5,
+  "significant": 0,
   "total": 5
  },
  "witness": null,
- "verdict": "refuted",
- "reason": "opposite_trend",
- "years_to_wait": null,
+ "verdict": "not_proven",
+ "reason": "not_significant",
+ "years_to_wait": 13,
  "steps": [
   {
    "id": "raw",
@@ -294,13 +294,13 @@
   {
    "id": "random_check",
    "title": "Could it be chance?",
-   "value": "p = 0.008",
-   "detail": "Very unlikely to appear by chance if nothing were changing."
+   "value": "p = 0.070",
+   "detail": "A slope like this easily appears by chance when weather simply varies."
   },
   {
    "id": "robustness",
    "title": "Does the choice of years matter?",
-   "value": "5 of 5 periods agree",
+   "value": "0 of 5 periods agree",
    "detail": "We repeat the check with the start and end shifted by a few years."
   },
   {
@@ -312,12 +312,12 @@
   {
    "id": "verdict",
    "title": "Verdict",
-   "value": "Refuted",
-   "detail": "A clear, robust trend in the opposite direction."
+   "value": "Not proven",
+   "detail": "Year-to-year swings are larger than the change so far."
   }
  ],
  "detection": {
-  "residual_sd": 92.3643,
+  "residual_sd": 93.4321,
   "phi": 0.0,
   "slope_per_year": 2.1807,
   "n_years": 45,
@@ -329,11 +329,11 @@
    2.0
   ],
   "years_needed": [
-   42.8,
-   32.6,
-   26.9,
-   20.6,
-   17.0
+   43.1,
+   32.9,
+   27.1,
+   20.7,
+   17.1
   ]
  },
  "extrapolation": {
@@ -740,7 +740,7 @@
  ],
  "meta": {
   "stub": true,
-  "stats_engine": "provisional: pymannkendall 1.4.3 (Hamed–Rao) + scipy theilslopes/linregress",
-  "generated_at": "2026-11-14T14:12:30Z"
+  "stats_engine": "backend.app.stats v1",
+  "generated_at": "2026-11-14T14:29:04Z"
  }
 }

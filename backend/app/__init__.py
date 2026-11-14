@@ -1,0 +1,1 @@
+"""Earth Verdict backend package."""
