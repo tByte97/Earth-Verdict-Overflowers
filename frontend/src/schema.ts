@@ -37,8 +37,13 @@ const ExtrapolationSchema = z.object({
 }).strict().refine(value => value.paths.every(path => [path.central, path.low, path.high].every(values => values.length === value.years.length)), { message: 'Extrapolation array lengths differ' });
 const ScenariosSchema = z.object({
   synthetic: z.boolean(), source: z.string(), baseline_period: z.string(), baseline_value: finite, note: z.string(),
-  paths: z.array(z.object({ id: z.enum(['ssp126', 'ssp245', 'ssp585']), label: z.string(), years: z.array(integer), median: z.array(finite), low: z.array(finite), high: z.array(finite) }).strict()),
-}).strict().refine(value => value.paths.every(path => [path.median, path.low, path.high].every(values => values.length === path.years.length)), { message: 'Scenario array lengths differ' });
+  paths: z.array(z.object({
+    id: z.enum(['ssp126', 'ssp245', 'ssp585']), label: z.string(), years: z.array(integer), windows: z.array(z.string()),
+    median: z.array(finite), low: z.array(finite), high: z.array(finite),
+    median_value: z.array(finite), low_value: z.array(finite), high_value: z.array(finite),
+    analogs: z.array(z.object({ year: integer, analog_year: integer.nullable(), analog_value: finite.nullable(), analog_rank: integer.nullable(), beyond_record: z.boolean() }).strict()),
+  }).strict()),
+}).strict().refine(value => value.paths.every(path => [path.windows, path.median, path.low, path.high, path.median_value, path.low_value, path.high_value, path.analogs].every(values => values.length === path.years.length)), { message: 'Scenario array lengths differ' });
 export const ProvenanceSchema = z.object({ what: z.string(), source: z.string(), product: z.string(), url: z.string(), retrieved_at: z.string(), license: z.string(), version: z.string().nullable().optional() }).strict();
 export const CheckResultSchema = z.object({
   case: CaseSpecSchema, variable: VariableSchema, series: z.array(YearValueSchema), sen: SenSchema, mk: MKSchema, ols: OLSSchema,

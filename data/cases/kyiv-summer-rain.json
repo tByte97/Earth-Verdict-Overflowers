@@ -743,6 +743,12 @@
      2070,
      2100
     ],
+    "windows": [
+     "2021-2040",
+     "2041-2060",
+     "2061-2080",
+     "2091-2100"
+    ],
     "median": [
      -6.9,
      1.3,
@@ -760,6 +766,54 @@
      9.8,
      26.9,
      28.1
+    ],
+    "median_value": [
+     200.1,
+     208.3,
+     207.0,
+     222.3
+    ],
+    "low_value": [
+     177.5,
+     190.4,
+     183.6,
+     186.6
+    ],
+    "high_value": [
+     227.6,
+     216.8,
+     233.9,
+     235.1
+    ],
+    "analogs": [
+     {
+      "year": 2030,
+      "analog_year": 1987,
+      "analog_value": 199.4,
+      "analog_rank": 24,
+      "beyond_record": false
+     },
+     {
+      "year": 2050,
+      "analog_year": 1999,
+      "analog_value": 209.4,
+      "analog_rank": 22,
+      "beyond_record": false
+     },
+     {
+      "year": 2070,
+      "analog_year": 1999,
+      "analog_value": 209.4,
+      "analog_rank": 22,
+      "beyond_record": false
+     },
+     {
+      "year": 2100,
+      "analog_year": 2005,
+      "analog_value": 223.7,
+      "analog_rank": 15,
+      "beyond_record": false
+     }
     ]
    },
    {
@@ -770,6 +824,12 @@
      2050,
      2070,
      2100
+    ],
+    "windows": [
+     "2021-2040",
+     "2041-2060",
+     "2061-2080",
+     "2091-2100"
     ],
     "median": [
      5.1,
@@ -788,6 +848,54 @@
      -4.0,
      4.2,
      2.5
+    ],
+    "median_value": [
+     212.1,
+     184.2,
+     201.3,
+     205.8
+    ],
+    "low_value": [
+     178.2,
+     173.5,
+     174.8,
+     161.6
+    ],
+    "high_value": [
+     222.5,
+     203.0,
+     211.2,
+     209.5
+    ],
+    "analogs": [
+     {
+      "year": 2030,
+      "analog_year": 1989,
+      "analog_value": 211.8,
+      "analog_rank": 21,
+      "beyond_record": false
+     },
+     {
+      "year": 2050,
+      "analog_year": 2003,
+      "analog_value": 182.9,
+      "analog_rank": 27,
+      "beyond_record": false
+     },
+     {
+      "year": 2070,
+      "analog_year": 2001,
+      "analog_value": 202.1,
+      "analog_rank": 23,
+      "beyond_record": false
+     },
+     {
+      "year": 2100,
+      "analog_year": 1999,
+      "analog_value": 209.4,
+      "analog_rank": 22,
+      "beyond_record": false
+     }
     ]
    },
    {
@@ -798,6 +906,12 @@
      2050,
      2070,
      2100
+    ],
+    "windows": [
+     "2021-2040",
+     "2041-2060",
+     "2061-2080",
+     "2091-2100"
     ],
     "median": [
      12.0,
@@ -816,6 +930,54 @@
      -14.4,
      -21.0,
      -25.6
+    ],
+    "median_value": [
+     219.0,
+     179.2,
+     167.0,
+     149.7
+    ],
+    "low_value": [
+     201.6,
+     170.6,
+     140.4,
+     128.6
+    ],
+    "high_value": [
+     239.3,
+     192.6,
+     186.0,
+     181.4
+    ],
+    "analogs": [
+     {
+      "year": 2030,
+      "analog_year": 2004,
+      "analog_value": 218.2,
+      "analog_rank": 16,
+      "beyond_record": false
+     },
+     {
+      "year": 2050,
+      "analog_year": 1996,
+      "analog_value": 179.5,
+      "analog_rank": 31,
+      "beyond_record": false
+     },
+     {
+      "year": 2070,
+      "analog_year": 2000,
+      "analog_value": 164.5,
+      "analog_rank": 34,
+      "beyond_record": false
+     },
+     {
+      "year": 2100,
+      "analog_year": 2008,
+      "analog_value": 150.9,
+      "analog_rank": 38,
+      "beyond_record": false
+     }
     ]
    }
   ]
@@ -841,6 +1003,6 @@
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T17:45:44Z"
+  "generated_at": "2026-11-14T20:49:23Z"
  }
 }

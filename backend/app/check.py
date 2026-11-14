@@ -13,7 +13,7 @@ from typing import Optional, Sequence
 
 from .catalog import VariableDef, get_variable
 from .models import CaseSpec, CheckResult
-from .scenarios import nearby_scenarios
+from .scenarios import add_observed_context, nearby_scenarios
 from .stats import build_extrapolation, months_for_season, seasonal_series
 from .stats.witness import compare_rates
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
@@ -269,6 +269,8 @@ def assemble_result(
         scen = dict(scenarios)
         if base and scen.get("baseline_value") is None:
             scen["baseline_value"] = round(sum(base) / len(base), d)
+        if scen.get("baseline_value") is not None:
+            scen = add_observed_context(scen, years, vals, d)
         for p in scenarios.get("provenance", []):
             prov.append(p)
         scen.pop("provenance", None)

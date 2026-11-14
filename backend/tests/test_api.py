@@ -145,6 +145,11 @@ def test_grid_layer():
     assert r.status_code == 200
     gj = r.json()
     assert gj["type"] == "FeatureCollection" and len(gj["features"]) > 100
+    assert gj["variable_id"] == "precip" and gj["start_year"] == 1981 and gj["end_year"] == 2025
+    a, b = gj["pair"]["a"], gj["pair"]["b"]
+    assert a["slope_per_decade"] > 0 > b["slope_per_decade"] and gj["pair"]["significance"] in ("fdr", "raw")
+    djf = client.get("/api/grid", params={"variable_id": "air_temp", "season": "DJF"}).json()
+    assert djf["start_year"] == 1982 and djf["variable_id"] == "air_temp"
 
 
 def test_places_short_query_is_empty():
@@ -157,6 +162,10 @@ def test_live_check_reuses_nearby_cmip6(fake_sources):
     assert sc is not None and sc["synthetic"] is False
     assert [p["id"] for p in sc["paths"]] == ["ssp126", "ssp245", "ssp585"]
     assert sc["baseline_value"] is not None
+    for p in sc["paths"]:
+        assert p["windows"][1] == "2041-2060"
+        assert p["median_value"] == [round(sc["baseline_value"] + d, 2) for d in p["median"]]
+        assert [a["year"] for a in p["analogs"]] == p["years"]
     assert any(p["source"] == "NASA NCCS" for p in r.json()["provenance"])
 
 
@@ -200,3 +209,15 @@ def test_places_offers_regions(monkeypatch):
     names = [p["place_id"] for p in client.get("/api/places", params={"q": "Euro"}).json()]
     assert names[0] == "region:europe"
     assert client.get("/api/places", params={"q": "world"}).json()[0]["place_id"] == "region:globe"
+
+
+def test_scenario_analogs_pick_closest_year_or_beyond_record():
+    from app.scenarios import add_observed_context
+    scen = {"baseline_value": 20.0, "paths": [{"years": [2050, 2100], "median": [1.4, 9.0],
+                                               "low": [1.0, 5.0], "high": [2.0, 12.0]}]}
+    out = add_observed_context(scen, [2000, 2001, 2002, 2003], [19.0, 21.5, None, 21.3], 2)
+    p = out["paths"][0]
+    assert p["median_value"] == [21.4, 29.0] and p["high_value"] == [22.0, 32.0]
+    tie, far = p["analogs"]
+    assert tie == {"year": 2050, "analog_year": 2003, "analog_value": 21.3, "analog_rank": 2, "beyond_record": False}
+    assert far == {"year": 2100, "analog_year": None, "analog_value": None, "analog_rank": None, "beyond_record": True}

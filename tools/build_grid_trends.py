@@ -30,9 +30,10 @@ SEASON_MONTHS = {
     "JJA": [6, 7, 8],
 }
 PARAM_CONFIG = {
-    "T2M": {"agg": "mean", "per_day": False, "units_per_decade": "°C/decade"},
-    "PRECTOTCORR": {"agg": "sum", "per_day": True, "units_per_decade": "mm/decade"},
+    "T2M": {"agg": "mean", "per_day": False, "units_per_decade": "°C/decade", "variable_id": "air_temp"},
+    "PRECTOTCORR": {"agg": "sum", "per_day": True, "units_per_decade": "mm/decade", "variable_id": "precip"},
 }
+LAYERS_DIR = DATA / "layers"
 FDR_Q = 0.05
 MIN_YEARS = 15
 
@@ -79,7 +80,8 @@ def cell_trend(years: np.ndarray, values: np.ndarray) -> tuple[float, float, str
     return float(ts.slope * 10.0), float(mk.p), used
 
 
-def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell_size: dict, cells_out: list[dict], raw_flags: list[bool]) -> dict:
+def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell_size: dict, cells_out: list[dict], raw_flags: list[bool],
+                  meta: dict | None = None) -> dict:
     dlat = float(cell_size["lat"])
     dlon = float(cell_size["lon"])
     half_lat = dlat / 2.0
@@ -121,8 +123,20 @@ def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell
         "season": season,
         "units_per_decade": units_per_decade,
         "q": q,
+        **(meta or {}),
         "features": features,
     }
+
+
+def pair_meta(cells_out: list[dict], p_vals: np.ndarray) -> dict | None:
+    """Nearest pair of cells with opposite significant trends: FDR first, else raw p < q."""
+    for basis in ("significant_fdr", "raw"):
+        found = find_opposite_pairs(cells_out, p_vals, basis)
+        if found:
+            dist, a, b = found
+            cell = lambda c: {"lat": c["lat"], "lon": c["lon"], "slope_per_decade": c["slope_per_decade"], "p": c["p"]}
+            return {"a": cell(a), "b": cell(b), "distance_km": round(dist), "significance": "fdr" if basis == "significant_fdr" else "raw"}
+    return None
 
 
 def find_opposite_pairs(cells_out: list[dict], raw_p: np.ndarray, key: str = "significant_fdr"):
@@ -162,10 +176,13 @@ def main():
             p_vals = np.empty(len(cells), dtype=float)
             fallbacks = 0
 
+            span = [math.inf, -math.inf]
             for i, cell in enumerate(cells):
                 years, vals = aggregate_seasonal(
                     cell["monthly"], season, cfg["agg"], cfg["per_day"]
                 )
+                if len(years):
+                    span = [min(span[0], years[0]), max(span[1], years[-1])]
                 s_dec, p, used = cell_trend(years, vals)
                 slopes[i] = s_dec
                 p_vals[i] = p
@@ -201,11 +218,15 @@ def main():
             json_path = GRID_DIR / f"trends_{param}_{season}.json"
             json_path.write_text(json.dumps(out_json, ensure_ascii=False, separators=(",", ":")))
 
+            meta = {"variable_id": cfg["variable_id"], "start_year": int(span[0]), "end_year": int(span[1]),
+                    "pair": pair_meta(cells_out, p_vals)}
             geojson = build_geojson(
-                param, season, cfg["units_per_decade"], FDR_Q, cell_size, cells_out, raw_sig.tolist()
+                param, season, cfg["units_per_decade"], FDR_Q, cell_size, cells_out, raw_sig.tolist(), meta
             )
             geojson_path = GRID_DIR / f"trends_{param}_{season}.geojson"
             geojson_path.write_text(json.dumps(geojson, ensure_ascii=False, separators=(",", ":")))
+            LAYERS_DIR.mkdir(parents=True, exist_ok=True)
+            (LAYERS_DIR / geojson_path.name).write_text(geojson_path.read_text())
 
             dt = time.perf_counter() - t0
             mean_slope = float(np.nanmean(slopes))
