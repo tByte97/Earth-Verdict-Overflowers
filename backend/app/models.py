@@ -149,21 +149,54 @@ class Witness(Strict):
     rates: Optional[WitnessRates] = None   # None = замало спільних років (< 15)
 
 
+class MonthValue(Strict):
+    month: str                      # "YYYY-MM"
+    value: Optional[float]          # variable units; per-day rates already turned into monthly totals
+
+
 class Step(Strict):
-    """Один крок обробки для блоку «Як ми це порахували»."""
+    """Один крок обробки для блоку «Як ми це порахували».
+    Step-specific fields are None on the other steps."""
     id: Literal["raw", "season", "yearly", "trend", "random_check", "robustness", "witness", "verdict"]
     title: str              # коротко, простою мовою
     value: str              # головна цифра кроку з одиницями
     detail: str             # одне речення пояснення
+    fields: list[str] = []  # dot paths into this CheckResult that the step summarises, e.g. "mk.p"
+    # raw
+    n_months: Optional[int] = None              # months with a value in start..end (None for yearly sources)
+    monthly: Optional[list[MonthValue]] = None  # the monthly record start-01..end-12, for a mini chart
+    # season
+    months: Optional[list[int]] = None          # calendar months kept, e.g. [12, 1, 2]
+    aggregation: Optional[Literal["mean", "sum"]] = None
+    years_dropped: Optional[list[int]] = None   # years left out because a month was missing
+    # random_check
+    alpha: Optional[float] = None               # significance threshold used by the verdict
+    methods_agree: Optional[bool] = None        # Mann-Kendall/Sen and OLS give the same direction and significance
+    methods_reason: Optional[Literal["direction_differs", "significance_differs"]] = None
+
+
+class ScenarioAnalog(Strict):
+    """Observed year whose value is closest to a scenario's median_value at one node.
+    beyond_record = the median lies outside the observed range: then analog_year/value are None."""
+    year: int                       # the scenario node, e.g. 2050
+    analog_year: Optional[int]
+    analog_value: Optional[float]
+    analog_rank: Optional[int]      # 1 = highest value in the observed record
+    beyond_record: bool
 
 
 class ScenarioPath(Strict):
     id: Literal["ssp126", "ssp245", "ssp585"]
     label: str              # людською мовою: «Світ різко скорочує викиди»
     years: list[int]
+    windows: list[str]      # averaging window per node: 2050 = mean of "2041-2060"
     median: list[float]     # зміна відносно бази, у одиницях змінної
     low: list[float]        # розкид моделей (10-й перцентиль)
     high: list[float]       # 90-й перцентиль
+    median_value: list[float]   # baseline_value + median: same scale as the observed series
+    low_value: list[float]
+    high_value: list[float]
+    analogs: list[ScenarioAnalog]
 
 
 class Scenarios(Strict):

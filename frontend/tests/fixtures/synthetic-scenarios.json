@@ -8,10 +8,54 @@
     {
       "id": "ssp126",
       "label": "Synthetic test path",
-      "years": [2030, 2050],
-      "median": [0.5, 1],
-      "low": [0.2, 0.6],
-      "high": [0.8, 1.4]
+      "years": [
+        2030,
+        2050
+      ],
+      "windows": [
+        "2021-2040",
+        "2041-2060"
+      ],
+      "median": [
+        0.5,
+        1
+      ],
+      "low": [
+        0.2,
+        0.6
+      ],
+      "high": [
+        0.8,
+        1.4
+      ],
+      "median_value": [
+        20.5,
+        21
+      ],
+      "low_value": [
+        20.2,
+        20.6
+      ],
+      "high_value": [
+        20.8,
+        21.4
+      ],
+      "analogs": [
+        {
+          "year": 2030,
+          "analog_year": 2001,
+          "analog_value": 20.5,
+          "analog_rank": 18,
+          "beyond_record": false
+        },
+        {
+          "year": 2050,
+          "analog_year": 2022,
+          "analog_value": 20.99,
+          "analog_rank": 13,
+          "beyond_record": false
+        }
+      ]
     }
   ]
 }

@@ -42,7 +42,9 @@ def cmip6_to_scenarios(data: dict, variable_id: str = "air_temp", season: str = 
     else:
         raise ValueError(f"Unsupported mode {mode!r}")
     digits = 2 if cmip_var == "tas" else 1
-    paths = [dict(id=sid, label=label, years=list(years),
+    win = data["horizons"].get("windows", {}) if mode == "horizons" else {}
+    windows = [win.get(str(y), str(y)) for y in years]
+    paths = [dict(id=sid, label=label, years=list(years), windows=windows,
                   median=[round(float(v), digits) for v in block[sid]["median"]],
                   low=[round(float(v), digits) for v in block[sid]["low"]],
                   high=[round(float(v), digits) for v in block[sid]["high"]])
@@ -51,6 +53,33 @@ def cmip6_to_scenarios(data: dict, variable_id: str = "air_temp", season: str = 
     return dict(synthetic=False,
                 source=f"NASA NEX-GDDP-CMIP6 ({len(models)}-model ensemble: {', '.join(models)})",
                 baseline_period=data["baseline_period"], note=SCENARIO_NOTE, paths=paths)
+
+
+def add_observed_context(scen: dict, years: list[int], values: list[Optional[float]],
+                         decimals: int) -> dict:
+    """Absolute scenario values (baseline_value + change) and, for every path and node, the
+    observed year closest to the scenario median. Needs scen["baseline_value"]."""
+    base = scen["baseline_value"]
+    obs = [(y, v) for y, v in zip(years, values) if v is not None]
+    lo = min((v for _, v in obs), default=None)
+    hi = max((v for _, v in obs), default=None)
+    ranked = sorted(obs, key=lambda yv: -yv[1])
+    rank = {y: i + 1 for i, (y, _) in enumerate(ranked)}
+    for path in scen["paths"]:
+        for k in ("median", "low", "high"):
+            path[f"{k}_value"] = [round(base + d, decimals) for d in path[k]]
+        analogs = []
+        for node, target in zip(path["years"], path["median_value"]):
+            if not obs or target > hi or target < lo:
+                analogs.append(dict(year=node, analog_year=None, analog_value=None, analog_rank=None,
+                                    beyond_record=bool(obs)))
+                continue
+            # closest value; on a tie the more recent year
+            y, v = min(obs, key=lambda yv: (abs(yv[1] - target), -yv[0]))
+            analogs.append(dict(year=node, analog_year=y, analog_value=round(v, decimals),
+                                analog_rank=rank[y], beyond_record=False))
+        path["analogs"] = analogs
+    return scen
 
 
 def _provenance(data: dict) -> dict:
