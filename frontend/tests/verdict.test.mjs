@@ -22,6 +22,7 @@ async function open(path = '/') {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(baseURL + path);
+  if (await page.locator('.case-parameters').count()) await page.locator('.case-parameters').evaluate(element => { element.open = true; });
   return { page, errors };
 }
 
@@ -58,7 +59,8 @@ test('all verdicts, reasons and witness states render from saved JSON without co
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
       assert.equal(await page.locator(`.witness-${fixture.result.witness?.agreement ?? 'no_station'}`).count(), 1);
       if (fixture.result.verdict === 'not_proven') assert.equal(await page.getByText('Not enough evidence does not mean no change.', { exact: true }).isVisible(), true);
-      await page.getByRole('button', { name: 'Check claim', exact: true }).click();
+      await page.locator('.case-parameters').evaluate(element => { element.open = true; });
+    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
       await page.locator('.verdict').waitFor();
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
     }
@@ -74,9 +76,11 @@ test('edited parameters clear stale results and unsupported demo requests fail h
   try {
     await page.getByLabel('From', { exact: true }).fill('1990');
     assert.equal(await page.locator('.verdict').count(), 0);
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     assert.match(await page.getByRole('alert').innerText(), /No saved backend response matches/);
     await page.getByLabel('From', { exact: true }).fill('2026');
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     assert.match(await page.getByRole('alert').innerText(), /start must not be after/);
     await page.getByLabel('Place', { exact: true }).fill('Ky');
@@ -104,6 +108,7 @@ test('live mode posts edited CaseSpec, renders backend verdict and reports serve
     await configureLive(page);
     await page.getByLabel('Claim direction').selectOption('decrease');
     await page.getByLabel('Claim', { exact: true }).fill('Summers are cooler');
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.getByRole('heading', { name: 'Refuted', exact: true }).waitFor();
     assert.equal(sent.claim_direction, 'decrease');
@@ -114,6 +119,7 @@ test('live mode posts edited CaseSpec, renders backend verdict and reports serve
     const r1row = page.locator('.statistics > div').filter({ hasText: 'Residual autocorrelation' });
     assert.match(await r1row.innerText(), /dimensionless\s+0/);
     await page.route('**/api/check', route => route.fulfill({ status: 503, json: { error: { code: 'source_unavailable', message: 'NOAA did not respond' } } }));
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.getByRole('alert').waitFor();
     assert.match(await page.getByRole('alert').innerText(), /NOAA did not respond/);
@@ -135,6 +141,7 @@ test('a slow previous response cannot overwrite parameters edited during a check
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
     const outgoing = page.waitForRequest('**/api/check');
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await outgoing;
     await page.getByLabel('From', { exact: true }).fill('2000');
@@ -150,6 +157,8 @@ test('desktop and mobile layouts have no page overflow and produce review screen
   const { page, errors } = await open();
   try {
     await mkdir(new URL('../test-results/', import.meta.url), { recursive: true });
+    await page.locator('.case-parameters').evaluate(element => { element.open = false; });
+    await expect(page.locator('.globe')).not.toHaveAttribute('data-state', 'loading', { timeout: 20_000 });
     await page.screenshot({ path: 'test-results/verdict-desktop.png', fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: 'test-results/verdict-mobile.png', fullPage: true });
@@ -189,9 +198,11 @@ test('canonical contract units, residual r1, witness gaps, provenance and future
 });
 
 test('all edge-case reasons and witness agreements still render using test-only intercepted responses', async () => {
+  test.setTimeout(60_000);
   const { page, errors } = await open();
   try {
     await page.route('**/api/variables', route => route.fulfill({ json: [fixtures[0].result.variable] }));
+    await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
     for (const fixture of edgeFixtures) {
       const result = structuredClone(fixtures[0].result);
       result.verdict = fixture.result.verdict;
@@ -202,7 +213,8 @@ test('all edge-case reasons and witness agreements still render using test-only 
       await page.route('**/api/check', route => route.fulfill({ json: result }));
       await page.goto(baseURL + '/?source=live');
     await configureLive(page);
-      await page.getByRole('button', { name: 'Check claim', exact: true }).click();
+      await page.locator('.case-parameters').evaluate(element => { element.open = true; });
+    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
       await page.locator('.verdict').waitFor();
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
       assert.equal(await page.locator(`.witness-${fixture.result.witness?.agreement ?? 'no_station'}`).count(), 1);
@@ -268,6 +280,7 @@ test('missing detection points are not zero or bridged and null waiting retains 
     await page.route('**/api/check', route => route.fulfill({ json: result }));
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
     await page.locator('.technical > summary').click();
@@ -306,6 +319,7 @@ test('live catalogue initializes the actual POST variable and announces distinct
     await expect(page.getByLabel('Place', { exact: true })).toHaveValue('');
     await configureLive(page);
     await expect(page.locator('#result-status')).toHaveText('Parameters changed. Run a check to see the result.');
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('Data unavailable');
     assert.equal(sent.variable_id, variable.id);
@@ -352,7 +366,8 @@ test('malformed nested responses are rejected before rendering, with the page st
       const result = structuredClone(fixtures[0].result);
       mutate(result);
       await page.route('**/api/check', route => route.fulfill({ json: result }));
-      await page.getByRole('button', { name: 'Check claim', exact: true }).click();
+      await page.locator('.case-parameters').evaluate(element => { element.open = true; });
+    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
       await expect(page.getByRole('alert')).toContainText('Invalid CheckResult response');
       assert.equal(await page.locator('.verdict').count(), 0);
       await expect(page.getByRole('button', { name: 'Check claim', exact: true })).toBeEnabled();
@@ -371,6 +386,7 @@ test('optional witness rates and nullable source versions are accepted without l
     await page.route('**/api/check', route => route.fulfill({ json: result }));
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
     await page.locator('.technical > summary').click();
@@ -392,6 +408,7 @@ test('derived provenance uses method records regardless of free-text description
     await page.route('**/api/check', route => route.fulfill({ json: result }));
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
     await page.locator('.technical > summary').click();
@@ -417,6 +434,7 @@ test('null caveat and missing station do not leave empty or dangling description
     await page.route('**/api/check', route => route.fulfill({ json: result }));
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
+    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
     assert.equal(await page.locator('p.data-note:empty').count(), 0);
@@ -442,6 +460,29 @@ test('unknown cities do not inherit Kyiv aliases', async () => {
       return [matchesPlace(warsaw, 'Kyiv'), matchesPlace(warsaw, 'Київ'), matchesPlace(warsaw, 'Wars')];
     });
     assert.deepEqual(result, [false, false, true]);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+
+test('desktop uses a 60/40 globe-left workspace and the form/card stay in the right panel', async () => {
+  const { page, errors } = await open();
+  try {
+    await page.locator('.case-parameters').evaluate(element => { element.open = false; });
+    const globe = await page.locator('.globe-column').boundingBox();
+    const panel = await page.locator('.investigation-panel').boundingBox();
+    assert.ok(globe.x < panel.x && Math.abs(globe.y - panel.y) < 2);
+    assert.ok(Math.abs(globe.width / (globe.width + panel.width) - 0.6) < 0.01);
+    assert.ok(await page.locator('.investigation-panel .case-panel').count());
+    assert.ok(await page.locator('.investigation-panel .verdict-card').count());
+    assert.equal(await page.getByLabel('Claim', { exact: true }).isVisible(), false);
+    await page.locator('.case-parameters > summary').click();
+    await expect(page.getByLabel('Claim', { exact: true })).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileGlobe = await page.locator('.globe-column').boundingBox();
+    const mobilePanel = await page.locator('.investigation-panel').boundingBox();
+    assert.ok(mobileGlobe.y < mobilePanel.y);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

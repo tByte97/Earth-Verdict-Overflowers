@@ -166,3 +166,22 @@ validated backend catalogue. Unknown or empty catalogues cannot submit a demo de
 `Witness.rates` from `feat/witness-rate-check`, plus nullable optional `Provenance.version`.
 `witness: null` is the sole no-station representation; `agreement: "no_station"` inside a
 witness object is rejected. Invalid payloads produce a contract error, not a blank page.
+
+
+## Globe-left workspace
+
+The user subsequently requested integration of the contributor's `feat/globe-case-station`
+branch. The desktop workspace now uses a 3:2 grid: globe on the left (approximately 60%),
+and one stacked investigation panel on the right (approximately 40%). Tablets/phones stack
+the map above the panel without horizontal overflow.
+
+The saved-case selector remains visible. Saved cases initially collapse **Edit parameters**
+so the verdict stays in view; live/new checks open the form automatically. A successful
+check collapses the parameters and shows the result. The globe is sticky while the panel
+is explored, and loads separately from the core form/card bundle.
+
+The contributor's MapLibre globe keeps point/station markers and NASA GIBS Blue Marble
+imagery. **Globe view** shows planetary context; **Local view** zooms to the selected place.
+Clicking a point updates the case coordinates and clears the old result. Unsupported
+browsers get a map-only fallback while the form and evidence remain usable. External
+imagery still depends on NASA GIBS availability.

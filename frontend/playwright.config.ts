@@ -10,7 +10,7 @@ export default defineConfig({
     baseURL,
     browserName: 'chromium',
     headless: true,
-    launchOptions: process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {},
+    launchOptions: { args: ['--enable-unsafe-swiftshader'], ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {}) },
   },
   webServer: process.env.TEST_BASE_URL ? undefined : {
     command: 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4173 --strictPort',

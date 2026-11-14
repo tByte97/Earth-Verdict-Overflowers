@@ -15,6 +15,7 @@ Review: https://github.com/tByte97/Earth-Verdict-Overflowers/pull/16#pullrequest
 | 9. Package manager/workspace | Standard pnpm 9/10 onlyBuiltDependencies in package.json; remove frontend workspace config and explicitly scope Vite fs.allow to the repository. | pnpm 10 install, type-check, build and canonical JSON imports in browser tests. |
 | 10. Font import | HTML preconnect + stylesheet with display=swap; remove CSS @import. | Production build and browser layout review; system-font fallbacks remain. |
 
-The layout ownership agreement with the globe contributor is preserved: no globe or
-60/40 layout restructuring is part of these fixes. Main integration changes are limited
-to state initialization, announcements and error recovery.
+The review-fix commit itself did not restructure the globe layout. A subsequent explicit
+user request integrates the globe contributor’s branch in a 60/40 workspace while preserving
+the validated form, lifecycle announcements and error boundaries. See README.md for the
+current layout behaviour.
