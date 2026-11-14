@@ -214,3 +214,26 @@ and **How we checked this**:
 `tests/chart.test.mjs` checks the table against the canonical JSON, gap tooltips, legend
 units, the band and baseline legend (including a whole-record baseline served through
 intercepted live endpoints), and the no-station and DJF cases.
+
+
+## Future chart (issue #7)
+
+`src/chart/FutureChart.tsx` sits at the top of **Future illustrations · separate from the
+verdict**. The future zone after the last observed year is shaded in both panels and the
+card states that choosing a path or a year does not change the verdict.
+
+- **B · If the trend continues** (`extrapolation`): observed points and the four what-if
+  paths as dashed lines, with the chosen path's `low` / `high` range shaded. The readout
+  shows `central`, `low` and `high` for the chosen year; `extrapolation.note` is shown.
+- **C · Climate-model scenarios** (`scenarios`): `median` per path with the chosen path's
+  model spread (`low` / `high`). Values are changes from `baseline_period`, so they have their
+  own panel with a zero line at the observed `baseline_value`; nothing is added to them in
+  the browser. Path names come from `ScenarioPath.label` with SSP codes beside them.
+  The year control offers only the model years in JSON. Lines between those years are an
+  approved presentation interpolation and are labelled as not model output.
+- Cases without `scenarios` keep panel B and say that no scenarios are available.
+- Detection ("how long to wait") is not part of this chart.
+
+`tests/future.test.mjs` checks every path and year readout against the canonical JSON,
+that switching them leaves the verdict card unchanged, the notes and baseline labels, and
+the no-scenario case at phone width.
