@@ -742,5 +742,328 @@
   "stub": true,
   "stats_engine": "backend.app.stats v2",
   "generated_at": "2026-11-14T15:04:30Z"
+ },
+ "detection_history": {
+  "alpha": 0.05,
+  "min_observations": 15,
+  "method": "sen_mann_kendall",
+  "start_year": 1981,
+  "points": [
+   {
+    "end_year": 1981,
+    "n_observations": 1,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1982,
+    "n_observations": 2,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1983,
+    "n_observations": 3,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1984,
+    "n_observations": 4,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1985,
+    "n_observations": 5,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1986,
+    "n_observations": 6,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1987,
+    "n_observations": 7,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1988,
+    "n_observations": 8,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1989,
+    "n_observations": 9,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1990,
+    "n_observations": 10,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1991,
+    "n_observations": 11,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1992,
+    "n_observations": 12,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1993,
+    "n_observations": 13,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1994,
+    "n_observations": 14,
+    "p": null,
+    "correction": null,
+    "status": "short_series"
+   },
+   {
+    "end_year": 1995,
+    "n_observations": 15,
+    "p": 0.19821061903884274,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 1996,
+    "n_observations": 16,
+    "p": 0.3004271167492414,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 1997,
+    "n_observations": 17,
+    "p": 0.5923012814329899,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 1998,
+    "n_observations": 18,
+    "p": 1.0,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 1999,
+    "n_observations": 19,
+    "p": 0.8440531907082893,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2000,
+    "n_observations": 20,
+    "p": 0.9747707756767827,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2001,
+    "n_observations": 21,
+    "p": 0.6505819869583885,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2002,
+    "n_observations": 22,
+    "p": 0.9101956836196836,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2003,
+    "n_observations": 23,
+    "p": 0.6345102928818573,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2004,
+    "n_observations": 24,
+    "p": 0.9012978441563574,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2005,
+    "n_observations": 25,
+    "p": 0.9813671252686654,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2006,
+    "n_observations": 26,
+    "p": 0.757639735211381,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2007,
+    "n_observations": 27,
+    "p": 0.6168456628672252,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2008,
+    "n_observations": 28,
+    "p": 0.35311901773888865,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2009,
+    "n_observations": 29,
+    "p": 0.20882963623889783,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2010,
+    "n_observations": 30,
+    "p": 0.09329103654067601,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2011,
+    "n_observations": 31,
+    "p": 0.1634063458637326,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2012,
+    "n_observations": 32,
+    "p": 0.21178693551335692,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2013,
+    "n_observations": 33,
+    "p": 0.18837145080031092,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2014,
+    "n_observations": 34,
+    "p": 0.17656634343200628,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2015,
+    "n_observations": 35,
+    "p": 0.36337985246959914,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2016,
+    "n_observations": 36,
+    "p": 0.22561206394537558,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2017,
+    "n_observations": 37,
+    "p": 0.16966453316566255,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2018,
+    "n_observations": 38,
+    "p": 0.14106240067651585,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2019,
+    "n_observations": 39,
+    "p": 0.2284366213120126,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2020,
+    "n_observations": 40,
+    "p": 0.1212405318906675,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2021,
+    "n_observations": 41,
+    "p": 0.07411898766808683,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2022,
+    "n_observations": 42,
+    "p": 0.09090696836106038,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2023,
+    "n_observations": 43,
+    "p": 0.04232690968053381,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2024,
+    "n_observations": 44,
+    "p": 0.03121368510682657,
+    "correction": "hamed_rao",
+    "status": "ok"
+   },
+   {
+    "end_year": 2025,
+    "n_observations": 45,
+    "p": 0.07033779884649742,
+    "correction": "hamed_rao",
+    "status": "ok"
+   }
+  ]
  }
 }

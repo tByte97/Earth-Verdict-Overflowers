@@ -234,7 +234,7 @@ test('detection shows total duration and additional wait from the same updated b
   try {
     for (const fixture of fixtures) {
       await page.getByLabel('Saved case').selectOption(fixture.id);
-      await page.locator('.technical > summary').click();
+      await page.locator('.detection-simulator > summary').click();
       const detection = page.getByRole('region', { name: 'Detection duration' });
       const index = fixture.result.detection.multipliers.indexOf(1);
       assert.equal(await detection.getByTestId('detection-total').innerText(), String(fixture.result.detection.years_needed[index]));
@@ -249,7 +249,7 @@ test('rate control uses exact nodes, log interpolation, and never changes the ve
   const { page, errors } = await open();
   try {
     await page.getByLabel('Saved case').selectOption('lviv-drier');
-    await page.locator('.technical > summary').click();
+    await page.locator('.detection-simulator > summary').click();
     const detection = page.getByRole('region', { name: 'Detection duration' });
     const originalVerdict = await page.locator('.verdict').innerText();
     const originalWait = await detection.getByTestId('detection-wait').innerText();
@@ -287,7 +287,7 @@ test('missing detection points are not zero or bridged and null waiting retains 
     await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
-    await page.locator('.technical > summary').click();
+    await page.locator('.detection-simulator > summary').click();
     const detection = page.getByRole('region', { name: 'Detection duration' });
     assert.equal(await detection.getByTestId('detection-wait').innerText(), 'Not determined');
     assert.match(await detection.innerText(), /already been reached.*remains unproven/);

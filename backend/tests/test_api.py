@@ -78,6 +78,9 @@ def test_check_happy_path(fake_sources):
     assert res.witness is not None and res.witness.station.name == "Kyiv"
     assert sum(p.value is None for p in res.witness.series) == 16
     assert res.meta.stub is False
+    assert res.detection_history is not None
+    assert res.detection_history.points[-1].n_observations == res.detection.n_years
+    assert float(f'{res.detection_history.points[-1].p:.3g}') == res.mk.p
     assert [s.id for s in res.steps][0] == "raw" and len(res.steps) == 8
     assert fake_sources["main"][0] == "air_temp" and fake_sources["station"][0] == "TAVG"
 
