@@ -185,3 +185,8 @@ imagery. **Globe view** shows planetary context; **Local view** zooms to the sel
 Clicking a point updates the case coordinates and clears the old result. Unsupported
 browsers get a map-only fallback while the form and evidence remain usable. External
 imagery still depends on NASA GIBS availability.
+
+### Globe notes
+
+- Picking a point (map click or the keyboard-accessible "Use map centre" button) snaps coordinates to a 0.25° grid before they become a `point:lat,lon` place id. Confirm with the backend that it accepts this id format.
+- Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.

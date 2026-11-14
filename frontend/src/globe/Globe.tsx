@@ -7,6 +7,11 @@ import './globe.css';
 export type Station = NonNullable<CheckResult['witness']>['station'];
 export interface PickedPoint { lat: number; lon: number }
 
+// NASA POWER is gridded at 0.5° x 0.625°; snapping to 0.25° keeps picked points from creating
+// a distinct backend cache key for every pixel while staying within the grid resolution.
+const snap = (value: number) => Math.round(value * 4) / 4;
+const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: snap(lat), lon: snap(lon) });
+
 const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
 
 // The background layer stays visible when tiles fail, so the globe and markers work offline.
@@ -69,7 +74,7 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
     instance.on('click', event => {
       if (event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker')) return;
-      const { lat, lng } = event.lngLat.wrap(); pick.current?.({ lat, lon: lng });
+      const { lat, lng } = event.lngLat.wrap(); pick.current?.(pickPoint(lat, lng));
     });
     map.current = instance;
     return () => { resize.disconnect(); instance.remove(); map.current = null; };
@@ -94,6 +99,7 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     {unavailable && <div className="map-loading" role="status">The interactive globe is unavailable in this browser. You can still choose a place and inspect every result in the panel.</div>}
     {!unavailable && <div className="globe-view-controls" aria-label="Map view">
       <button type="button" onClick={() => map.current?.flyTo({ zoom: 1.4, duration: 600 })}>Globe view</button>
+      {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
       <button type="button" disabled={!place} onClick={() => place && map.current?.flyTo({ center: [place.lon, place.lat], zoom: 8.5, duration: 600 })}>Local view</button>
     </div>}
     <div ref={container} className="globe-map" />

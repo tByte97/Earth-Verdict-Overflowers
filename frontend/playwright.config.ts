@@ -10,6 +10,7 @@ export default defineConfig({
     baseURL,
     browserName: 'chromium',
     headless: true,
+    // SwiftShader gives headless Chromium a software WebGL context for the MapLibre globe in tests.
     launchOptions: { args: ['--enable-unsafe-swiftshader'], ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {}) },
   },
   webServer: process.env.TEST_BASE_URL ? undefined : {
