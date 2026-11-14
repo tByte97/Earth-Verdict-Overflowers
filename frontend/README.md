@@ -190,3 +190,22 @@ imagery still depends on NASA GIBS availability.
 
 - Picking a point (map click or the keyboard-accessible "Use map centre" button) snaps coordinates to a 0.25° grid before they become a `point:lat,lon` place id. Confirm with the backend that it accepts this id format.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.
+
+
+## Step pipeline (issue #5)
+
+`src/steps/StepPipeline.tsx` shows the eight backend `steps` (raw → season → yearly → trend →
+chance check → robustness → station → verdict) above **How we checked this**, whose method
+table, robustness windows, exact values and data sources stay the detailed view.
+
+- Each step shows its `title`, `value` and `detail` exactly as returned. A missing step is
+  reported as "Step not supplied by the backend" instead of being skipped.
+- Mini visuals use existing fields only: the season's months from `case.season`, a sparkline
+  of `series`, the robustness windows, and `series` with `witness.series` (gaps stay gaps).
+  The trend step has no mini chart until `sen.band` is available.
+- Each step's source button is chosen by step `id` (NASA POWER, NOAA NCEI or backend
+  statistics) and opens the matching record in **Data sources**.
+- Mini visuals are small inline SVGs; Chart.js is kept for the full-size charts.
+
+`tests/steps.test.mjs` checks order and text against the canonical JSON, the mini visuals,
+the source links and a response with a missing step.
