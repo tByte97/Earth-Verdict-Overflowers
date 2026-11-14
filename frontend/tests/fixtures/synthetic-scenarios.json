@@ -1,0 +1,17 @@
+{
+  "synthetic": true,
+  "source": "Synthetic e2e fixture, not climate-model output",
+  "baseline_period": "1995-2014",
+  "baseline_value": 20,
+  "note": "Invented values for testing placeholder labels only; not observations or a forecast.",
+  "paths": [
+    {
+      "id": "ssp126",
+      "label": "Synthetic test path",
+      "years": [2030, 2050],
+      "median": [0.5, 1],
+      "low": [0.2, 0.6],
+      "high": [0.8, 1.4]
+    }
+  ]
+}
