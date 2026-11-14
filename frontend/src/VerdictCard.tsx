@@ -1,7 +1,8 @@
 import { useId, useRef } from 'react';
 import type { CheckResult } from './types';
 import { fieldContext, number, numericFields, period, safeUrl, sourceIndex, sourceMethod, type MethodKind } from './format';
-import { DetectionEstimate } from './DetectionEstimate';
+import { DetectionSimulator } from './DetectionSimulator';
+import { UncertaintyPanel } from './UncertaintyPanel';
 import { waitingExplanation } from './detection';
 import { StepPipeline } from './steps/StepPipeline';
 
@@ -24,7 +25,7 @@ const agreements = {
 export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: boolean }) {
   const headingId = useId();
   const sourceId = useId();
-  const methodLabels: Record<MethodKind, string> = { statistics: 'Backend statistics', detection: 'Detection simulation', extrapolation: 'Trend extrapolation', scenario: r.scenarios?.synthetic ? 'Stylised scenario' : 'Model scenario' };
+  const methodLabels: Record<MethodKind, string> = { statistics: 'Backend statistics', detection: 'Detection simulation', history: 'Prefix trend analysis', extrapolation: 'Trend extrapolation', scenario: r.scenarios?.synthetic ? 'Stylised scenario' : 'Model scenario' };
   const sourceDetails = useRef<HTMLDetailsElement>(null);
   const agreement = agreements[r.witness?.agreement ?? 'no_station'];
   const [label, icon] = verdicts[r.verdict];
@@ -44,7 +45,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
       const ctx = fieldContext(path, r);
       const index = sourceIndex(path, r);
       const method = sourceMethod(path);
-      const missing = path === 'years_to_wait' ? 'Not determined (null)' : path.startsWith('detection.years_needed.') ? 'No simulation estimate (null)' : 'Not supplied (null)';
+      const missing = path === 'years_to_wait' ? 'Not determined (null)' : path.startsWith('detection_history.points.') ? 'Test not performed (null)' : path.startsWith('detection.years_needed.') ? 'No simulation estimate (null)' : 'Not supplied (null)';
       return <tr key={path}><th><code>{path}</code></th><td>{value === null ? missing : String(value)}</td><td>{ctx.unit}</td><td>{ctx.context}</td><td>{method ? <button type="button" className="text-button" onClick={() => openSources(method)}>{methodLabels[method]}</button> : index === undefined ? 'Source mapping unavailable' : <button type="button" className="text-button" onClick={() => openSources(index)}>{r.provenance[index].source}</button>}</td></tr>;
     })}</tbody></table></div>;
   }
@@ -56,7 +57,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
       <span className="verdict-symbol" aria-hidden="true">{icon}</span>
       <div><h3>{label}</h3><p>{reasons[r.reason] ?? 'The backend returned an unrecognised reason. Inspect the response details.'}</p></div>
     </section>
-    {r.verdict === 'not_proven' && <p className="caution"><strong>Not enough evidence does not mean no change.</strong> A trend may be present but not established against the background of variability.</p>}
+    <UncertaintyPanel result={r} onSource={() => openSources('detection')} />
     <div className="headline-metric">
       <span className="eyebrow">Rate of change · Sen’s slope</span>
       <div className="metric-value">{number(r.sen.slope_per_decade, true)} <span>{r.variable.units} / decade</span></div>
@@ -84,7 +85,6 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
           <div><dt>Additional waiting · years</dt><dd>{r.years_to_wait === null ? r.verdict === 'not_proven' ? 'Not determined' : 'Not applicable' : number(r.years_to_wait)}</dd></div>
         </dl>
         <p className="help-text">{waitingExplanation(r)}</p>
-        <DetectionEstimate key={JSON.stringify(r.case)} result={r} />
         <p className="help-text"><strong>p-value:</strong> under the no-trend hypothesis and test assumptions, how likely a test statistic at least this extreme would be. It is not the probability that the claim is false.</p>
         <p className="help-text"><strong>95% confidence interval:</strong> the uncertainty range for the slope under the method’s assumptions. <strong>r₁:</strong> how strongly neighbouring residuals are related. This value comes from <code>detection.phi</code>, bounded to 0–0.9 by the backend for its detection estimate; it is not a measurement of raw-series autocorrelation.</p>
         <h4>Stability across periods</h4>
@@ -95,6 +95,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
         <details className="raw"><summary>Original JSON response · includes separately labelled future inputs</summary><pre>{JSON.stringify(r, null, 2)}</pre></details>
       </div>
     </details>
+    <DetectionSimulator key={JSON.stringify(r.case)} result={r} onHistorySource={() => openSources('history')} onDetectionSource={() => openSources('detection')} />
     {future.length > 0 && <details className="future-reference">
       <summary>Future illustrations · separate from the verdict <span>Conditional estimates, not a forecast</span></summary>
       <div className="detail-body">
@@ -110,6 +111,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
         {r.meta?.stub && <p className="caution">The observations come from the team’s shared data files. Statistical outputs are provisional (<code>meta.stub: true</code>). Stylised future curves are not observations.</p>}
         <section className="source-record" id={`${sourceId}-statistics`}><h4>Backend statistics</h4><p>Calculated by {r.meta.stats_engine}. Statistical estimates and station-rate comparisons are derived from input observations, not raw provider readings.</p></section>
         <section className="source-record" id={`${sourceId}-detection`}><h4>Detection simulation</h4><p>The backend simulates the trend test using the supplied residual variability, autocorrelation and rate. These conditional durations are not NASA POWER measurements or forecasts. Inputs remain in the exact-value table.</p></section>
+        <section className="source-record" id={`${sourceId}-history`}><h4>Prefix trend analysis</h4><p>The backend repeats its Sen / autocorrelation-corrected Mann–Kendall analysis on the original, unrounded annual observations through each end year, with a fixed start year. It retains missing calendar years. This is an observed-prefix test, not the detection power simulation or a separate claim verdict.</p><p>Inputs: the case’s primary observation provider listed below. Published annual values are rounded for display; prefix p-values retain the backend precision, while the main mk.p is formatted to three significant digits. Method: {r.detection_history?.method ?? 'Not supplied'}.</p></section>
         <section className="source-record" id={`${sourceId}-extrapolation`}><h4>Trend extrapolation</h4><p>Backend-generated what-if values derived from the observed trend and its uncertainty; not provider observations or a forecast.</p></section>
         <section className="source-record" id={`${sourceId}-scenario`}><h4>{methodLabels.scenario}</h4><p>{r.scenarios?.synthetic ? 'Stylised placeholder values, not measured data or CMIP6 output.' : r.scenarios?.source ?? 'No scenario data supplied.'}</p></section>
         {!r.provenance.length && <p>No provenance supplied by the backend. These values cannot yet be independently traced.</p>}

@@ -35,6 +35,24 @@ const DetectionSchema = z.object({
   residual_sd: finite, phi: finite, slope_per_year: finite, n_years: integer,
   multipliers: z.array(finite), years_needed: z.array(finite.nullable()),
 }).strict().refine(value => value.multipliers.length === value.years_needed.length, { message: 'Simulation array lengths differ' });
+export const DetectionHistorySchema = z.object({
+  alpha: finite.gt(0).lt(1), min_observations: integer.min(3),
+  method: z.literal('sen_mann_kendall'), start_year: integer,
+  points: z.array(z.object({
+    end_year: integer, n_observations: integer.min(0), p: finite.min(0).max(1).nullable(),
+    correction: z.enum(['hamed_rao', 'none']).nullable(), status: z.enum(['ok', 'short_series']),
+  }).strict()).min(1),
+}).strict().superRefine((history, ctx) => {
+  let count = 0;
+  history.points.forEach((point, i) => {
+    const enough = point.n_observations >= history.min_observations;
+    if (point.end_year !== history.start_year + i || ![0, 1].includes(point.n_observations - count) ||
+      enough !== (point.status === 'ok') || enough !== (point.p !== null) || enough !== (point.correction !== null)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['points', i], message: 'Inconsistent prefix check' });
+    }
+    count = point.n_observations;
+  });
+});
 const ExtrapolationSchema = z.object({
   note: z.string(), from_year: integer, from_value: finite, years: z.array(integer),
   paths: z.array(z.object({ id: z.enum(['stop', 'slower', 'same', 'faster']), label: z.string(), multiplier: finite, central: z.array(finite), low: z.array(finite), high: z.array(finite) }).strict()),
@@ -63,9 +81,22 @@ export const CheckResultSchema = z.object({
     months: z.array(integer.min(1).max(12)).nullable(), aggregation: z.enum(['mean', 'sum']).nullable(), years_dropped: z.array(integer).nullable(),
     alpha: finite.nullable(), methods_agree: z.boolean().nullable(), methods_reason: z.enum(['direction_differs', 'significance_differs']).nullable(),
   }).strict()),
-  detection: DetectionSchema, extrapolation: ExtrapolationSchema, scenarios: ScenariosSchema.nullable(),
+  detection: DetectionSchema, detection_history: DetectionHistorySchema.nullable().optional(),
+  extrapolation: ExtrapolationSchema, scenarios: ScenariosSchema.nullable(),
   provenance: z.array(ProvenanceSchema), meta: z.object({ stub: z.boolean(), stats_engine: z.string(), generated_at: z.string() }).strict(),
-}).strict();
+}).strict().superRefine((result, ctx) => {
+  const history = result.detection_history;
+  if (!history) return;
+  let count = 0;
+  const observations = new Map(result.series.map(point => [point.year, point.value]));
+  if (history.start_year !== result.case.start_year || history.points.at(-1)?.end_year !== result.case.end_year) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['detection_history'], message: 'Prefix period differs from case' });
+  }
+  history.points.forEach((point, i) => {
+    if (observations.get(point.end_year) != null) count++;
+    if (point.n_observations !== count) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['detection_history', 'points', i], message: 'Prefix count differs from observations' });
+  });
+});
 export const ErrorResponseSchema = z.object({ error: z.object({ code: z.string(), message: z.string() }) });
 
 export function parseCheckResult(input: unknown): z.infer<typeof CheckResultSchema> {

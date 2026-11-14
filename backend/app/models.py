@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Season = Union[Literal["year", "DJF", "MAM", "JJA", "SON"], int]  # int: місяць 1–12
 
@@ -223,6 +223,39 @@ class Detection(Strict):
     years_needed: list[Optional[float]]  # None = нахил нульовий, виявити неможливо
 
 
+class DetectionHistoryPoint(Strict):
+    end_year: int
+    n_observations: int = Field(ge=0)
+    p: Optional[float] = Field(ge=0, le=1)
+    correction: Optional[Literal["hamed_rao", "none"]]
+    status: Literal["ok", "short_series"]
+
+
+class DetectionHistory(Strict):
+    """Observed prefix checks; independent of the AR(1) detection power simulation."""
+    alpha: float = Field(gt=0, lt=1)
+    min_observations: int = Field(ge=3)
+    method: Literal["sen_mann_kendall"]
+    start_year: int
+    points: list[DetectionHistoryPoint] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def coherent_points(self):
+        previous_count = 0
+        for index, point in enumerate(self.points):
+            if point.end_year != self.start_year + index:
+                raise ValueError("History must retain every calendar year in order")
+            if point.n_observations - previous_count not in (0, 1):
+                raise ValueError("Invalid history observation counts")
+            previous_count = point.n_observations
+            enough = point.n_observations >= self.min_observations
+            if enough != (point.status == "ok") or enough != (point.p is not None):
+                raise ValueError("History status/p must match the observation threshold")
+            if enough != (point.correction is not None):
+                raise ValueError("History correction must identify each performed test")
+        return self
+
+
 class ExtrapolationPath(Strict):
     id: Literal["stop", "slower", "same", "faster"]
     label: str
@@ -273,10 +306,25 @@ class CheckResult(Strict):
     years_to_wait: Optional[int]        # лише для not_proven
     steps: list[Step]
     detection: Detection                # A: повзунок «швидкість ×0.5…×2 → скільки років треба»
+    detection_history: Optional[DetectionHistory] = None  # #6: additive, old responses remain valid
     extrapolation: Extrapolation        # B: продовження тренду, підпис «сценарій, не прогноз»
     scenarios: Optional[Scenarios]      # C: сценарії CMIP6; жоден із трьох не впливає на verdict
     provenance: list[Provenance]
     meta: Meta
+
+    @model_validator(mode="after")
+    def history_matches_case(self):
+        history = self.detection_history
+        if history is not None:
+            if history.start_year != self.case.start_year or history.points[-1].end_year != self.case.end_year:
+                raise ValueError("History period must match the observed case")
+            observations = {point.year: point.value for point in self.series}
+            count = 0
+            for point in history.points:
+                count += observations.get(point.end_year) is not None
+                if point.n_observations != count:
+                    raise ValueError("History counts must match non-missing case observations")
+        return self
 
 
 class ErrorBody(Strict):
