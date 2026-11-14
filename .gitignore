@@ -1,5 +1,6 @@
 data/*
 !data/cases/
+!data/layers/
 /env
 __pycache__/
 .DS_Store
