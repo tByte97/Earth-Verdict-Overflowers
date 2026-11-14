@@ -25,19 +25,19 @@
   pointer-events:none;
 }
 .globe-marker { cursor:pointer; }
-/* Distinct shapes keep both markers readable when they overlap: a solid dot over a hollow square. */
+/* Distinct shapes keep both markers readable when they overlap: a ringed dot over a hollow square. */
 .globe-marker-place {
   z-index:1;
-  width:14px;
-  height:14px;
-  border:2px solid #fff;
+  width:18px;
+  height:18px;
+  border:2.5px solid #e4572e;
   border-radius:50%;
-  background:#e4572e;
-  box-shadow:0 1px 4px rgb(0 0 0 / 45%);
+  background:radial-gradient(circle, #e4572e 0 3px, transparent 3.5px);
+  box-shadow:0 0 0 1.5px #fff,inset 0 0 0 1.5px #fff,0 1px 4px rgb(0 0 0 / 45%);
 }
 .globe-marker-station {
-  width:22px;
-  height:22px;
+  width:26px;
+  height:26px;
   border:3px solid #2f80ed;
   border-radius:4px;
   box-shadow:0 0 0 1.5px #fff,inset 0 0 0 1.5px #fff,0 1px 4px rgb(0 0 0 / 45%);
