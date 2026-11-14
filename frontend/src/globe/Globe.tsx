@@ -83,10 +83,12 @@ function showTrendLayer(map: maplibregl.Map, layer: TrendLayer | null) {
     .map(cell => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [cell.properties.lon, cell.properties.lat] } })) } });
   map.addLayer({ id: 'trend-fill', type: 'fill', source: 'trend-cells', paint: {
     'fill-color': ['interpolate', ['linear'], ['get', 'slope_per_decade'], -extent, negative, 0, '#f7f7f7', extent, positive],
-    'fill-opacity': ['case', ['get', 'significant_fdr'], 0.7, 0.2],
+    // Light enough for the imagery and coastline to read through; no antialiased edge, so no cell outlines.
+    'fill-opacity': ['case', ['get', 'significant_fdr'], 0.6, 0.15],
+    'fill-antialias': false,
   } }, 'coastlines');
   map.addLayer({ id: 'trend-dots', type: 'circle', source: 'trend-significant', paint: {
-    'circle-radius': byZoom(1.4, 0.8, 5, 2.2),
+    'circle-radius': byZoom(1.4, 0.7, 5, 1.4),
     'circle-color': '#14202a', 'circle-opacity': 0.7,
   } }, 'coastlines');
 }
