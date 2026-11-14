@@ -86,7 +86,7 @@ function App() {
       <div className="workspace">
         <section className="globe-column" aria-label="Case location">
           <div className="globe-heading"><span className="eyebrow">Explore the planet</span><p>{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</p></div>
-          <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} onPick={point => {
+          <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} variableId={spec.variable_id} season={spec.season} onPick={point => {
             const place = pointPlace(point);
             setPicked(point); setSelectedPlace(true); setQuery(place.name);
             edit({ place });
