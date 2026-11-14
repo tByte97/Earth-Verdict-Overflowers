@@ -261,7 +261,7 @@
  "witness": null,
  "verdict": "not_proven",
  "reason": "not_significant",
- "years_to_wait": 109,
+ "years_to_wait": 106,
  "steps": [
   {
    "id": "raw",
@@ -325,11 +325,11 @@
    2.0
   ],
   "years_needed": [
-   112.3,
-   85.7,
-   70.8,
-   54.0,
-   44.6
+   239.0,
+   180.0,
+   150.0,
+   117.0,
+   98.0
   ]
  },
  "extrapolation": {
@@ -736,7 +736,7 @@
  ],
  "meta": {
   "stub": true,
-  "stats_engine": "backend.app.stats v1",
-  "generated_at": "2026-11-14T14:29:04Z"
+  "stats_engine": "backend.app.stats v2",
+  "generated_at": "2026-11-14T14:40:28Z"
  }
 }

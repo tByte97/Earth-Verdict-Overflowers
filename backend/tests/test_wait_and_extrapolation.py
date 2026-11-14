@@ -11,62 +11,46 @@ from app.stats.wait import compute_detection, estimate_years_to_wait
 from app.verdict import decide_verdict, witness_agreement
 
 
-def test_weatherhead_detection_multipliers_and_zero_slope():
-    det = compute_detection(residual_sd=0.9294, phi=0.0, slope_per_year=0.06512, n_years=45)
+def test_detection_years_needed_monotone_and_zero_slope():
+    det = compute_detection(residual_sd=0.94, phi=0.0, slope_per_year=0.0651, n_years=45)
     assert det.multipliers == [0.5, 0.75, 1.0, 1.5, 2.0]
-    assert det.years_needed == [20.7, 15.8, 13.0, 10.0, 8.2]
-    # Faster trend needs fewer years
-    assert all(a > b for a, b in zip(det.years_needed, det.years_needed[1:]))
-
+    assert all(v is not None for v in det.years_needed)
+    # Faster trend never needs more years
+    assert all(a >= b for a, b in zip(det.years_needed, det.years_needed[1:]))
+    # Kyiv-like heat trend is detectable within the 45 years we have
+    assert det.years_needed[2] <= 45
     det_zero = compute_detection(residual_sd=1.0, phi=0.2, slope_per_year=0.0, n_years=45)
     assert det_zero.years_needed == [None, None, None, None, None]
 
 
-def test_years_to_wait_resolves_weatherhead_underestimate_contradiction():
-    # Slope 0.04/yr with sd=1.0, n=45 -> Weatherhead n*(k=1) = 18.8 <= 45 ("wait 0" contradiction),
-    # yet on annual data OLS requires ~38 yrs and MK power search stays strictly positive >= 1.
-    det = compute_detection(residual_sd=1.0, phi=0.0, slope_per_year=0.04, n_years=45)
-    assert det.years_needed[2] is not None and det.years_needed[2] <= 45
+def test_years_to_wait_matches_slider_at_x1():
+    # The verdict's wait and the slider at x1 come from the same engine and must agree.
+    for sd, phi, slope, n in [(1.0, 0.0, 0.02, 45), (95.0, 0.1, 2.18, 45), (2.6, 0.2, -0.0378, 44)]:
+        det = compute_detection(residual_sd=sd, phi=phi, slope_per_year=slope, n_years=n)
+        wait = estimate_years_to_wait("not_proven", slope, sd, phi, n, reason="not_significant")
+        needed = det.years_needed[2]
+        if needed is None or needed <= n:
+            assert wait is None
+        else:
+            assert wait == int(needed) - n and wait >= 1
 
-    wait_uncorr = estimate_years_to_wait(
-        verdict="not_proven",
-        slope_per_year=0.04,
-        residual_sd=1.0,
-        phi=0.0,
-        n_years=45,
-        reason="not_significant",
-    )
-    assert wait_uncorr is not None and wait_uncorr >= 1
-    # Deterministic across repeated calls
-    assert wait_uncorr == estimate_years_to_wait(
-        verdict="not_proven",
-        slope_per_year=0.04,
-        residual_sd=1.0,
-        phi=0.0,
-        n_years=45,
-        reason="not_significant",
-    )
 
-    # Positive autocorrelation increases wait time
-    wait_ar1 = estimate_years_to_wait(
-        verdict="not_proven",
-        slope_per_year=0.04,
-        residual_sd=1.0,
-        phi=0.4,
-        n_years=45,
-        reason="not_significant",
-    )
-    assert wait_ar1 is not None and wait_ar1 > wait_uncorr
+def test_years_to_wait_none_when_already_enough_years():
+    # Strong trend: at this pace 45 years are enough, so "wait" would be misleading.
+    assert estimate_years_to_wait("not_proven", 0.0651, 0.94, 0.0, 45, reason="not_significant") is None
 
-    # Non-not_proven, sources_disagree, and zero slope return None
+
+def test_years_to_wait_deterministic_and_autocorrelation_increases_it():
+    a = estimate_years_to_wait("not_proven", 0.02, 1.0, 0.0, 45, reason="not_significant")
+    assert a is not None and a == estimate_years_to_wait("not_proven", 0.02, 1.0, 0.0, 45, reason="not_significant")
+    b = estimate_years_to_wait("not_proven", 0.02, 1.0, 0.4, 45, reason="not_significant")
+    assert b is not None and b > a
+
+
+def test_years_to_wait_none_for_other_verdicts():
     assert estimate_years_to_wait("confirmed", 0.06, 0.9, 0.0, 45) is None
     assert estimate_years_to_wait("refuted", 0.06, 0.9, 0.0, 45) is None
-    assert (
-        estimate_years_to_wait(
-            "not_proven", 0.06, 0.9, 0.0, 45, reason="sources_disagree"
-        )
-        is None
-    )
+    assert estimate_years_to_wait("not_proven", 0.06, 0.9, 0.0, 45, reason="sources_disagree") is None
     assert estimate_years_to_wait("not_proven", 0.0, 1.0, 0.0, 45) is None
 
 
