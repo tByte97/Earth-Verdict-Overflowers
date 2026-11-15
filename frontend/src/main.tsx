@@ -309,8 +309,8 @@ function App() {
           {layerStatus && <p className="trend-status" role="status">{layerStatus}</p>}
         </div>
       </div>
-      {mode === 'events' && <div className="stage-workspace legacy-light"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary></div>}
-      {mode === 'co2' && <div className="stage-workspace legacy-light"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary></div>}
+      {mode === 'events' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary></div>}
+      {mode === 'co2' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary></div>}
     </section>
   </div>;
 }
