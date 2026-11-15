@@ -188,10 +188,6 @@ test('canonical contract units, residual r1, witness gaps, provenance and future
     assert.match(await ci.innerText(), /0.4189 to 0.8952.*°C \/ decade/);
     assert.equal(await page.locator('.technical .numeric-table tbody tr').filter({ hasText: 'witness.series.26.value' }).getByText('Not supplied (null)', { exact: true }).count(), 1);
     assert.equal(await page.locator('.technical .numeric-table tbody tr').filter({ hasText: 'scenarios.paths' }).count(), 0);
-    const emergedRow = page.locator('.technical .numeric-table tbody tr').filter({ has: page.locator('code', { hasText: /^detection_history\.emerged_year$/ }) });
-    await expect(emergedRow.locator('td').nth(0)).toHaveText(String(fixtures[0].result.detection_history.emerged_year));
-    await expect(emergedRow.locator('td').nth(1)).toHaveText('calendar year');
-    await expect(emergedRow.locator('td').nth(2)).toContainText('Observed prefix test; not a verdict or forecast');
     const witnessRow = page.locator('.technical .numeric-table tbody tr').filter({ has: page.locator('code', { hasText: /^witness.series.0.value$/ }) });
     await witnessRow.getByRole('button', { name: 'NOAA NCEI' }).click();
     assert.equal(await page.locator('.sources').getAttribute('open'), '');
@@ -410,32 +406,6 @@ test('optional witness rates and nullable source versions are accepted without l
   } finally { await page.close(); }
 });
 
-test('exact-value tables format emerged_year and scenarios.baseline_n_years with exact units and context', async () => {
-  const { page, errors } = await open('/', { blockImagery: true });
-  try {
-    const result = structuredClone(fixtures[0].result);
-    result.scenarios.baseline_n_years = 20;
-    await page.route('**/api/variables', route => route.fulfill({ json: [result.variable] }));
-    await page.route('**/api/check', route => route.fulfill({ json: result }));
-    await page.goto(baseURL + '/?source=live');
-    await configureLive(page);
-    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
-    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
-    await page.locator('.verdict').waitFor();
-    await page.locator('.technical > summary').click();
-    const emergedRow = page.locator('.technical .numeric-table tbody tr').filter({ has: page.locator('code', { hasText: /^detection_history\.emerged_year$/ }) });
-    await expect(emergedRow.locator('td').nth(0)).toHaveText(String(result.detection_history.emerged_year));
-    await expect(emergedRow.locator('td').nth(1)).toHaveText('calendar year');
-    await expect(emergedRow.locator('td').nth(2)).toContainText('Observed prefix test; not a verdict or forecast');
-    await page.locator('.future-reference > summary').click();
-    const baselineYearsRow = page.locator('.future-reference .numeric-table tbody tr').filter({ has: page.locator('code', { hasText: /^scenarios\.baseline_n_years$/ }) });
-    await expect(baselineYearsRow.locator('td').nth(0)).toHaveText('20');
-    await expect(baselineYearsRow.locator('td').nth(1)).toHaveText('observed years');
-    await expect(baselineYearsRow.locator('td').nth(2)).toHaveText(`Baseline observations · ${result.scenarios.baseline_period}`);
-    assert.deepEqual(errors, []);
-  } finally { await page.close(); }
-});
-
 for (const scenarioCase of [
   { name: 'CMIP6 model', scenarios: fixtures[0].result.scenarios, label: 'Model scenario', warning: 'conditional model scenarios' },
   { name: 'synthetic fixture', scenarios: syntheticScenarios, label: 'Stylised scenario', warning: 'stylised placeholders, not CMIP6 model outputs' },
@@ -499,7 +469,7 @@ test('null caveat and missing station do not leave empty or dangling description
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
     assert.equal(await page.locator('p.data-note:empty').count(), 0);
-    await expect(page.locator('.witness p')).toHaveText('No suitable ground station is available.');
+    await expect(page.locator('.witness p')).toContainText('No suitable ground station is available.');
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

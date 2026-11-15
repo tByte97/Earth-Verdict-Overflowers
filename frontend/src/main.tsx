@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { demoCases, findPlaces, getCase, getCases, getVariables, isLive, runCheck, type CaseItem } from './api';
+import { demoCases, findPlaces, getCase, getCases, getVariables, isLive, isTransient, nearestCase, runCheck, type CaseItem } from './api';
 import { VerdictCard } from './VerdictCard';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CaseSpecSchema } from './schema';
@@ -36,6 +36,8 @@ function App() {
   const [demoId, setDemoId] = useState(initial.id);
   const [spec, setSpec] = useState<CaseSpec>(isLive ? { claim_text: '', variable_id: '', place: { place_id: '', name: '', lat: 0, lon: 0 }, season: 'year', start_year: 1981, end_year: 2025, claim_direction: 'change' } : initial.result.case);
   const [result, setResult] = useState<CheckResult | null>(startWithCase ? initial.result : null);
+  const [resultSaved, setResultSaved] = useState(true);
+  const [notice, setNotice] = useState('');
   const [variables, setVariables] = useState<Variable[]>(isLive ? [] : [initial.result.variable]);
   const [query, setQuery] = useState(isLive ? '' : initial.result.case.place.name);
   const [places, setPlaces] = useState<Place[]>([]);
@@ -68,7 +70,7 @@ function App() {
   function openCase(id: string, next: CheckResult) {
     autoOpen.current = null; request.current?.abort(); setBusy(false);
     setDemoId(id); setCaseId(id); setSpec(next.case); setQuery(next.case.place.name); setSelectedPlace(true); setPicked(null);
-    setPickNote(''); setError(''); setResult(next); setPhase('success');
+    setPickNote(''); setError(''); setNotice(''); setResult(next); setResultSaved(!isLive); setPhase('success');
     setLayerKey({ variable_id: next.case.variable_id, season: String(next.case.season) });
     flyTo(next.case.claim_text, caseView(next));
     writeHash({ kind: 'case', id });
@@ -156,7 +158,7 @@ function App() {
   function edit(next: Partial<CaseSpec>) {
     autoOpen.current = null;
     setCaseId(null); writeHash(null);
-    request.current?.abort(); setBusy(false); setError(''); setResult(null); setPhase('edited'); setSpec(current => ({ ...current, ...next }));
+    request.current?.abort(); setBusy(false); setError(''); setNotice(''); setResult(null); setPhase('edited'); setSpec(current => ({ ...current, ...next }));
   }
   useEffect(() => {
     if (selectedPlace || query.trim().length < 2) { setPlaces([]); setSearchStatus(''); return; }
@@ -183,9 +185,17 @@ function App() {
 
   async function check(next: CaseSpec) {
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
-    setBusy(true); setPhase('loading'); setResult(null); setError('');
-    try { const response = await runCheck(next, demoId, controller.signal); if (!controller.signal.aborted) { setResult(response); setPhase('success'); } }
-    catch (e) { if (!controller.signal.aborted) { setError(e instanceof Error ? e.message : 'The check failed. Please try again.'); setPhase('error'); } }
+    setBusy(true); setPhase('loading'); setResult(null); setError(''); setNotice('');
+    try { const response = await runCheck(next, demoId, controller.signal); if (!controller.signal.aborted) { setResult(response); setResultSaved(!isLive); setPhase('success'); } }
+    catch (e) {
+      if (controller.signal.aborted) return;
+      if (isLive && isTransient(e)) {
+        // Busy, rate-limited, timed out or unreachable: show real saved data instead of an empty screen.
+        const near = nearestCase(next.place);
+        setNotice(`Live service busy — showing a saved NASA snapshot: ${near.label}.`);
+        setResult(near.result); setResultSaved(true); setPhase('success');
+      } else { setError(e instanceof Error ? e.message : 'The check failed. Please try again.'); setPhase('error'); }
+    }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
@@ -257,6 +267,7 @@ function App() {
             </button>;
           })}</div>
           {casesError && <p className="field-help" role="status">{casesError}</p>}
+          {notice && <p className="data-note notice" role="status">{notice}</p>}
           <details className="case-parameters" open={!result}><summary>Check your own claim</summary>
           <form onSubmit={submit}>
             <label>Claim<input required maxLength={300} value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} /></label>
@@ -266,6 +277,7 @@ function App() {
             {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(2)}, {picked.lon.toFixed(2)}</p>}
             {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); flyTo('', placeView(place)); }}>{place.name}</button></li>)}</ul>}
             <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
+            {variables.find(v => v.id === spec.variable_id)?.definition && <p className="field-help">{variables.find(v => v.id === spec.variable_id)!.definition}</p>}
             <label>Season<select value={spec.season} onChange={e => edit({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <fieldset><legend>Observation period</legend><div className="year-fields"><label>From<input type="number" required min="1" max="9999" value={Number.isNaN(spec.start_year) ? '' : spec.start_year} onChange={e => edit({ start_year: e.target.valueAsNumber })} /></label><span aria-hidden="true">—</span><label>To<input type="number" required min="1" max="9999" value={Number.isNaN(spec.end_year) ? '' : spec.end_year} onChange={e => edit({ end_year: e.target.valueAsNumber })} /></label></div></fieldset>
             <label>Claim direction<select value={spec.claim_direction} onChange={e => edit({ claim_direction: e.target.value as CaseSpec['claim_direction'] })}><option value="increase">Increasing</option><option value="decrease">Decreasing</option><option value="change">Changing in either direction</option></select></label>
@@ -278,7 +290,7 @@ function App() {
         <section className="result-panel" aria-label="Check result" aria-busy={busy}>
           <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
           <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
-          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /><Explain kind="check" result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={resultSaved} /><Explain kind="check" result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Fetching satellite records and the nearest weather station. A new place can take up to a minute.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
         </section>
         </div> : <p className="panel-note">Choose “Climate claims” to return to the globe.</p>}
       </main>

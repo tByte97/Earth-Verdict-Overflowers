@@ -126,8 +126,9 @@ test('a map click checks that spot with the layer variable, season and period', 
   try {
     await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Winter' }).click();
     await expect(page.getByTestId('trend-legend')).toContainText('Winter air temperature trend');
+    // The first saved case is open, so its station marker sits in the middle of the map: click beside it.
     const [x, y] = await mapCentre(page);
-    await page.mouse.click(x, y);
+    await page.mouse.click(x + 80, y);
     await expect.poll(() => checks.length).toBe(1);
     const layer = layers['air_temp/DJF'];
     assert.match(checks[0].place.place_id, /^pt:-?\d+\.\d{2},-?\d+\.\d{2}$/);
