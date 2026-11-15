@@ -2814,7 +2814,7 @@
    "id": "robustness",
    "title": "Does the choice of years matter?",
    "value": "0 of 5 periods agree",
-   "detail": "We repeat the check with the start and end shifted by a few years.",
+   "detail": "We repeat the check with the start and end shifted by a few years; at least 4 of 5 must agree.",
    "fields": [
     "robustness_summary.significant",
     "robustness_summary.total"
@@ -2990,7 +2990,7 @@
    {
     "end_year": 1995,
     "n_observations": 15,
-    "p": 0.19821061903884274,
+    "p": 0.19821061903884263,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3095,14 +3095,14 @@
    {
     "end_year": 2010,
     "n_observations": 30,
-    "p": 0.09329103654067601,
+    "p": 0.09329103654067604,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2011,
     "n_observations": 31,
-    "p": 0.1634063458637326,
+    "p": 0.16340634586373248,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3116,7 +3116,7 @@
    {
     "end_year": 2013,
     "n_observations": 33,
-    "p": 0.18837145080031092,
+    "p": 0.18837145080031115,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3137,7 +3137,7 @@
    {
     "end_year": 2016,
     "n_observations": 36,
-    "p": 0.22561206394537558,
+    "p": 0.2256120639453758,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3179,28 +3179,28 @@
    {
     "end_year": 2022,
     "n_observations": 42,
-    "p": 0.09090696836106038,
+    "p": 0.0909069683610604,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2023,
     "n_observations": 43,
-    "p": 0.04232690968053381,
+    "p": 0.04232690968053383,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2024,
     "n_observations": 44,
-    "p": 0.03121368510682657,
+    "p": 0.031213685106826573,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2025,
     "n_observations": 45,
-    "p": 0.07033779884649742,
+    "p": 0.07033779884649743,
     "correction": "hamed_rao",
     "status": "ok"
    }
@@ -3605,13 +3605,13 @@
    "source": "NASA POWER",
    "product": "PRECTOTCORR (MERRA-2, bias-corrected)",
    "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=PRECTOTCORR&community=AG&latitude=49.84&longitude=24.03&start=1981&end=2025&format=JSON",
-   "retrieved_at": "2026-11-15",
+   "retrieved_at": "2026-11-14",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
-  "stub": true,
+  "stub": false,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-15T08:44:25Z"
+  "generated_at": "2026-11-15T09:46:02Z"
  }
 }

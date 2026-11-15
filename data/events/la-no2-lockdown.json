@@ -2083,104 +2083,104 @@
   "mean": 6.39,
   "n": 11
  },
- "effect": -0.876,
- "ci_low": -1.494,
- "ci_high": -0.259,
- "bootstrap_ci_low": -0.938,
- "bootstrap_ci_high": -0.362,
- "p": 0.0118,
- "relative_change": -0.1203,
+ "effect": -0.74,
+ "ci_low": -2.941,
+ "ci_high": 1.461,
+ "bootstrap_ci_low": -1.614,
+ "bootstrap_ci_high": 0.359,
+ "p": 0.45,
+ "relative_change": -0.1015,
  "placebo": [
   {
    "event_month": "2006-03",
    "effect": -2.316,
-   "p": 0.0355
+   "p": 0.446
   },
   {
    "event_month": "2007-03",
    "effect": -0.036,
-   "p": 0.987
+   "p": 0.989
   },
   {
    "event_month": "2008-03",
    "effect": -0.421,
-   "p": 0.411
+   "p": 0.796
   },
   {
    "event_month": "2009-03",
-   "effect": -2.84,
-   "p": 0.0542
+   "effect": -2.789,
+   "p": 0.0742
   },
   {
    "event_month": "2010-03",
-   "effect": -0.694,
-   "p": 0.609
+   "effect": -0.508,
+   "p": 0.732
   },
   {
    "event_month": "2011-03",
    "effect": -0.418,
-   "p": 0.725
+   "p": 0.774
   },
   {
    "event_month": "2012-03",
    "effect": -0.356,
-   "p": 0.441
+   "p": 0.605
   },
   {
    "event_month": "2013-03",
    "effect": -0.549,
-   "p": 0.442
+   "p": 0.448
   },
   {
    "event_month": "2014-03",
    "effect": -1.226,
-   "p": 0.387
+   "p": 0.12
   },
   {
    "event_month": "2015-03",
    "effect": 0.099,
-   "p": 0.91
+   "p": 0.89
   },
   {
    "event_month": "2016-03",
-   "effect": -0.625,
-   "p": 0.28
+   "effect": -0.562,
+   "p": 0.334
   },
   {
    "event_month": "2017-03",
-   "effect": -0.263,
-   "p": 0.442
+   "effect": -0.421,
+   "p": 0.531
   },
   {
    "event_month": "2018-03",
-   "effect": -0.737,
-   "p": 0.0609
+   "effect": -0.579,
+   "p": 0.659
   },
   {
    "event_month": "2019-03",
-   "effect": -0.176,
-   "p": 0.671
+   "effect": -0.3,
+   "p": 0.826
   },
   {
    "event_month": "2022-03",
-   "effect": -0.887,
-   "p": 0.282
+   "effect": -1.093,
+   "p": 0.614
   },
   {
    "event_month": "2023-03",
-   "effect": -0.142,
-   "p": 0.887
+   "effect": -0.252,
+   "p": 0.909
   },
   {
    "event_month": "2024-03",
-   "effect": -0.006,
-   "p": 0.984
+   "effect": -0.249,
+   "p": 0.859
   }
  ],
  "placebo_larger": 4,
  "verdict": "not_proven",
  "direction": "decrease",
- "reason": "placebo_also_changes",
+ "reason": "not_significant",
  "sen_before": {
   "slope_per_year": 7.053,
   "ci_low": 1.009,
@@ -2213,14 +2213,14 @@
   {
    "id": "before_after",
    "title": "Before vs after",
-   "value": "-0.88 10¹⁵ molecules/cm² (-12.0%)",
+   "value": "-0.74 10¹⁵ molecules/cm² (-10.2%)",
    "detail": "Comparing 2020-03–2021-02 (n=11) against 2019-03–2020-02 (n=12) relative to surroundings."
   },
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.012, 95% CI [-1.49, -0.26]",
-   "detail": "Autocorrelation-adjusted Welch t-test shows this shift is unlikely by random month-to-month swings."
+   "value": "p = 0.450, 95% CI [-2.94, +1.46]",
+   "detail": "Month-to-month persistence and noise can easily produce a difference this size."
   },
   {
    "id": "placebo",
@@ -2232,7 +2232,7 @@
    "id": "verdict",
    "title": "Verdict",
    "value": "Not proven",
-   "detail": "A change occurred, but fake event dates show just as big a shift, suggesting an ongoing trend rather than this event."
+   "detail": "Difference after the event does not rise clearly above month-to-month noise."
   }
  ],
  "provenance": [
@@ -2241,13 +2241,13 @@
    "source": "NASA Giovanni",
    "product": "OMNO2d v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMNO2d_003_ColumnAmountNO2TropCloudScreened&location=%5B34.0522%2C-118.2437%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T20:20:01Z",
+   "retrieved_at": "2026-11-15T09:46:59Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T20:20:01Z"
+  "generated_at": "2026-11-15T09:46:59Z"
  }
 }

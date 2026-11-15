@@ -20,6 +20,9 @@ def _event() -> dict:
     return json.loads((DATA / "events" / "sasan-no2.json").read_text())
 
 
+EFFECT = f"{_event()['effect']:+.3g}"     # as the facts give it, so the tests follow a data rebuild
+
+
 def _case() -> dict:
     return json.loads(next((DATA / "cases").glob("kyiv-*.json")).read_text())
 
@@ -44,7 +47,7 @@ def _fake(monkeypatch, answers):
 
 
 def test_event_explanation_grounded_and_cached(monkeypatch):
-    calls = _fake(monkeypatch, ["NO2 was +1.37 higher after 2013-08, but 1 of 7 fake dates shifted as much."])
+    calls = _fake(monkeypatch, [f"NO2 was {EFFECT} higher after 2013-08, but 1 of 7 fake dates shifted as much."])
     body = {"kind": "event", "result": _event()}
     r = client.post("/api/chat", json=body)
     assert r.status_code == 200, r.text
@@ -64,7 +67,7 @@ def test_invented_number_falls_back_to_built_in_text(monkeypatch):
 
 
 def test_retry_recovers_after_one_bad_answer(monkeypatch):
-    _fake(monkeypatch, ["It grew 999 units.", "It grew +1.37 units."])
+    _fake(monkeypatch, ["It grew 999 units.", f"It grew {EFFECT} units."])
     assert client.post("/api/chat", json={"kind": "event", "result": _event()}).json()["grounded"] is True
 
 

@@ -149,8 +149,12 @@ def test_grid_layer():
     gj = r.json()
     assert gj["type"] == "FeatureCollection" and len(gj["features"]) > 100
     assert gj["variable_id"] == "precip" and gj["start_year"] == 1981 and gj["end_year"] == 2025
-    a, b = gj["pair"]["a"], gj["pair"]["b"]
-    assert a["slope_per_decade"] > 0 > b["slope_per_decade"] and gj["pair"]["significance"] in ("fdr", "raw")
+    assert gj["stats_engine"] and gj["n_cells"] >= gj["n_significant_raw"] >= gj["n_significant_fdr"]
+    pairs = [client.get("/api/grid", params={"variable_id": "precip", "season": s}).json()["pair"]
+             for s in ("JJA", "DJF", "year")]
+    for pair in filter(None, pairs):
+        assert pair["a"]["slope_per_decade"] > 0 > pair["b"]["slope_per_decade"]
+        assert pair["significance"] in ("fdr", "raw")
     djf = client.get("/api/grid", params={"variable_id": "air_temp", "season": "DJF"}).json()
     assert djf["start_year"] == 1982 and djf["variable_id"] == "air_temp"
 
