@@ -49,6 +49,7 @@
 .trend-note { margin: 12px 0 0; color: var(--ink-3); font-size: 12px; }
 
 @media (max-width: 900px) {
-  .stage-legend:has(.trend-legend) { width: 150px; }
+  /* Below the view buttons and hint, which share the top of the small stage. */
+  .stage-legend:has(.trend-legend) { top: 96px; width: 150px; }
   .trend-legend-note, .trend-caption { display: none; }
 }
