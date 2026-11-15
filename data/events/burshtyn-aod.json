@@ -2564,22 +2564,22 @@
   "n": 36
  },
  "effect": -0.0003,
- "ci_low": -0.0036,
- "ci_high": 0.0031,
+ "ci_low": -0.0035,
+ "ci_high": 0.0029,
  "bootstrap_ci_low": -0.003,
  "bootstrap_ci_high": 0.0019,
- "p": 0.878,
+ "p": 0.872,
  "relative_change": -0.0016,
  "placebo": [
   {
    "event_month": "2003-01",
    "effect": 0.0041,
-   "p": 0.0338
+   "p": 0.0285
   },
   {
    "event_month": "2004-01",
    "effect": 0.001,
-   "p": 0.624
+   "p": 0.58
   },
   {
    "event_month": "2005-01",
@@ -2589,52 +2589,52 @@
   {
    "event_month": "2006-01",
    "effect": -0.002,
-   "p": 0.299
+   "p": 0.343
   },
   {
    "event_month": "2007-01",
    "effect": -0.0018,
-   "p": 0.372
+   "p": 0.387
   },
   {
    "event_month": "2008-01",
    "effect": -0.0023,
-   "p": 0.258
+   "p": 0.316
   },
   {
    "event_month": "2009-01",
    "effect": -0.0015,
-   "p": 0.453
+   "p": 0.431
   },
   {
    "event_month": "2010-01",
    "effect": -0.0003,
-   "p": 0.891
+   "p": 0.885
   },
   {
    "event_month": "2011-01",
    "effect": 0.001,
-   "p": 0.595
+   "p": 0.573
   },
   {
    "event_month": "2012-01",
    "effect": 0.0009,
-   "p": 0.572
+   "p": 0.569
   },
   {
    "event_month": "2013-01",
    "effect": 0.0006,
-   "p": 0.677
+   "p": 0.691
   },
   {
    "event_month": "2014-01",
    "effect": 0.0018,
-   "p": 0.318
+   "p": 0.288
   },
   {
    "event_month": "2015-01",
    "effect": 0.0011,
-   "p": 0.54
+   "p": 0.536
   }
  ],
  "placebo_larger": 12,
@@ -2679,7 +2679,7 @@
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.878, 95% CI [-0.004, +0.003]",
+   "value": "p = 0.872, 95% CI [-0.003, +0.003]",
    "detail": "Month-to-month persistence and noise can easily produce a difference this size."
   },
   {
@@ -2701,13 +2701,13 @@
    "source": "NASA Giovanni",
    "product": "M2T1NXAER v5.12.4 (MERRA-2, 0.5° × 0.625°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=M2T1NXAER_5_12_4_TOTEXTTAU&location=%5B49.208%2C24.664%5D&time=2000-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T20:20:01Z",
+   "retrieved_at": "2026-11-15T09:47:25Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T20:20:01Z"
+  "generated_at": "2026-11-15T09:47:25Z"
  }
 }

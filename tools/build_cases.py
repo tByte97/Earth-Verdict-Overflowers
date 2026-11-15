@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.catalog import get_variable  # noqa: E402
 from app.check import MainSeries, StationInput, assemble_result, run_check  # noqa: E402
 from app.models import CaseSpec  # noqa: E402
-from app.scenarios import scenarios_for_point  # noqa: E402
+from app.scenarios import nearby_scenarios  # noqa: E402
 
 DATA = ROOT / "data"
 CASES = DATA / "cases"
@@ -64,15 +64,18 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
             url=(f"https://www.ncei.noaa.gov/access/services/data/v1?dataset={dataset}&stations={st['id']}"
                  f"&dataTypes={var.witness}&units=metric&format=json"),
             retrieved_at=city["retrieved"])
-    r = assemble_result(spec, var, main, station, scenarios=scenarios, stub=True)
+    r = assemble_result(spec, var, main, station, scenarios=scenarios, stub=False)
     return r.model_dump(mode="json"), r
 
 
 # ---------- сценарії: NASA NEX-GDDP-CMIP6 (#14) ----------
 
 def cmip6_scenarios(city_key, variable_id, season):
-    """Ансамбль CMIP6 з data/cmip6/<місто>.json; базу 1995–2014 бере assemble_result зі спостережень."""
-    return scenarios_for_point(city_key, variable_id, season)
+    """CMIP6 for the city the way the live API finds it: its cell in a regional tile
+    (data/cmip6/region-*.json), else the nearest point file. The 1995–2014 base comes from the
+    observations in assemble_result."""
+    city = load_city(city_key)
+    return nearby_scenarios(variable_id, season, city["lat"], city["lon"])
 
 
 SHOWCASE = [
@@ -88,6 +91,17 @@ SHOWCASE = [
 REGION_SHOWCASE = [
     ("global-warming-stopped", "globe", "The whole planet", "year", 1998, "decrease",
      "Global warming stopped after 1998"),
+]
+
+# Cases computed live by app.check.run_check (POWER/Giovanni/NOAA through the API cache), for
+# places without a local city file: (file, variable, season, direction, start, end, claim, place).
+LIVE_SHOWCASE = [
+    ("phoenix-summer-heat", "air_temp", "JJA", "increase", 1981, 2025, "Phoenix summers are getting hotter",
+     ("city:phoenix", "Phoenix, United States", 33.45, -112.07)),
+    ("newyork-winter-warming", "air_temp", "DJF", "increase", 1981, 2025, "New York winters are getting warmer",
+     ("city:newyork", "New York, United States", 40.71, -74.01)),
+    ("kyiv-summer-rain-gpm", "precip_gpm", "JJA", "increase", 1998, 2024,
+     "Kyiv summers are getting rainier (GPM satellite rain)", ("city:kyiv", "Kyiv", 50.45, 30.52)),
 ]
 
 CANDIDATES = [(c, v, s, dr) for c in ("kyiv", "lviv", "odesa", "kharkiv", "warsaw")
@@ -116,12 +130,17 @@ def main():
         if i == 0:
             (CASES / "mock.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
         print(f"{fname}: {r['verdict']} ({r['reason']}), {r['sen']['slope_per_decade']:+.3f} {r['variable']['units']}/10 р.")
+    for fname, v, s, dr, start, end, claim, (pid, name, lat, lon) in LIVE_SHOWCASE:
+        spec = CaseSpec(claim_text=claim, variable_id=v, place=dict(place_id=pid, name=name, lat=lat, lon=lon),
+                        season=s, start_year=start, end_year=end, claim_direction=dr)
+        r = run_check(spec).model_dump(mode="json")
+        (CASES / f"{fname}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
+        print(f"{fname}: {r['verdict']} ({r['reason']}), {r['sen']['slope_per_decade']:+.3f} {r['variable']['units']}/10 р.")
     for fname, region, name, s, start, dr, claim in REGION_SHOWCASE:
         spec = CaseSpec(claim_text=claim, variable_id="global_temp",
                         place=dict(place_id=f"region:{region}", name=name, lat=0.0, lon=0.0),
                         season=s, start_year=start, end_year=2025, claim_direction=dr)
-        res = run_check(spec)
-        r = res.model_copy(update={"meta": res.meta.model_copy(update={"stub": True})}).model_dump(mode="json")
+        r = run_check(spec).model_dump(mode="json")
         (CASES / f"{fname}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
         print(f"{fname}: {r['verdict']} ({r['reason']}), {r['sen']['slope_per_decade']:+.3f} {r['variable']['units']}/10 р.")
 

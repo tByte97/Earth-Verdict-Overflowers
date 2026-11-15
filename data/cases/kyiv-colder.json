@@ -205,143 +205,143 @@
  "sen": {
   "slope_per_year": 0.05431,
   "slope_per_decade": 0.5431,
-  "ci_low": 0.3161,
-  "ci_high": 0.7489,
+  "ci_low": 0.2623,
+  "ci_high": 0.8033,
   "intercept": 6.686,
   "pivot_year": 2003.0,
   "pivot_value": 7.881,
   "band": [
    {
     "year": 1981,
-    "low": 6.233,
+    "low": 6.113,
     "mid": 6.686,
-    "high": 7.185
+    "high": 7.304
    },
    {
     "year": 1982,
-    "low": 6.308,
+    "low": 6.194,
     "mid": 6.74,
-    "high": 7.217
+    "high": 7.33
    },
    {
     "year": 1983,
-    "low": 6.383,
+    "low": 6.274,
     "mid": 6.795,
-    "high": 7.249
+    "high": 7.356
    },
    {
     "year": 1984,
-    "low": 6.458,
+    "low": 6.354,
     "mid": 6.849,
-    "high": 7.28
+    "high": 7.383
    },
    {
     "year": 1985,
-    "low": 6.533,
+    "low": 6.435,
     "mid": 6.903,
-    "high": 7.312
+    "high": 7.409
    },
    {
     "year": 1986,
-    "low": 6.608,
+    "low": 6.515,
     "mid": 6.958,
-    "high": 7.343
+    "high": 7.435
    },
    {
     "year": 1987,
-    "low": 6.683,
+    "low": 6.595,
     "mid": 7.012,
-    "high": 7.375
+    "high": 7.461
    },
    {
     "year": 1988,
-    "low": 6.757,
+    "low": 6.676,
     "mid": 7.066,
-    "high": 7.407
+    "high": 7.487
    },
    {
     "year": 1989,
-    "low": 6.832,
+    "low": 6.756,
     "mid": 7.12,
-    "high": 7.438
+    "high": 7.514
    },
    {
     "year": 1990,
-    "low": 6.907,
+    "low": 6.836,
     "mid": 7.175,
-    "high": 7.47
+    "high": 7.54
    },
    {
     "year": 1991,
-    "low": 6.982,
+    "low": 6.917,
     "mid": 7.229,
-    "high": 7.501
+    "high": 7.566
    },
    {
     "year": 1992,
-    "low": 7.057,
+    "low": 6.997,
     "mid": 7.283,
-    "high": 7.533
+    "high": 7.592
    },
    {
     "year": 1993,
-    "low": 7.132,
+    "low": 7.077,
     "mid": 7.338,
-    "high": 7.565
+    "high": 7.619
    },
    {
     "year": 1994,
-    "low": 7.207,
+    "low": 7.158,
     "mid": 7.392,
-    "high": 7.596
+    "high": 7.645
    },
    {
     "year": 1995,
-    "low": 7.282,
+    "low": 7.238,
     "mid": 7.446,
-    "high": 7.628
+    "high": 7.671
    },
    {
     "year": 1996,
-    "low": 7.357,
+    "low": 7.318,
     "mid": 7.501,
-    "high": 7.66
+    "high": 7.697
    },
    {
     "year": 1997,
-    "low": 7.431,
+    "low": 7.399,
     "mid": 7.555,
-    "high": 7.691
-   },
-   {
-    "year": 1998,
-    "low": 7.506,
-    "mid": 7.609,
     "high": 7.723
    },
    {
+    "year": 1998,
+    "low": 7.479,
+    "mid": 7.609,
+    "high": 7.75
+   },
+   {
     "year": 1999,
-    "low": 7.581,
+    "low": 7.559,
     "mid": 7.664,
-    "high": 7.754
+    "high": 7.776
    },
    {
     "year": 2000,
-    "low": 7.656,
+    "low": 7.64,
     "mid": 7.718,
-    "high": 7.786
+    "high": 7.802
    },
    {
     "year": 2001,
-    "low": 7.731,
+    "low": 7.72,
     "mid": 7.772,
-    "high": 7.818
+    "high": 7.828
    },
    {
     "year": 2002,
-    "low": 7.806,
+    "low": 7.8,
     "mid": 7.827,
-    "high": 7.849
+    "high": 7.855
    },
    {
     "year": 2003,
@@ -351,135 +351,135 @@
    },
    {
     "year": 2004,
-    "low": 7.912,
+    "low": 7.907,
     "mid": 7.935,
-    "high": 7.956
+    "high": 7.961
    },
    {
     "year": 2005,
-    "low": 7.944,
+    "low": 7.933,
     "mid": 7.989,
-    "high": 8.031
+    "high": 8.041
    },
    {
     "year": 2006,
-    "low": 7.976,
+    "low": 7.96,
     "mid": 8.044,
-    "high": 8.105
+    "high": 8.122
    },
    {
     "year": 2007,
-    "low": 8.007,
+    "low": 7.986,
     "mid": 8.098,
-    "high": 8.18
+    "high": 8.202
    },
    {
     "year": 2008,
-    "low": 8.039,
+    "low": 8.012,
     "mid": 8.152,
-    "high": 8.255
+    "high": 8.282
    },
    {
     "year": 2009,
-    "low": 8.07,
+    "low": 8.038,
     "mid": 8.207,
-    "high": 8.33
+    "high": 8.363
    },
    {
     "year": 2010,
-    "low": 8.102,
+    "low": 8.064,
     "mid": 8.261,
-    "high": 8.405
+    "high": 8.443
    },
    {
     "year": 2011,
-    "low": 8.134,
+    "low": 8.091,
     "mid": 8.315,
-    "high": 8.48
+    "high": 8.524
    },
    {
     "year": 2012,
-    "low": 8.165,
+    "low": 8.117,
     "mid": 8.37,
-    "high": 8.555
+    "high": 8.604
    },
    {
     "year": 2013,
-    "low": 8.197,
+    "low": 8.143,
     "mid": 8.424,
-    "high": 8.63
+    "high": 8.684
    },
    {
     "year": 2014,
-    "low": 8.229,
+    "low": 8.169,
     "mid": 8.478,
-    "high": 8.705
+    "high": 8.764
    },
    {
     "year": 2015,
-    "low": 8.26,
+    "low": 8.196,
     "mid": 8.533,
-    "high": 8.779
+    "high": 8.845
    },
    {
     "year": 2016,
-    "low": 8.292,
+    "low": 8.222,
     "mid": 8.587,
-    "high": 8.854
+    "high": 8.925
    },
    {
     "year": 2017,
-    "low": 8.323,
+    "low": 8.248,
     "mid": 8.641,
-    "high": 8.929
+    "high": 9.005
    },
    {
     "year": 2018,
-    "low": 8.355,
+    "low": 8.274,
     "mid": 8.695,
-    "high": 9.004
+    "high": 9.086
    },
    {
     "year": 2019,
-    "low": 8.387,
+    "low": 8.3,
     "mid": 8.75,
-    "high": 9.079
+    "high": 9.166
    },
    {
     "year": 2020,
-    "low": 8.418,
+    "low": 8.327,
     "mid": 8.804,
-    "high": 9.154
+    "high": 9.247
    },
    {
     "year": 2021,
-    "low": 8.45,
+    "low": 8.353,
     "mid": 8.858,
-    "high": 9.229
+    "high": 9.327
    },
    {
     "year": 2022,
-    "low": 8.481,
+    "low": 8.379,
     "mid": 8.913,
-    "high": 9.304
+    "high": 9.407
    },
    {
     "year": 2023,
-    "low": 8.513,
+    "low": 8.405,
     "mid": 8.967,
-    "high": 9.379
+    "high": 9.488
    },
    {
     "year": 2024,
-    "low": 8.545,
+    "low": 8.432,
     "mid": 9.021,
-    "high": 9.454
+    "high": 9.568
    },
    {
     "year": 2025,
-    "low": 8.576,
+    "low": 8.458,
     "mid": 9.076,
-    "high": 9.528
+    "high": 9.648
    }
   ]
  },
@@ -497,9 +497,9 @@
  },
  "ols": {
   "slope_per_year": 0.05309,
-  "p": 0.000163,
+  "p": 0.00032,
   "r2": 0.4226,
-  "n_eff": 28.4
+  "n_eff": 26.0
  },
  "robustness": [
   {
@@ -736,8 +736,8 @@
   "method_note": "Monthly means computed from daily GHCN-Daily records (≥25 days per month)",
   "sen": {
    "slope_per_decade": 0.5391,
-   "ci_low": 0.3264,
-   "ci_high": 0.8198
+   "ci_low": 0.2798,
+   "ci_high": 0.8955
   },
   "mk": {
    "p": 0.000916
@@ -748,8 +748,8 @@
    "main_slope_per_decade": 0.5326,
    "witness_slope_per_decade": 0.5391,
    "difference_per_decade": 0.066,
-   "ci_low": -0.0139,
-   "ci_high": 0.163,
+   "ci_low": -0.0933,
+   "ci_high": 0.2367,
    "p": 0.304,
    "consistent": true
   }
@@ -3025,7 +3025,7 @@
    "id": "robustness",
    "title": "Does the choice of years matter?",
    "value": "5 of 5 periods agree",
-   "detail": "We repeat the check with the start and end shifted by a few years.",
+   "detail": "We repeat the check with the start and end shifted by a few years; at least 4 of 5 must agree.",
    "fields": [
     "robustness_summary.significant",
     "robustness_summary.total"
@@ -3082,7 +3082,7 @@
  ],
  "detection": {
   "residual_sd": 0.8243,
-  "phi": 0.2268,
+  "phi": 0.2668,
   "slope_per_year": 0.05431,
   "n_years": 45,
   "multipliers": [
@@ -3094,10 +3094,10 @@
   ],
   "years_needed": [
    55.0,
-   41.0,
-   35.0,
+   43.0,
+   36.0,
    28.0,
-   23.0
+   24.0
   ]
  },
  "detection_history": {
@@ -3312,7 +3312,7 @@
    {
     "end_year": 2010,
     "n_observations": 30,
-    "p": 0.15350707583715287,
+    "p": 0.1535070758371529,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3326,14 +3326,14 @@
    {
     "end_year": 2012,
     "n_observations": 32,
-    "p": 0.1413192806804352,
+    "p": 0.14131928068043517,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2013,
     "n_observations": 33,
-    "p": 0.12533110024214056,
+    "p": 0.1253311002421406,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3354,7 +3354,7 @@
    {
     "end_year": 2016,
     "n_observations": 36,
-    "p": 0.026834212734421575,
+    "p": 0.026834212734421582,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3368,7 +3368,7 @@
    {
     "end_year": 2018,
     "n_observations": 38,
-    "p": 0.014966063031958295,
+    "p": 0.014966063031958299,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3382,7 +3382,7 @@
    {
     "end_year": 2020,
     "n_observations": 40,
-    "p": 0.002966632713785046,
+    "p": 0.0029666327137850457,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3410,7 +3410,7 @@
    {
     "end_year": 2024,
     "n_observations": 44,
-    "p": 0.0004837461787050607,
+    "p": 0.0004837461787050609,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3581,58 +3581,58 @@
     "low": [
      9.08,
      9.09,
-     9.11,
+     9.1,
      9.12,
+     9.13,
      9.14,
      9.15,
      9.17,
+     9.18,
      9.19,
-     9.2,
+     9.21,
      9.22,
      9.23,
      9.25,
+     9.26,
      9.27,
-     9.28,
+     9.29,
      9.3,
      9.31,
-     9.33,
+     9.32,
      9.34,
+     9.35,
      9.36,
      9.38,
      9.39,
-     9.41,
-     9.42,
-     9.44,
-     9.46,
-     9.47
+     9.4
     ],
     "high": [
      9.08,
-     9.11,
-     9.15,
-     9.19,
-     9.23,
-     9.26,
-     9.3,
-     9.34,
-     9.38,
-     9.41,
-     9.45,
-     9.49,
-     9.53,
+     9.12,
+     9.16,
+     9.2,
+     9.24,
+     9.28,
+     9.32,
+     9.36,
+     9.4,
+     9.44,
+     9.48,
+     9.52,
      9.56,
      9.6,
      9.64,
-     9.67,
-     9.71,
-     9.75,
-     9.79,
-     9.82,
-     9.86,
-     9.9,
-     9.94,
-     9.97,
-     10.01
+     9.68,
+     9.72,
+     9.76,
+     9.8,
+     9.84,
+     9.88,
+     9.92,
+     9.96,
+     10.0,
+     10.04,
+     10.08
     ]
    },
    {
@@ -3669,59 +3669,59 @@
     ],
     "low": [
      9.08,
-     9.11,
-     9.14,
-     9.17,
-     9.2,
+     9.1,
+     9.13,
+     9.15,
+     9.18,
+     9.21,
      9.23,
-     9.27,
-     9.3,
-     9.33,
+     9.26,
+     9.29,
+     9.31,
+     9.34,
      9.36,
      9.39,
      9.42,
-     9.46,
-     9.49,
+     9.44,
+     9.47,
+     9.5,
      9.52,
      9.55,
-     9.58,
-     9.61,
-     9.64,
+     9.57,
+     9.6,
+     9.63,
+     9.65,
      9.68,
      9.71,
-     9.74,
-     9.77,
-     9.8,
-     9.83,
-     9.87
+     9.73
     ],
     "high": [
      9.08,
-     9.15,
-     9.23,
-     9.3,
-     9.38,
-     9.45,
-     9.53,
-     9.6,
-     9.67,
-     9.75,
-     9.82,
-     9.9,
-     9.97,
-     10.05,
+     9.16,
+     9.24,
+     9.32,
+     9.4,
+     9.48,
+     9.56,
+     9.64,
+     9.72,
+     9.8,
+     9.88,
+     9.96,
+     10.04,
      10.12,
      10.2,
-     10.27,
-     10.35,
-     10.42,
-     10.5,
-     10.57,
-     10.65,
-     10.72,
-     10.8,
-     10.87,
-     10.95
+     10.28,
+     10.36,
+     10.44,
+     10.52,
+     10.6,
+     10.68,
+     10.76,
+     10.84,
+     10.92,
+     11.0,
+     11.08
     ]
    },
    {
@@ -3759,67 +3759,68 @@
     "low": [
      9.08,
      9.12,
-     9.17,
-     9.22,
+     9.15,
+     9.19,
+     9.23,
      9.27,
      9.31,
-     9.36,
-     9.41,
-     9.46,
-     9.5,
+     9.35,
+     9.39,
+     9.43,
+     9.47,
+     9.51,
      9.55,
-     9.6,
-     9.64,
-     9.69,
+     9.59,
+     9.63,
+     9.67,
+     9.71,
      9.74,
-     9.79,
-     9.83,
-     9.88,
-     9.93,
+     9.78,
+     9.82,
+     9.86,
+     9.9,
+     9.94,
      9.98,
      10.02,
-     10.07,
-     10.12,
-     10.17,
-     10.21,
-     10.26
+     10.06
     ],
     "high": [
      9.08,
-     9.19,
-     9.3,
-     9.41,
-     9.53,
-     9.64,
-     9.75,
-     9.86,
-     9.97,
-     10.09,
-     10.2,
-     10.31,
-     10.42,
-     10.54,
-     10.65,
+     9.2,
+     9.32,
+     9.44,
+     9.56,
+     9.68,
+     9.8,
+     9.92,
+     10.04,
+     10.16,
+     10.28,
+     10.4,
+     10.52,
+     10.64,
      10.76,
-     10.87,
-     10.99,
-     11.1,
-     11.21,
-     11.32,
-     11.43,
-     11.55,
-     11.66,
-     11.77,
-     11.88
+     10.88,
+     11.0,
+     11.12,
+     11.24,
+     11.37,
+     11.49,
+     11.61,
+     11.73,
+     11.85,
+     11.97,
+     12.09
     ]
    }
   ]
  },
  "scenarios": {
   "synthetic": false,
-  "source": "NASA NEX-GDDP-CMIP6 (5-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR)",
+  "source": "NASA NEX-GDDP-CMIP6 (4-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6)",
   "baseline_period": "1995-2014",
   "baseline_value": 7.68,
+  "baseline_n_years": 20,
   "note": "These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
   "paths": [
    {
@@ -3838,54 +3839,54 @@
      "2091-2100"
     ],
     "median": [
-     0.86,
-     1.75,
-     1.98,
-     1.72
+     1.1,
+     1.93,
+     2.05,
+     1.78
     ],
     "low": [
-     0.7,
-     1.19,
-     1.11,
-     0.74
+     0.85,
+     1.35,
+     1.4,
+     1.09
     ],
     "high": [
-     1.51,
-     2.58,
-     2.58,
-     2.58
+     1.54,
+     2.66,
+     2.66,
+     2.71
     ],
     "median_value": [
-     8.54,
-     9.43,
-     9.66,
-     9.4
+     8.78,
+     9.61,
+     9.73,
+     9.46
     ],
     "low_value": [
-     8.38,
-     8.87,
-     8.79,
-     8.42
+     8.53,
+     9.03,
+     9.08,
+     8.77
     ],
     "high_value": [
-     9.19,
-     10.26,
-     10.26,
-     10.26
+     9.22,
+     10.34,
+     10.34,
+     10.39
     ],
     "analogs": [
      {
       "year": 2030,
-      "analog_year": 2014,
-      "analog_value": 8.45,
-      "analog_rank": 10,
+      "analog_year": 2008,
+      "analog_value": 8.76,
+      "analog_rank": 9,
       "beyond_record": false
      },
      {
       "year": 2050,
-      "analog_year": 2019,
-      "analog_value": 9.42,
-      "analog_rank": 4,
+      "analog_year": 2020,
+      "analog_value": 9.74,
+      "analog_rank": 2,
       "beyond_record": false
      },
      {
@@ -3897,9 +3898,9 @@
      },
      {
       "year": 2100,
-      "analog_year": 2019,
-      "analog_value": 9.42,
-      "analog_rank": 4,
+      "analog_year": 2015,
+      "analog_value": 9.45,
+      "analog_rank": 3,
       "beyond_record": false
      }
     ]
@@ -3920,40 +3921,40 @@
      "2091-2100"
     ],
     "median": [
-     1.26,
-     1.72,
-     2.11,
-     3.44
+     1.29,
+     1.84,
+     2.6,
+     3.48
     ],
     "low": [
-     1.15,
-     1.4,
-     1.76,
-     2.11
+     1.21,
+     1.48,
+     1.91,
+     2.78
     ],
     "high": [
-     1.5,
-     2.73,
-     3.44,
-     4.03
+     1.52,
+     2.85,
+     3.49,
+     4.1
     ],
     "median_value": [
-     8.94,
-     9.4,
-     9.79,
-     11.12
+     8.97,
+     9.52,
+     10.28,
+     11.16
     ],
     "low_value": [
-     8.83,
-     9.08,
-     9.44,
-     9.79
+     8.89,
+     9.16,
+     9.59,
+     10.46
     ],
     "high_value": [
-     9.18,
-     10.41,
-     11.12,
-     11.71
+     9.2,
+     10.53,
+     11.17,
+     11.78
     ],
     "analogs": [
      {
@@ -3965,17 +3966,17 @@
      },
      {
       "year": 2050,
-      "analog_year": 2019,
-      "analog_value": 9.42,
-      "analog_rank": 4,
+      "analog_year": 2015,
+      "analog_value": 9.45,
+      "analog_rank": 3,
       "beyond_record": false
      },
      {
       "year": 2070,
-      "analog_year": 2020,
-      "analog_value": 9.74,
-      "analog_rank": 2,
-      "beyond_record": false
+      "analog_year": null,
+      "analog_value": null,
+      "analog_rank": null,
+      "beyond_record": true
      },
      {
       "year": 2100,
@@ -4002,39 +4003,39 @@
      "2091-2100"
     ],
     "median": [
-     0.8,
-     2.71,
-     4.13,
-     5.35
+     0.84,
+     2.85,
+     4.45,
+     6.65
     ],
     "low": [
-     0.6,
-     1.79,
-     2.96,
-     4.61
+     0.58,
+     2.25,
+     3.28,
+     4.58
     ],
     "high": [
-     1.57,
-     3.29,
-     4.93,
+     1.65,
+     3.34,
+     4.95,
      7.99
     ],
     "median_value": [
-     8.48,
-     10.39,
-     11.81,
-     13.03
+     8.52,
+     10.53,
+     12.13,
+     14.33
     ],
     "low_value": [
-     8.28,
-     9.47,
-     10.64,
-     12.29
+     8.26,
+     9.93,
+     10.96,
+     12.26
     ],
     "high_value": [
-     9.25,
-     10.97,
-     12.61,
+     9.33,
+     11.02,
+     12.63,
      15.67
     ],
     "analogs": [
@@ -4076,7 +4077,7 @@
    "source": "NASA POWER",
    "product": "T2M (MERRA-2)",
    "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M&community=AG&latitude=50.45&longitude=30.52&start=1981&end=2025&format=JSON",
-   "retrieved_at": "2026-11-15",
+   "retrieved_at": "2026-11-14",
    "license": "Public domain (NASA)"
   },
   {
@@ -4084,21 +4085,21 @@
    "source": "NOAA NCEI",
    "product": "GHCN-Daily → monthly",
    "url": "https://www.ncei.noaa.gov/access/services/data/v1?dataset=daily-summaries&stations=UPM00033345&dataTypes=TAVG&units=metric&format=json",
-   "retrieved_at": "2026-11-15",
+   "retrieved_at": "2026-11-14",
    "license": "Public domain (NOAA)"
   },
   {
    "what": "Future scenarios",
    "source": "NASA NCCS",
-   "product": "NEX-GDDP-CMIP6 v2.0, 5 models, r1i1p1f1",
+   "product": "NEX-GDDP-CMIP6 v2.0, 4 models, r1i1p1f1",
    "url": "https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
    "retrieved_at": "2026-11-14",
    "license": "CC BY 4.0 (NASA NEX-GDDP-CMIP6)"
   }
  ],
  "meta": {
-  "stub": true,
+  "stub": false,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-15T08:44:42Z"
+  "generated_at": "2026-11-15T09:46:06Z"
  }
 }

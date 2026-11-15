@@ -169,13 +169,13 @@ def estimate_years_to_wait(
 
     Defined as ``power_years_needed(k=1) - n_years`` — exactly the slider value at ×1 minus
     the years we already have, so slider and verdict always agree. None when:
-      - verdict is not ``not_proven``, or the reason is ``sources_disagree``;
+      - verdict is not ``not_proven``, or the reason is ``sources_disagree`` or ``no_variation``;
       - slope is zero, or more than ``max_n`` total years would be needed;
       - the needed length is already reached (N <= n): at this pace the trend is usually
         detectable by now, so "wait" would be misleading — the observed slope is likely
         overstated by noise. The frontend then shows the slider without a wait number.
     """
-    if verdict != "not_proven" or reason == "sources_disagree":
+    if verdict != "not_proven" or reason in ("sources_disagree", "no_variation"):
         return None
     (needed,) = power_years_needed(slope_per_year, residual_sd, phi, [1.0], alpha=alpha,
                                    min_years=min_years, target_power=target_power,

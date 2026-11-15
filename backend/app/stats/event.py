@@ -183,6 +183,37 @@ class _WindowEval:
     relative_change: Optional[float]
 
 
+def _outside_climatology(arr: np.ndarray, b_start: int, a_end: int) -> np.ndarray:
+    """Monthly climatology (12 values, phase 0 = calendar month of b_start) from the record
+    outside the tested window [b_start, a_end), after removing a linear trend.
+
+    Taking it from outside the window keeps real month-to-month variance in both windows: a
+    climatology built from the "before" window alone makes every "before" anomaly zero when the
+    window is one year long. A month with fewer than 3 values outside the window uses the whole
+    record. Only the seasonal shape matters: a constant offset cancels in after − before.
+    """
+    n = len(arr)
+    idx = np.arange(n)
+    phase = (idx - b_start) % 12
+    finite = np.isfinite(arr)
+    outside = finite.copy()
+    outside[b_start:a_end] = False
+    fit = outside if outside.sum() >= 24 else finite
+    if fit.sum() >= 2:
+        slope, intercept = np.polyfit(idx[fit], arr[fit], 1)
+        resid = arr - (slope * idx + intercept)
+    else:
+        resid = arr.copy()
+    clim = np.full(12, np.nan, dtype=float)
+    for m in range(12):
+        sel = outside & (phase == m)
+        if sel.sum() < 3:
+            sel = finite & (phase == m)
+        if sel.any():
+            clim[m] = float(np.mean(resid[sel]))
+    return clim
+
+
 def _evaluate_baci_window(
     site_arr: np.ndarray,
     ctrl_arr: Optional[np.ndarray],
@@ -203,12 +234,7 @@ def _evaluate_baci_window(
     sb = site_arr[b_start:event_idx]
     sa = site_arr[event_idx:a_end]
 
-    site_clim = np.full(12, np.nan, dtype=float)
-    for m in range(12):
-        vals = sb[m::12]
-        if np.any(np.isfinite(vals)):
-            site_clim[m] = float(np.nanmean(vals))
-
+    site_clim = _outside_climatology(site_arr, b_start, a_end)
     clim_idx = np.arange(w_months) % 12
     site_anom_b = sb - site_clim[clim_idx]
     site_anom_a = sa - site_clim[clim_idx]
@@ -216,11 +242,7 @@ def _evaluate_baci_window(
     if ctrl_arr is not None:
         cb = ctrl_arr[b_start:event_idx]
         ca = ctrl_arr[event_idx:a_end]
-        ctrl_clim = np.full(12, np.nan, dtype=float)
-        for m in range(12):
-            vals = cb[m::12]
-            if np.any(np.isfinite(vals)):
-                ctrl_clim[m] = float(np.nanmean(vals))
+        ctrl_clim = _outside_climatology(ctrl_arr, b_start, a_end)
         d_before = site_anom_b - (cb - ctrl_clim[clim_idx])
         d_after = site_anom_a - (ca - ctrl_clim[clim_idx])
     else:

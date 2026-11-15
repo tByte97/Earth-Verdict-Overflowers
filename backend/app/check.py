@@ -18,6 +18,7 @@ from .stats import build_extrapolation, months_for_season, seasonal_series
 from .stats.band import baseline_mean, sen_band
 from .stats.witness import compare_rates
 from .stats.history import detection_history
+from .stats.robustness import required_windows
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
 
 STATS_ENGINE = "backend.app.stats v2"
@@ -26,7 +27,18 @@ SEASON_LABEL = {"year": "the whole year", "DJF": "winter (Dec–Feb)", "MAM": "s
                 "JJA": "summer (Jun–Aug)", "SON": "autumn (Sep–Nov)"}
 
 # NOAA keeps old Russian transliterations; show current Ukrainian ones.
-STATION_RENAMES = {"Kiev": "Kyiv", "Kharkov": "Kharkiv", "Odessa": "Odesa", "Lvov": "Lviv"}
+STATION_RENAMES = {"Kiev": "Kyiv", "Kharkov": "Kharkiv", "Odessa": "Odesa", "Lvov": "Lviv",
+                   "Dnipropetrovsk": "Dnipro", "Dnepropetrovsk": "Dnipro",
+                   "Zaporozhye": "Zaporizhzhia", "Zaporizhzhya": "Zaporizhzhia",
+                   "Nikolaev": "Mykolaiv", "Mykolayiv": "Mykolaiv",
+                   "Kirovograd": "Kropyvnytskyi", "Kirovohrad": "Kropyvnytskyi"}
+
+# Fewer valid years than this share of the period gets a warning in the "yearly" step.
+LOW_COVERAGE = 0.6
+# Fewer valid years than this: the product has no data here at all (ocean, ice, outside coverage).
+MIN_VALID_YEARS = 3
+# Observed years of 1995–2014 needed to anchor CMIP6 changes to an absolute value.
+MIN_BASELINE_YEARS = 15
 
 METHOD_NOTES = {
     "gsom": None,
@@ -54,7 +66,7 @@ def region_name(place) -> str:
 
 
 class CheckError(Exception):
-    """Maps to ErrorResponse codes: unknown_variable, short_series, bad_request, source_unavailable."""
+    """Maps to ErrorResponse codes: unknown_variable, short_series, no_data, bad_request, source_unavailable."""
 
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -169,13 +181,25 @@ def assemble_result(
     end = spec.end_year
     d, u = var.decimals, var.units
 
+    # The whole record the source gave (scenario baseline and observed analogs use it);
+    # the verdict, robustness and history see only [start, end].
     if main_series.yearly is not None:
-        years = list(range(start, end + 1))
-        vals = [main_series.yearly.get(y) for y in years]
+        full = dict(main_series.yearly)
     else:
         y0, m0 = _ym(main_series.start)
-        years, vals = seasonal_series(main_series.monthly, season, var.agg, start, end,
-                                      per_day=var.per_day, data_start_year=y0, data_start_month=m0)
+        last_year = y0 + (m0 - 1 + len(main_series.monthly) - 1) // 12
+        fy, fv = seasonal_series(main_series.monthly, season, var.agg, y0, last_year,
+                                 per_day=var.per_day, data_start_year=y0, data_start_month=m0)
+        full = dict(zip(fy, fv))
+    full_years = sorted(full)
+    full_vals = [full[y] for y in full_years]
+    years = list(range(start, end + 1))
+    vals = [full.get(y) for y in years]
+
+    n_valid = sum(v is not None for v in vals)
+    if n_valid < MIN_VALID_YEARS:
+        raise CheckError("no_data", f"No {var.label.lower()} data here "
+                                    "(open ocean, ice or outside the product's coverage).")
 
     wy = wv = None
     if station is not None:
@@ -192,6 +216,18 @@ def assemble_result(
                 slope_per_decade=round(w.slope_per_decade, 4), significant=w.significant)
            for w in ev.robustness.windows]
     n_sig = ev.robustness.significant
+    n_win = ev.robustness.total
+    if n_win == 0:
+        rob_value, rob_detail = "Not tested", "Too few years with data to repeat the check on shifted periods."
+    elif n_win == 1:
+        rob_value = "Not tested"
+        rob_detail = ("A 15–17-year period cannot be shifted by ±3 years without dropping below 15 years."
+                      if end - start + 1 <= 17 else
+                      "Too many years are missing to repeat the check on shifted periods.")
+    else:
+        rob_value = f"{n_sig} of {n_win} periods agree"
+        rob_detail = (f"We repeat the check with the start and end shifted by a few years; "
+                      f"at least {required_windows(n_win)} of {n_win} must agree.")
 
     witness = None
     if ev.witness_trend and station is not None and wy is not None and wv is not None:
@@ -243,6 +279,10 @@ def assemble_result(
         methods_reason = "significance_differs"
     else:
         methods_reason = None
+    n_period = end - start + 1
+    yearly_detail = f"The months of each year are {'added up' if var.agg == 'sum' else 'averaged'} into one number."
+    if n_valid >= MIN_YEARS and n_valid < LOW_COVERAGE * n_period:
+        yearly_detail += f" Data cover only {n_valid} of {n_period} years."
     witness_fields = ([] if not witness else ["witness.agreement", "witness.sen.slope_per_decade", "witness.mk.p"]
                       + (["witness.rates.difference_per_decade", "witness.rates.p"] if witness.get("rates") else []))
     steps = [
@@ -253,8 +293,7 @@ def assemble_result(
              fields=["case.season"], months=list(season_months), aggregation=var.agg,
              years_dropped=[y for y, v in zip(years, vals) if v is None]),
         dict(id="yearly", title="One value per year", value=f"{main.n} years",
-             detail=f"The months of each year are {'added up' if var.agg == 'sum' else 'averaged'} into one number.",
-             fields=["series"]),
+             detail=yearly_detail, fields=["series"]),
         dict(id="trend", title="Overall direction", value=per_decade(main.sen.slope_per_year),
              detail="The typical change over time, robust to single extreme years (Sen's slope).",
              fields=["sen.slope_per_decade", "sen.ci_low", "sen.ci_high"]),
@@ -263,8 +302,7 @@ def assemble_result(
              detail=("Very unlikely to appear by chance if nothing were changing." if sig
                      else "A slope like this easily appears by chance when weather simply varies."),
              fields=["mk.p", "ols.p"], alpha=ALPHA, methods_agree=methods_reason is None, methods_reason=methods_reason),
-        dict(id="robustness", title="Does the choice of years matter?", value=f"{n_sig} of {len(rob)} periods agree",
-             detail="We repeat the check with the start and end shifted by a few years.",
+        dict(id="robustness", title="Does the choice of years matter?", value=rob_value, detail=rob_detail,
              fields=["robustness_summary.significant", "robustness_summary.total"]),
         dict(id="witness", title="Ground station check",
              value={"agree": "Station agrees", "disagree": "Station disagrees",
@@ -277,7 +315,9 @@ def assemble_result(
                      "not_significant": "Year-to-year swings are larger than the change so far.",
                      "not_robust": "The result depends on which years you pick.",
                      "sources_disagree": "Satellite-model data and the station point in different directions.",
-                     "short_series": "Too few years to judge."}[ev.reason],
+                     "short_series": "Too few years to judge.",
+                     "no_variation": "The value never changes here in this season, so there is no trend to test.",
+                     }[ev.reason],
              fields=["verdict", "reason", "years_to_wait"]),
     ]
 
@@ -301,15 +341,20 @@ def assemble_result(
 
     scen = None
     if scenarios:
-        base = [v for y, v in zip(years, vals) if 1995 <= y <= 2014 and v is not None]
+        # CMIP6 changes are relative to 1995–2014: the base comes from the full record, not the case period.
+        base = [v for y, v in zip(full_years, full_vals) if 1995 <= y <= 2014 and v is not None]
         scen = dict(scenarios)
-        if base and scen.get("baseline_value") is None:
-            scen["baseline_value"] = round(sum(base) / len(base), d)
-        if scen.get("baseline_value") is not None:
-            scen = add_observed_context(scen, years, vals, d)
-        for p in scenarios.get("provenance", []):
-            prov.append(p)
-        scen.pop("provenance", None)
+        if scen.get("baseline_value") is None:
+            if len(base) >= MIN_BASELINE_YEARS:
+                scen["baseline_value"] = round(sum(base) / len(base), d)
+                scen["baseline_n_years"] = len(base)
+            else:
+                scen = None      # too few observed baseline years to anchor the scenarios
+        if scen is not None:
+            scen = add_observed_context(scen, full_years, full_vals, d)
+            for p in scenarios.get("provenance", []):
+                prov.append(p)
+            scen.pop("provenance", None)
 
     valid_years = [y for y, v in zip(years, vals) if v is not None]
     pivot_year, pivot_value, band = sen_band(
@@ -344,15 +389,19 @@ def assemble_result(
 
 # ---------- live data ----------
 
-def fetch_main_series(var: VariableDef, lat: float, lon: float, start: int, end: int) -> MainSeries:
-    """Monthly series from the variable's source, starting in January of start-1 (for DJF)."""
+def fetch_main_series(var: VariableDef, lat: float, lon: float) -> MainSeries:
+    """The variable's whole monthly record at a point.
+
+    One request either way (POWER and Giovanni return the range in one response), and the cache
+    key is the same for every period asked about this point.
+    """
     from .sources import giovanni, power
 
-    first = max(start - 1, 1981)
+    first, last = var.first_year, var.last_year
     if var.source_kind == "power":
-        pm = power.fetch_monthly(lat, lon, [var.source_param], first, end)
+        pm = power.fetch_monthly(lat, lon, [var.source_param], first, last)
         return MainSeries(monthly=pm.series[var.source_param], start=pm.start, url=pm.url, retrieved_at=_now())
-    g = giovanni.fetch_monthly(var.source_param, lat, lon, first, end)
+    g = giovanni.fetch_monthly(var.source_param, lat, lon, first, last)
     return MainSeries(monthly=g["monthly"], start=g["start"], url=g["url"], retrieved_at=_now())
 
 
@@ -387,7 +436,7 @@ def run_check(spec: CaseSpec) -> CheckResult:
         if var.source_kind == "cag":
             main_series = fetch_cag_series(var, spec.place, spec.season)
         else:
-            main_series = fetch_main_series(var, lat, lon, start, spec.end_year)
+            main_series = fetch_main_series(var, lat, lon)
     except SourceUnavailable as e:
         raise CheckError("source_unavailable", f"{SOURCE_LABEL[var.source_kind]} did not respond: {e.message}")
     try:

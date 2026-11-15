@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
-const ids = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow', 'kyiv-colder', 'kyiv-summer-rain', 'global-warming-stopped'];
+// Every saved case in data/cases is on the grid; the first six keep their order.
+const first = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow', 'kyiv-colder', 'kyiv-summer-rain', 'global-warming-stopped'];
+const others = (await readdir(new URL('../../data/cases/', import.meta.url))).filter(f => f.endsWith('.json') && f !== 'mock.json').map(f => f.replace(/\.json$/, '')).filter(id => !first.includes(id)).sort();
+const ids = [...first, ...others];
 const cases = Object.fromEntries(await Promise.all(ids.map(async id => [id, JSON.parse(await readFile(new URL(`../../data/cases/${id}.json`, import.meta.url), 'utf8'))])));
 
 // The UI shows numbers with up to five significant digits; the exact values stay in the exact-value table.
@@ -94,6 +97,26 @@ test('opening a case flies with the claim as the flight title; reduced motion sk
   await page.waitForTimeout(500);
   assert.equal(flew, false);
   await expect(page.locator('.flight-title')).toHaveCSS('opacity', '0');
+});
+
+test('on a phone the layer legend never covers the flight title', async ({ page }) => {
+  // Reduced motion skips the flight, so this test asks for motion explicitly.
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.locator('.globe')).not.toHaveAttribute('data-state', 'loading', { timeout: 20_000 });
+  await page.locator('[data-case="kyiv-summer-heat"]').click();
+  const globe = page.locator('.globe'), legend = page.locator('.stage-legend'), title = page.locator('.flight-title');
+  await expect(globe).toHaveAttribute('data-flight', 'true');
+  await expect(title).toHaveCSS('opacity', '1');
+  await expect.poll(async () => {
+    if (!await globe.getAttribute('data-flight')) return 'landed';
+    if (!await legend.isVisible()) return 'apart';
+    const [a, b] = [await legend.boundingBox(), await title.boundingBox()];
+    return a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y ? 'apart' : 'overlap';
+  }).toBe('apart');
+  await expect(globe).not.toHaveAttribute('data-flight', 'true', { timeout: 10_000 });
+  await expect(legend).toBeVisible();
 });
 
 test('#case links round-trip and editing parameters drops the case from the URL', async ({ page }) => {

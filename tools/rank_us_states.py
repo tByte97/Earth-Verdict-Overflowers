@@ -407,6 +407,84 @@ def fetch_us_param_grid(
     return out, failed_tiles
 
 
+def compute_cell_trends(
+    grids: dict[str, dict[str, Any]],
+    coord_to_state: dict[tuple[float, float], str | None],
+    *,
+    seasons: Sequence[str] = SEASONS,
+    y0: int = START,
+    y1: int = END,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Compute per-cell seasonal trends and US-wide BH-FDR (q=0.05) for state-assigned cells."""
+    all_cell_records: list[dict[str, Any]] = []
+    fdr_summary: list[dict[str, Any]] = []
+
+    for param, grid in grids.items():
+        spec = PARAM_SPECS[param]
+        # Keep only cells whose centre falls inside a US state polygon
+        us_cells = [
+            (c, coord_to_state.get((c["lat"], c["lon"])))
+            for c in grid["cells"]
+            if coord_to_state.get((c["lat"], c["lon"])) is not None
+        ]
+        for season in seasons:
+            t0 = time.perf_counter()
+            slopes = np.empty(len(us_cells), dtype=float)
+            p_vals = np.empty(len(us_cells), dtype=float)
+
+            for i, (cell, _st) in enumerate(us_cells):
+                years, vals = aggregate_seasonal(
+                    cell["monthly"], season, spec["agg"], spec["per_day"], y0=y0, y1=y1
+                )
+                s_dec, p = cell_trend(years, vals)
+                slopes[i] = s_dec
+                p_vals[i] = p
+
+            with np.errstate(invalid="ignore"):
+                raw_sig = p_vals < FDR_Q
+            fdr_sig = benjamini_hochberg(p_vals, q=FDR_Q)
+            q_vals = bh_adjusted_p(p_vals)
+
+            for (cell, st), s_dec, p_val, q_val, is_raw, is_fdr in zip(
+                us_cells, slopes, p_vals, q_vals, raw_sig, fdr_sig
+            ):
+                all_cell_records.append(
+                    {
+                        "state": st,
+                        "lat": cell["lat"],
+                        "lon": cell["lon"],
+                        "param": param,
+                        "season": season,
+                        "slope_per_decade": round(float(s_dec), 4) if math.isfinite(s_dec) else float("nan"),
+                        "p": float(f"{p_val:.4g}") if math.isfinite(p_val) else float("nan"),
+                        "q": float(f"{q_val:.4g}") if math.isfinite(q_val) else float("nan"),
+                        "significant_raw": int(bool(is_raw)),
+                        "significant_fdr": int(bool(is_fdr)),
+                    }
+                )
+
+            dt = time.perf_counter() - t0
+            n_raw = int(np.sum(raw_sig))
+            n_fdr = int(np.sum(fdr_sig))
+            fdr_summary.append(
+                {
+                    "param": param,
+                    "season": season,
+                    "m_us_cells": len(us_cells),
+                    "n_sig_raw": n_raw,
+                    "n_sig_fdr": n_fdr,
+                    "seconds": round(dt, 2),
+                }
+            )
+            pct = (100.0 * n_fdr / len(us_cells)) if us_cells else 0.0
+            print(
+                f"   [{param:11} {season:4}] m={len(us_cells)} US cells, "
+                f"raw_sig={n_raw}, fdr_sig={n_fdr} ({pct:.1f}%) ({dt:.2f}s)"
+            )
+
+    return all_cell_records, fdr_summary
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--params", nargs="+", default=list(PARAM_SPECS.keys()))
@@ -464,74 +542,7 @@ def main() -> None:
     print(f"   Kept {len(kept_states)} states (>= {MIN_STATE_CELLS} cells); dropped (< {MIN_STATE_CELLS} cells): {dropped_states}")
 
     print("4. Computing per-cell seasonal trends and US-wide BH-FDR (q=0.05) ...")
-    all_cell_records: list[dict[str, Any]] = []
-    fdr_summary: list[dict[str, Any]] = []
-
-    for param, grid in grids.items():
-        spec = PARAM_SPECS[param]
-        # Keep only cells whose centre falls inside a US state polygon
-        us_cells = [
-            (c, coord_to_state.get((c["lat"], c["lon"])))
-            for c in grid["cells"]
-            if coord_to_state.get((c["lat"], c["lon"])) is not None
-        ]
-        for season in SEASONS:
-            t0 = time.perf_counter()
-            slopes = np.empty(len(us_cells), dtype=float)
-            p_vals = np.empty(len(us_cells), dtype=float)
-            fallbacks = 0
-
-            for i, (cell, _st) in enumerate(us_cells):
-                years, vals = aggregate_seasonal(
-                    cell["monthly"], season, spec["agg"], spec["per_day"], y0=START, y1=END
-                )
-                s_dec, p, used = cell_trend(years, vals)
-                slopes[i] = s_dec
-                p_vals[i] = p
-                if used == "original":
-                    fallbacks += 1
-
-            raw_sig = p_vals < FDR_Q
-            fdr_sig = benjamini_hochberg(p_vals, q=FDR_Q)
-            q_vals = bh_adjusted_p(p_vals)
-
-            for (cell, st), s_dec, p_val, q_val, is_raw, is_fdr in zip(
-                us_cells, slopes, p_vals, q_vals, raw_sig, fdr_sig
-            ):
-                all_cell_records.append(
-                    {
-                        "state": st,
-                        "lat": cell["lat"],
-                        "lon": cell["lon"],
-                        "param": param,
-                        "season": season,
-                        "slope_per_decade": round(float(s_dec), 4) if math.isfinite(s_dec) else float("nan"),
-                        "p": float(f"{p_val:.4g}") if math.isfinite(p_val) else float("nan"),
-                        "q": float(f"{q_val:.4g}") if math.isfinite(q_val) else float("nan"),
-                        "significant_raw": int(bool(is_raw)),
-                        "significant_fdr": int(bool(is_fdr)),
-                    }
-                )
-
-            dt = time.perf_counter() - t0
-            n_raw = int(np.sum(raw_sig))
-            n_fdr = int(np.sum(fdr_sig))
-            fdr_summary.append(
-                {
-                    "param": param,
-                    "season": season,
-                    "m_us_cells": len(us_cells),
-                    "n_sig_raw": n_raw,
-                    "n_sig_fdr": n_fdr,
-                    "fallbacks": fallbacks,
-                    "seconds": round(dt, 2),
-                }
-            )
-            print(
-                f"   [{param:11} {season:4}] m={len(us_cells)} US cells, "
-                f"raw_sig={n_raw}, fdr_sig={n_fdr} ({100.0 * n_fdr / len(us_cells):.1f}%), "
-                f"fallbacks={fallbacks} ({dt:.2f}s)"
-            )
+    all_cell_records, fdr_summary = compute_cell_trends(grids, coord_to_state)
 
     print("5. Aggregating per-state rankings and writing deliverables ...")
     ranking_rows = aggregate_state_metrics(all_cell_records, state_names, min_cells=MIN_STATE_CELLS)

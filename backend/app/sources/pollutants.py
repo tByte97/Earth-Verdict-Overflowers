@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import contextvars
 import math
 from typing import Optional
 
@@ -93,7 +94,8 @@ def fetch_site_and_control(
 
     workers = min(max_workers, len(coords))
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(_fetch_one, coords))
+        futures = [pool.submit(contextvars.copy_context().run, _fetch_one, item) for item in coords]
+        results = [fut.result() for fut in futures]
 
     site_res = results[0]
     month_strs = [

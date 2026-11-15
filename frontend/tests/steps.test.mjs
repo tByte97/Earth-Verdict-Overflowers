@@ -12,7 +12,7 @@ test.beforeAll(async ({ browser: sharedBrowser }) => { browser = sharedBrowser; 
 async function open(id, viewport = { width: 1440, height: 1100 }) {
   const page = await browser.newPage({ viewport });
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   // Live mode lists /api/cases; an empty list keeps these tests on the form path.
   await page.route('**/api/cases', route => route.fulfill({ json: [] }));
   await page.goto(baseURL);
@@ -82,7 +82,7 @@ test('each step source opens its provider or method record in one click', async 
 test('a step missing from the response is reported, not skipped', async () => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   try {
     const r = structuredClone(cases['kyiv-summer-heat']);
     r.steps = r.steps.filter(step => step.id !== 'robustness');

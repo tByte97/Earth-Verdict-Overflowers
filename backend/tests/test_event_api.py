@@ -144,6 +144,9 @@ def test_event_happy_path_and_no_control(fake_event_sources):
 
 
 def test_event_error_handling(monkeypatch: pytest.MonkeyPatch):
+    from app import limits
+
+    monkeypatch.setitem(limits.RATE_LIMITS, "event", (20, 60.0))
     base = {
         "compound_id": "no2",
         "place": SASAN,
@@ -176,6 +179,38 @@ def test_event_error_handling(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(event_mod, "fetch_event_series", boom)
     r_503 = client.post("/api/event", json=base)
     assert r_503.status_code == 503 and r_503.json()["error"]["code"] == "source_unavailable"
+
+
+@pytest.mark.parametrize("over", [
+    {"window_years": True},
+    {"window_years": "3"},
+    {"window_years": 3.0},
+    {"compound_id": "x" * 65},
+    {"event_label": "x" * 121},
+])
+def test_event_strict_spec_fields(over):
+    payload = {
+        "compound_id": "no2",
+        "place": SASAN,
+        "event_month": "2015-01",
+        "event_label": "Test",
+        **over,
+    }
+    r = client.post("/api/event", json=payload)
+    assert r.status_code == 400, r.text
+    assert r.json()["error"]["code"] == "bad_request"
+
+
+@pytest.mark.parametrize("over", [
+    {"window_years": True},
+    {"window_years": "3"},
+    {"compound_id": "x" * 65},
+])
+def test_event_profile_strict_spec_fields(over):
+    payload = {"compound_id": "no2", "place": SASAN, **over}
+    r = client.post("/api/event/profile", json=payload)
+    assert r.status_code == 400, r.text
+    assert r.json()["error"]["code"] == "bad_request"
 
 
 def test_co2_endpoints(fake_event_sources):
@@ -376,7 +411,10 @@ def test_control_ring_level_does_not_jump_when_a_point_drops_out(monkeypatch: py
     assert res["control"] == pytest.approx([4.5] * 12)
 
 
-def test_event_profile_matches_single_event_verdicts(fake_event_sources):
+def test_event_profile_matches_single_event_verdicts(fake_event_sources, monkeypatch: pytest.MonkeyPatch):
+    from app import limits
+
+    monkeypatch.setitem(limits.RATE_LIMITS, "event", (20, 60.0))
     spec = {"compound_id": "no2", "place": SASAN, "window_years": 3, "use_control": True}
     r = client.post("/api/event/profile", json=spec)
     assert r.status_code == 200, r.text

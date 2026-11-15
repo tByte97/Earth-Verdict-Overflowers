@@ -91,10 +91,12 @@ def test_4xx_fails_fast_without_retries(tmp_path: Path, monkeypatch: pytest.Monk
     monkeypatch.setenv("EV_DATA_DIR", str(tmp_path))
     monkeypatch.delenv("OFFLINE", raising=False)
     calls = 0
+    timeouts: list[float] = []
 
-    def fake_urlopen(req, timeout=120):
+    def fake_urlopen(req, timeout=30):
         nonlocal calls
         calls += 1
+        timeouts.append(timeout)
         raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, io.BytesIO(b"missing"))
 
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
@@ -104,6 +106,7 @@ def test_4xx_fails_fast_without_retries(tmp_path: Path, monkeypatch: pytest.Monk
         cache.get_json("https://www.ncei.noaa.gov/access/services/data/v1", {"x": 1})
     assert exc_info.value.source == "noaa"
     assert calls == 1
+    assert timeouts == [30]
 
 
 def test_5xx_and_429_retry_with_backoff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -111,14 +114,14 @@ def test_5xx_and_429_retry_with_backoff(tmp_path: Path, monkeypatch: pytest.Monk
     monkeypatch.delenv("OFFLINE", raising=False)
     calls = 0
     sleeps: list[float] = []
+    timeouts: list[float] = []
 
-    def fake_urlopen(req, timeout=120):
+    def fake_urlopen(req, timeout=30):
         nonlocal calls
         calls += 1
+        timeouts.append(timeout)
         if calls == 1:
             raise urllib.error.HTTPError(req.full_url, 503, "Service Unavailable", {}, io.BytesIO(b""))
-        if calls == 2:
-            raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", {}, io.BytesIO(b""))
         return _FakeResponse('{"ok": true}')
 
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
@@ -126,13 +129,30 @@ def test_5xx_and_429_retry_with_backoff(tmp_path: Path, monkeypatch: pytest.Monk
 
     res = cache.get_json("https://power.larc.nasa.gov/api/test", {"a": 1}, headers={"Authorization": "Bearer TOPSECRET"})
     assert res == {"ok": True}
-    assert calls == 3
-    assert len(sleeps) == 2
+    assert calls == 2
+    assert len(sleeps) == 1
+    assert timeouts == [30, 30]
 
     # Cache file key ignores headers and contains only response body.
     cfiles = list((tmp_path / "cache").glob("*.json"))
     assert len(cfiles) == 1
     assert "TOPSECRET" not in cfiles[0].read_text()
+
+    # 429 also retries once and fails after _RETRIES (2) attempts.
+    calls = 0
+    sleeps.clear()
+
+    def always_429(req, timeout=30):
+        nonlocal calls
+        calls += 1
+        raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", {}, io.BytesIO(b""))
+
+    monkeypatch.setattr("urllib.request.urlopen", always_429)
+    with pytest.raises(SourceUnavailable) as exc_info:
+        cache.get_json("https://power.larc.nasa.gov/api/test2", {"b": 2})
+    assert "2 attempts" in exc_info.value.message
+    assert calls == 2
+    assert len(sleeps) == 1
 
 
 def test_power_parsing_drops_month_13_and_maps_missing_to_none(offline_cache: Path):

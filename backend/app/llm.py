@@ -58,6 +58,7 @@ _CHECK_REASON = {
     "short_series": "the record is too short to tell",
     "sources_disagree": "two data sources disagree on the direction",
     "not_robust": "the trend depends on which years are chosen",
+    "no_variation": "the value never changes here in this season, so there is no trend to test",
 }
 _EVENT_REASON = {
     "clear_change": "a clear change at that time, not matched by fake event dates",
@@ -191,11 +192,14 @@ class _Busy(Exception):
     """Gemini quota or rate limit (HTTP 429)."""
 
 
-def _call_gemini(key: str, model: str, prompt: str) -> str:
+def _call_gemini(key: str, model: str, prompt: str, system: str = SYSTEM, json_out: bool = False) -> str:
+    config = {"temperature": 0.0 if json_out else 0.2, "maxOutputTokens": MAX_OUTPUT_TOKENS}
+    if json_out:
+        config["responseMimeType"] = "application/json"
     body = json.dumps({
-        "systemInstruction": {"parts": [{"text": SYSTEM}]},
+        "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": MAX_OUTPUT_TOKENS},
+        "generationConfig": config,
     }).encode()
     req = urllib.request.Request(API_URL.format(model=model), data=body,
                                  headers={"x-goog-api-key": key, "Content-Type": "application/json"})
@@ -226,8 +230,6 @@ def explain(kind: str, result: dict, question: Optional[str], lang: str) -> Chat
     key = _api_key()
     if key is None:
         raise CheckError("llm_unavailable", "Explanations are not configured on this server.")
-    if not _rate_ok():
-        raise CheckError("llm_unavailable", "Too many explanation requests; try again in a minute.")
 
     language = "Ukrainian" if lang == "uk" else "English"
     task = {"check": "TASK: explain this result, quoting its key numbers.",
@@ -238,6 +240,8 @@ def explain(kind: str, result: dict, question: Optional[str], lang: str) -> Chat
     text, grounded = "", False
     busy = False
     for _ in range(2):
+        if not _rate_ok():
+            raise CheckError("llm_unavailable", "Too many explanation requests; try again in a minute.")
         try:
             text = _call_gemini(key, model, prompt)
         except _Busy:

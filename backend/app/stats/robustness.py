@@ -8,7 +8,19 @@ from typing import Optional
 from .trend import analyze_trend
 
 DEFAULT_ALPHA = 0.05
-MIN_WINDOW_YEARS = 15
+MIN_WINDOW_YEARS = 15   # also verdict.MIN_YEARS
+
+
+def required_windows(total: int) -> int:
+    """Significant same-sign windows needed for a robust verdict, out of `total` tested.
+
+    0 windows: no requirement. 1 window (a 15–17-year period cannot be shifted): the full
+    period itself, so stability is "not tested". 2+ windows: at least 80%, rounded up
+    (5→4, 4→4, 3→3, 2→2).
+    """
+    if total <= 1:
+        return total
+    return -(-4 * total // 5)
 
 
 @dataclass(frozen=True)
@@ -72,10 +84,11 @@ def assess_robustness(
         sub_years = [p[0] for p in sub_pairs]
         sub_values = [p[1] for p in sub_pairs]
         t_win = analyze_trend(sub_years, sub_values, min_years=3, start_year=win_start)
-        if t_win is None:
+        # A window left with fewer than min_years values (gaps in the data) cannot vote.
+        if t_win is None or t_win.n < min_years:
             continue
         same_sign = (t_win.sen.slope_per_year * main_slope_per_year) > 0.0
-        sig = bool(t_win.n >= min_years and t_win.mk.p < alpha and same_sign)
+        sig = bool(t_win.mk.p < alpha and same_sign)
         out.append(
             RobustnessWindowResult(
                 start_year=win_start,

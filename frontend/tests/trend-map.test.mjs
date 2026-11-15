@@ -14,15 +14,20 @@ test.beforeAll(async ({ browser: sharedBrowser }) => { browser = sharedBrowser; 
 
 // The mocked backend adds the cell counts the real one sends with each layer.
 const withCounts = layer => ({ ...layer, n_cells: layer.features.length, n_significant_fdr: layer.features.filter(f => f.properties.significant_fdr).length, n_significant_raw: 0 });
+// Counts come with the saved layer files now; a mocked old backend sends none.
+const withoutCounts = ({ n_cells, n_significant_fdr, n_significant_raw, stats_engine, ...rest }) => rest;
+// With one common test for all cells the saved precipitation layers hold no pair of opposite significant cells,
+// so the pair callout is exercised with a fixed pair, as the layer file carries it when there is one.
+const fixturePair = { a: { lat: 50, lon: 40, slope_per_decade: 3.9633, p: 0.00024 }, b: { lat: 46.5, lon: 40, slope_per_decade: -12.0948, p: 0 }, distance_km: 389, significance: 'fdr' };
 const entry = ({ variable_id, season, start_year, end_year, units_per_decade }) => ({ variable_id, season, start_year, end_year, units_per_decade });
 
-async function open({ live = false, index = true, counts = true, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
+async function open({ live = false, index = true, counts = true, pair = false, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
   const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
   // Assertions run offline; review screenshots load the imagery.
   if (!imagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
   const errors = [];
   const checks = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   if (live) {
     // Live mode lists /api/cases; an empty list keeps these tests on the form path.
     await page.route('**/api/cases', route => route.fulfill({ json: [] }));
@@ -30,8 +35,9 @@ async function open({ live = false, index = true, counts = true, imagery = false
     await page.route('**/api/grid/index', route => (index ? route.fulfill({ json: Object.values(layers).map(entry) }) : route.fulfill({ status: 404, json: { detail: 'Not Found' } })));
     await page.route('**/api/grid?*', route => {
       const url = new URL(route.request().url());
-      const layer = layers[`${url.searchParams.get('variable_id')}/${url.searchParams.get('season')}`];
-      return route.fulfill({ json: counts ? withCounts(layer) : layer });
+      const key = `${url.searchParams.get('variable_id')}/${url.searchParams.get('season')}`;
+      const layer = pair && key === 'precip/JJA' ? { ...layers[key], pair: fixturePair } : layers[key];
+      return route.fulfill({ json: counts ? withCounts(layer) : withoutCounts(layer) });
     });
     await page.route('**/api/places?*', route => route.fulfill({ json: [heat.case.place] }));
     await page.route('**/api/check', route => { checks.push(route.request().postDataJSON()); return route.fulfill({ json: heat }); });
@@ -95,12 +101,12 @@ test('hovering a cell shows its exact values from the layer', async () => {
 });
 
 test('precipitation layers show the opposite pair; temperature layers say there is none', async () => {
-  const { page, errors } = await open({ live: true });
+  const { page, errors } = await open({ live: true, pair: true });
   try {
     await expect(page.getByTestId('pair-callout')).toContainText('No opposite trends here: every significant cell gets warmer.');
     await expect(page.locator('.lead')).toHaveCount(0);
     await page.getByRole('group', { name: 'Trend map variable' }).getByRole('button', { name: 'Precipitation' }).click();
-    const { pair } = layers['precip/JJA'];
+    const pair = fixturePair;
     await expect(page.locator('.lead')).toHaveText(['▲ wetter', '▼ drier']);
     const callout = page.getByTestId('pair-callout');
     await expect(callout).toContainText(`+${pair.a.slope_per_decade} mm/decade, p <0.001`);
@@ -120,8 +126,9 @@ test('a map click checks that spot with the layer variable, season and period', 
   try {
     await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Winter' }).click();
     await expect(page.getByTestId('trend-legend')).toContainText('Winter air temperature trend');
+    // The first saved case is open, so its station marker sits in the middle of the map: click beside it.
     const [x, y] = await mapCentre(page);
-    await page.mouse.click(x, y);
+    await page.mouse.click(x + 80, y);
     await expect.poll(() => checks.length).toBe(1);
     const layer = layers['air_temp/DJF'];
     assert.match(checks[0].place.place_id, /^pt:-?\d+\.\d{2},-?\d+\.\d{2}$/);
@@ -185,8 +192,9 @@ test('saved mode reads the saved layers; a map click asks for the backend', asyn
   try {
     await expect(page.getByTestId('trend-legend')).toContainText('Summer air temperature trend');
     await expect(page.getByRole('group', { name: 'Trend map variable' }).getByRole('button')).toHaveText(['Air temperature', 'Precipitation']);
-    // The saved files carry no counts, so there is no share to print.
-    await expect(page.locator('.trend-caption')).toHaveCount(0);
+    // The saved files carry the cell counts, so the share is printed.
+    const saved = layers['air_temp/JJA'];
+    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(saved.n_significant_fdr / saved.n_cells * 100)}% of cells show a significant trend after FDR · chance alone would give ~5%`);
     const [x, y] = await mapCentre(page);
     await page.mouse.click(x + 80, y);
     await expect(page.locator('.trend-note')).toContainText('needs the backend');
@@ -205,7 +213,8 @@ test('trend map screenshots at 1440 and 390 without horizontal scroll', async ()
       await page.locator('[data-case="kyiv-summer-heat"]').click();
       await page.getByRole('group', { name: 'Trend map variable' }).getByRole('button', { name: 'Precipitation' }).click();
       await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Summer' }).click();
-      await expect(page.locator('.lead')).toHaveCount(2);
+      // Saved layers hold a pair only when one exists after the common test.
+      await expect(page.locator('.lead')).toHaveCount(layers['precip/JJA'].pair ? 2 : 0);
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.waitForTimeout(3000);
       await page.screenshot({ path: `test-results/trend-map-${name}.png`, fullPage: true });

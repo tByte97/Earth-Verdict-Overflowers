@@ -31,19 +31,21 @@ test('not-proven reasons and conditional waiting are visible before opening any 
     not_significant: 'not clear enough to distinguish',
     not_robust: 'depends too much on which years',
     sources_disagree: 'disagree about the direction',
+    no_variation: 'never changes here in this season',
   };
   for (const [reason, text] of Object.entries(explanations)) {
     // Synthetic response variants exercise wording; they are never shared case data.
     const result = structuredClone(dry);
     result.reason = reason;
-    result.years_to_wait = reason === 'sources_disagree' ? null : 15;
+    const noWait = reason === 'sources_disagree' || reason === 'no_variation';
+    result.years_to_wait = noWait ? null : 15;
     await liveResult(page, result);
     await expect(page.locator('.verdict')).toContainText(text);
     const panel = page.getByRole('region', { name: 'Why not proven' });
     await expect(panel).toBeVisible();
     await expect(panel).toContainText('Not enough evidence does not mean no change.');
-    await expect(panel.getByTestId('visible-wait')).toHaveText(reason === 'sources_disagree' ? 'Not determined' : '15 years');
-    await expect(panel).toContainText(reason === 'sources_disagree' ? 'not determined when the sources disagree' : 'not a prediction or a guarantee');
+    await expect(panel.getByTestId('visible-wait')).toHaveText(noWait ? 'Not determined' : '15 years');
+    await expect(panel).toContainText({ sources_disagree: 'not determined when the sources disagree', no_variation: 'the value does not change here' }[reason] ?? 'not a prediction or a guarantee');
     await expect(page.locator('.technical')).not.toHaveAttribute('open', '');
     await panel.getByRole('button').click();
     await expect(page.locator('.sources').getByRole('heading', { name: 'Detection simulation', exact: true })).toBeVisible();
@@ -105,7 +107,7 @@ test('prefix statistics have exact values, period context and their own one-clic
 
 test('missing observations, rising p-values and genuine zero retain their meanings', async ({ page }) => {
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   const result = structuredClone(heat);
   result.series[5].value = null;
   result.detection_history.points.forEach((point, i) => {

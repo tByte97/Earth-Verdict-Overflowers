@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import calendar
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+import contextvars
 from dataclasses import dataclass
 import math
+import time
 
 from .cache import build_url, get_json
 
@@ -11,6 +14,8 @@ SEARCH_URL = "https://www.ncei.noaa.gov/access/services/search/v1/data"
 DATA_URL = "https://www.ncei.noaa.gov/access/services/data/v1"
 MIN_COVERAGE = 0.9
 MIN_TEMP_DAYS = 25
+DAILY_WORKERS = 6
+DAILY_BUDGET_S = 45.0
 VALID_ELEMENTS = frozenset({"TAVG", "TMAX", "TMIN", "PRCP"})
 DAILY_FALLBACK_ELEMENTS = frozenset({"TAVG", "TMAX", "TMIN"})
 
@@ -45,11 +50,16 @@ def _daily_monthly_series(
     element: str,
     start_year: int,
     end_year: int,
-) -> tuple[list[float | None], str]:
-    """Aggregate GHCN-Daily values into monthly means/sums without splicing with GSOM."""
-    days_by_ym: dict[str, dict[str, float]] = {}
-    for year in range(start_year, end_year + 1):
-        rows = get_json(
+) -> tuple[list[float | None], str] | None:
+    """Aggregate GHCN-Daily values into monthly means/sums without splicing with GSOM.
+
+    Fetches per-year daily summaries concurrently (up to DAILY_WORKERS) within a shared
+    overall DAILY_BUDGET_S deadline; returns None if the budget expires before completion.
+    """
+    years = list(range(start_year, end_year + 1))
+
+    def _fetch_year(year: int) -> list[dict]:
+        return get_json(
             DATA_URL,
             {
                 "dataset": "daily-summaries",
@@ -61,7 +71,33 @@ def _daily_monthly_series(
                 "units": "metric",
             },
         )
-        for row in rows:
+
+    results_by_year: dict[int, list[dict]] = {}
+    if years:
+        pool = ThreadPoolExecutor(max_workers=min(DAILY_WORKERS, len(years)))
+        futures = {
+            pool.submit(contextvars.copy_context().run, _fetch_year, year): year
+            for year in years
+        }
+        pending = set(futures)
+        deadline = time.monotonic() + DAILY_BUDGET_S
+        try:
+            while pending:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return None
+                done, pending = wait(pending, timeout=remaining, return_when=FIRST_COMPLETED)
+                if not done:
+                    return None
+                for fut in done:
+                    results_by_year[futures[fut]] = fut.result()
+        finally:
+            # Never wait for stuck sockets on timeout/error; cancel queued tasks immediately.
+            pool.shutdown(wait=not pending, cancel_futures=bool(pending))
+
+    days_by_ym: dict[str, dict[str, float]] = {}
+    for year in years:
+        for row in results_by_year[year]:
             raw = row.get(element)
             date_str = row.get("DATE", "")
             if raw not in (None, "") and len(date_str) >= 7:
@@ -205,9 +241,12 @@ def best_station(
     # Not for PRCP: a monthly total needs every day, so daily data recovers no months
     # (Lviv: 292 vs 293 of 540) while costing one request per year (~75 s on first call).
     if coverage < MIN_COVERAGE and elem in DAILY_FALLBACK_ELEMENTS:
-        daily_monthly, daily_url = _daily_monthly_series(sid, elem, start_year, end_year)
+        # None = the daily download ran out of its time budget: keep the monthly summary we
+        # already have (the years fetched so far are cached, so the next request is quicker).
+        daily = _daily_monthly_series(sid, elem, start_year, end_year)
+        daily_monthly, daily_url = daily if daily is not None else ([], "")
         daily_covered = sum(v is not None for v in daily_monthly)
-        if daily_covered > covered:
+        if daily is not None and daily_covered > covered:
             monthly = daily_monthly
             covered = daily_covered
             coverage = covered / total_months if total_months else 0.0

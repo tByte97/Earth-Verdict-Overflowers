@@ -748,8 +748,8 @@
    "main_slope_per_decade": 0.6768,
    "witness_slope_per_decade": 0.7672,
    "difference_per_decade": 0.0945,
-   "ci_low": -0.0281,
-   "ci_high": 0.2204,
+   "ci_low": -0.1246,
+   "ci_high": 0.3444,
    "p": 0.418,
    "consistent": true
   }
@@ -3016,7 +3016,7 @@
    "id": "robustness",
    "title": "Does the choice of years matter?",
    "value": "5 of 5 periods agree",
-   "detail": "We repeat the check with the start and end shifted by a few years.",
+   "detail": "We repeat the check with the start and end shifted by a few years; at least 4 of 5 must agree.",
    "fields": [
     "robustness_summary.significant",
     "robustness_summary.total"
@@ -3219,7 +3219,7 @@
    {
     "end_year": 1998,
     "n_observations": 18,
-    "p": 0.36331590966639116,
+    "p": 0.36331590966639105,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3240,42 +3240,42 @@
    {
     "end_year": 2001,
     "n_observations": 21,
-    "p": 0.08521008299376037,
+    "p": 0.08521008299376036,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2002,
     "n_observations": 22,
-    "p": 0.03692007316250187,
+    "p": 0.03692007316250188,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2003,
     "n_observations": 23,
-    "p": 0.06449652825042429,
+    "p": 0.06449652825042432,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2004,
     "n_observations": 24,
-    "p": 0.10689967587922093,
+    "p": 0.1068996758792209,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2005,
     "n_observations": 25,
-    "p": 0.09727654970369656,
+    "p": 0.09727654970369655,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2006,
     "n_observations": 26,
-    "p": 0.08557050563653738,
+    "p": 0.08557050563653737,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3289,7 +3289,7 @@
    {
     "end_year": 2008,
     "n_observations": 28,
-    "p": 0.015096660976156678,
+    "p": 0.015096660976156672,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3303,7 +3303,7 @@
    {
     "end_year": 2010,
     "n_observations": 30,
-    "p": 0.0030603401476842606,
+    "p": 0.003060340147684261,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3317,7 +3317,7 @@
    {
     "end_year": 2012,
     "n_observations": 32,
-    "p": 0.0007884847400962285,
+    "p": 0.0007884847400962284,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3352,42 +3352,42 @@
    {
     "end_year": 2017,
     "n_observations": 37,
-    "p": 3.3832594463980466e-05,
+    "p": 3.3832594463980446e-05,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2018,
     "n_observations": 38,
-    "p": 1.7111327074866244e-05,
+    "p": 1.7111327074866234e-05,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2019,
     "n_observations": 39,
-    "p": 6.794176865487787e-06,
+    "p": 6.7941768654877855e-06,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2020,
     "n_observations": 40,
-    "p": 3.33931978478272e-06,
+    "p": 3.3393197847827204e-06,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2021,
     "n_observations": 41,
-    "p": 1.029610633145171e-06,
+    "p": 1.0296106331451708e-06,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2022,
     "n_observations": 42,
-    "p": 8.646697358034105e-07,
+    "p": 8.646697358034106e-07,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3401,14 +3401,14 @@
    {
     "end_year": 2024,
     "n_observations": 44,
-    "p": 4.036137828874262e-07,
+    "p": 4.0361378288742626e-07,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2025,
     "n_observations": 45,
-    "p": 1.1057021505170023e-06,
+    "p": 1.105702150517002e-06,
     "correction": "hamed_rao",
     "status": "ok"
    }
@@ -3808,9 +3808,10 @@
  },
  "scenarios": {
   "synthetic": false,
-  "source": "NASA NEX-GDDP-CMIP6 (5-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR)",
+  "source": "NASA NEX-GDDP-CMIP6 (4-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6)",
   "baseline_period": "1995-2014",
   "baseline_value": 20.31,
+  "baseline_n_years": 20,
   "note": "These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
   "paths": [
    {
@@ -3829,47 +3830,47 @@
      "2091-2100"
     ],
     "median": [
-     1.36,
-     1.6,
-     2.03,
-     1.69
+     1.54,
+     1.98,
+     2.27,
+     2.08
     ],
     "low": [
-     0.46,
-     1.1,
-     0.72,
-     0.61
+     0.7,
+     1.14,
+     1.41,
+     1.07
     ],
     "high": [
-     1.75,
-     2.64,
-     2.88,
-     2.75
+     1.76,
+     2.69,
+     2.94,
+     2.79
     ],
     "median_value": [
-     21.67,
-     21.91,
-     22.34,
-     22.0
+     21.85,
+     22.29,
+     22.58,
+     22.39
     ],
     "low_value": [
-     20.77,
-     21.41,
-     21.03,
-     20.92
+     21.01,
+     21.45,
+     21.72,
+     21.38
     ],
     "high_value": [
-     22.06,
-     22.95,
-     23.19,
-     23.06
+     22.07,
+     23.0,
+     23.25,
+     23.1
     ],
     "analogs": [
      {
       "year": 2030,
-      "analog_year": 2007,
-      "analog_value": 21.7,
-      "analog_rank": 3,
+      "analog_year": 2024,
+      "analog_value": 21.93,
+      "analog_rank": 2,
       "beyond_record": false
      },
      {
@@ -3911,47 +3912,47 @@
      "2091-2100"
     ],
     "median": [
-     1.18,
-     1.95,
-     2.79,
-     3.75
+     1.38,
+     2.15,
+     3.02,
+     4.11
     ],
     "low": [
-     0.99,
-     1.51,
-     1.73,
-     1.7
+     1.03,
+     1.53,
+     2.0,
+     2.23
     ],
     "high": [
-     1.88,
-     2.97,
-     3.72,
-     4.55
+     1.93,
+     3.07,
+     3.79,
+     4.56
     ],
     "median_value": [
-     21.49,
-     22.26,
-     23.1,
-     24.06
+     21.69,
+     22.46,
+     23.33,
+     24.42
     ],
     "low_value": [
-     21.3,
-     21.82,
-     22.04,
-     22.01
+     21.34,
+     21.84,
+     22.31,
+     22.54
     ],
     "high_value": [
-     22.19,
-     23.28,
-     24.03,
-     24.86
+     22.24,
+     23.38,
+     24.1,
+     24.87
     ],
     "analogs": [
      {
       "year": 2030,
-      "analog_year": 2015,
-      "analog_value": 21.48,
-      "analog_rank": 5,
+      "analog_year": 2007,
+      "analog_value": 21.7,
+      "analog_rank": 3,
       "beyond_record": false
      },
      {
@@ -3993,40 +3994,40 @@
      "2091-2100"
     ],
     "median": [
-     1.22,
-     2.5,
-     4.88,
-     6.13
+     1.21,
+     2.83,
+     5.18,
+     7.45
     ],
     "low": [
-     0.58,
-     1.78,
-     3.28,
-     4.35
+     0.79,
+     2.08,
+     3.85,
+     4.17
     ],
     "high": [
-     1.85,
-     3.6,
-     5.75,
-     9.62
+     1.95,
+     3.67,
+     5.79,
+     9.63
     ],
     "median_value": [
-     21.53,
-     22.81,
-     25.19,
-     26.44
+     21.52,
+     23.14,
+     25.49,
+     27.76
     ],
     "low_value": [
-     20.89,
-     22.09,
-     23.59,
-     24.66
+     21.1,
+     22.39,
+     24.16,
+     24.48
     ],
     "high_value": [
-     22.16,
-     23.91,
-     26.06,
-     29.93
+     22.26,
+     23.98,
+     26.1,
+     29.94
     ],
     "analogs": [
      {
@@ -4067,7 +4068,7 @@
    "source": "NASA POWER",
    "product": "T2M (MERRA-2)",
    "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M&community=AG&latitude=50.45&longitude=30.52&start=1981&end=2025&format=JSON",
-   "retrieved_at": "2026-11-15",
+   "retrieved_at": "2026-11-14",
    "license": "Public domain (NASA)"
   },
   {
@@ -4075,21 +4076,21 @@
    "source": "NOAA NCEI",
    "product": "GHCN-Daily → monthly",
    "url": "https://www.ncei.noaa.gov/access/services/data/v1?dataset=daily-summaries&stations=UPM00033345&dataTypes=TAVG&units=metric&format=json",
-   "retrieved_at": "2026-11-15",
+   "retrieved_at": "2026-11-14",
    "license": "Public domain (NOAA)"
   },
   {
    "what": "Future scenarios",
    "source": "NASA NCCS",
-   "product": "NEX-GDDP-CMIP6 v2.0, 5 models, r1i1p1f1",
+   "product": "NEX-GDDP-CMIP6 v2.0, 4 models, r1i1p1f1",
    "url": "https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
    "retrieved_at": "2026-11-14",
    "license": "CC BY 4.0 (NASA NEX-GDDP-CMIP6)"
   }
  ],
  "meta": {
-  "stub": true,
+  "stub": false,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-15T08:44:17Z"
+  "generated_at": "2026-11-15T09:46:01Z"
  }
 }

@@ -1,6 +1,8 @@
 """File-backed HTTP cache and retry layer using stdlib urllib."""
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import hashlib
 import json
 import os
@@ -16,7 +18,67 @@ from .errors import SourceUnavailable
 
 _DEFAULT_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 _UA = {"User-Agent": "Mozilla/5.0 (EarthVerdict hackathon fetcher)"}
-_RETRIES = 3
+_RETRIES = 2
+_DEFAULT_TIMEOUT_S = 30.0
+
+_url_locks: dict[str, list] = {}
+_url_guard = threading.Lock()
+
+
+class _FetchCounter:
+    """Thread-safe counter for network fetches performed during one request."""
+
+    __slots__ = ("count", "_lock")
+
+    def __init__(self) -> None:
+        self.count = 0
+        self._lock = threading.Lock()
+
+    def inc(self) -> None:
+        with self._lock:
+            self.count += 1
+
+
+_network_fetches: contextvars.ContextVar[_FetchCounter | None] = contextvars.ContextVar(
+    "ev_network_fetches",
+    default=None,
+)
+
+
+@contextlib.contextmanager
+def track_network_fetches():
+    """Track how many network downloads happen within the active context."""
+    counter = _FetchCounter()
+    token = _network_fetches.set(counter)
+    try:
+        yield counter
+    finally:
+        _network_fetches.reset(token)
+
+
+def _record_network_fetch() -> None:
+    counter = _network_fetches.get()
+    if counter is not None:
+        counter.inc()
+
+
+@contextlib.contextmanager
+def _url_lock(key: str):
+    """Per-URL mutex with refcounted cleanup so in-flight URLs don't leak memory."""
+    with _url_guard:
+        entry = _url_locks.get(key)
+        if entry is None:
+            entry = [threading.Lock(), 0]
+            _url_locks[key] = entry
+        entry[1] += 1
+    try:
+        with entry[0]:
+            yield
+    finally:
+        with _url_guard:
+            entry[1] -= 1
+            if entry[1] == 0:
+                _url_locks.pop(key, None)
 
 
 def data_dir() -> Path:
@@ -63,6 +125,15 @@ def cache_path(full_url: str, ext: str = "json") -> Path:
     return cache_dir() / f"{key}.{ext}"
 
 
+def _read_if_fresh(path: Path, *, refresh: bool, max_age_s: float | None) -> tuple[str | None, bool]:
+    if not path.exists() or refresh:
+        return None, False
+    stale = max_age_s is not None and time.time() - path.stat().st_mtime > max_age_s
+    if not stale or _is_offline():
+        return path.read_text(encoding="utf-8"), stale
+    return None, True
+
+
 def get_text(
     url: str,
     params: dict | None = None,
@@ -71,7 +142,7 @@ def get_text(
     ext: str = "json",
     refresh: bool = False,
     validate: Callable[[str], Any] | None = None,
-    timeout: float = 120,
+    timeout: float = _DEFAULT_TIMEOUT_S,
     max_age_s: float | None = None,
 ) -> str:
     """Fetch URL text with file caching, offline support, and retries with backoff.
@@ -81,21 +152,26 @@ def get_text(
     """
     full = build_url(url, params)
     path = cache_path(full, ext=ext)
-    stale = False
-    if path.exists() and not refresh:
-        stale = max_age_s is not None and time.time() - path.stat().st_mtime > max_age_s
-        if not stale or _is_offline():
-            return path.read_text(encoding="utf-8")
+    cached, stale = _read_if_fresh(path, refresh=refresh, max_age_s=max_age_s)
+    if cached is not None:
+        return cached
 
     src = source_name(url)
     if _is_offline():
         raise SourceUnavailable(src, "offline and not cached")
-    try:
-        return _fetch_and_store(full, path, src, headers, validate, timeout)
-    except SourceUnavailable:
-        if stale:
-            return path.read_text(encoding="utf-8")
-        raise
+
+    with _url_lock(full):
+        # Re-check inside the per-URL lock in case another waiter just populated the cache.
+        cached, stale = _read_if_fresh(path, refresh=refresh, max_age_s=max_age_s)
+        if cached is not None:
+            return cached
+        _record_network_fetch()
+        try:
+            return _fetch_and_store(full, path, src, headers, validate, timeout)
+        except SourceUnavailable:
+            if stale:
+                return path.read_text(encoding="utf-8")
+            raise
 
 
 def _fetch_and_store(
@@ -144,7 +220,7 @@ def get_json(
     *,
     headers: dict | None = None,
     refresh: bool = False,
-    timeout: float = 120,
+    timeout: float = _DEFAULT_TIMEOUT_S,
 ) -> Any:
     """Fetch and parse a JSON response with file caching and retries."""
     text = get_text(
