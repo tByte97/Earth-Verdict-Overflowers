@@ -4,7 +4,8 @@
   border-top:1px solid var(--line-soft);
 }
 .step-pipeline h3 {
-  font-size:13px;
+  font:600 22px/1.2 var(--serif);
+  color:var(--ink);
   margin:0 0 10px;
 }
 .step-pipeline ol {
@@ -27,10 +28,9 @@
   width:22px;
   height:22px;
   border-radius:50%;
-  background:var(--tint);
-  color:var(--green);
-  font-size:11px;
-  font-weight:600;
+  border:1px solid var(--line);
+  color:var(--cream);
+  font:500 11px var(--mono);
   display:grid;
   place-items:center;
 }
@@ -44,7 +44,7 @@
   color:var(--muted);
 }
 .step-value {
-  font-size:13px;
+  font:500 13px var(--mono);
   color:var(--ink);
 }
 .step-head {
@@ -70,7 +70,7 @@
   stroke:var(--ink-2);
 }
 .spark-station {
-  stroke:#3a6fc4;
+  stroke:#a99be6;
 }
 .month-on rect {
   fill:var(--green);
@@ -88,7 +88,7 @@
 }
 .window-off {
   fill:none;
-  stroke:#8e9988;
+  stroke:var(--ink-3);
   stroke-width:.8;
 }
 .step-verdict {
@@ -147,7 +147,7 @@
 }
 .step-fields dd {
   margin:0;
-  font-variant-numeric:tabular-nums;
+  font-family:var(--mono);
   color:var(--ink);
 }
 .step-note {

@@ -1,5 +1,4 @@
-/* Dark Trend Detective theme. Components read the semantic tokens below;
-   .legacy-light restores the previous light values for workspaces not yet restyled. */
+/* Dark Trend Detective theme. Components read the semantic tokens below. */
 :root {
   --panel-w:500px;
   --bg:#05070b;
@@ -38,29 +37,6 @@
   color:var(--ink);
   background:var(--bg);
   color-scheme:dark;
-}
-.legacy-light {
-  --muted:#5c7066;
-  --line:#dbe3db;
-  --line-soft:#e7ece4;
-  --green:#245f47;
-  --accent-ink:#fff;
-  --paper:#fff;
-  --tint:#f3f6f0;
-  --field:#fcfdfb;
-  --display:var(--sans);
-  --ok:#235d3b;
-  --ok-bg:#edf5ec;
-  --bad:#893b31;
-  --bad-bg:#faeeea;
-  --bad-line:#e5c3bb;
-  --warn:#7c601b;
-  --warn-bg:#faf5e7;
-  --warn-line:#b69c4a;
-  --chart-soft:#cfe0d4;
-  color:#243b33;
-  background:#f1f4ef;
-  color-scheme:light;
 }
 * {
   box-sizing:border-box;
@@ -103,18 +79,12 @@ a {
   outline:2px solid var(--cream);
   outline-offset:3px;
 }
-.legacy-light :focus-visible {
-  outline-color:#507fd0;
-}
 .eyebrow {
   margin:0;
   font:10px/1.3 var(--mono);
   letter-spacing:.14em;
   text-transform:uppercase;
   color:var(--ink-3);
-}
-.legacy-light .eyebrow {
-  color:var(--muted);
 }
 .sr-only {
   position:absolute;
@@ -393,9 +363,6 @@ input,select {
   background:var(--field);
   color:inherit;
   font-size:13px;
-}
-.legacy-light input,.legacy-light select {
-  color:#273f32;
 }
 select {
   padding-right:22px;
