@@ -299,3 +299,9 @@ How it was measured:
 - First frame: time from navigation start to the first WebGL draw call on the page.
 - FPS: the globe was dragged sideways with the mouse for 3 s; FPS = animation frames that drew ÷ elapsed time.
   The pointer sent about 50–60 move events per second.
+
+### Local Earth texture
+
+`public/blue-marble-1024x512.jpg` (1024 × 512 JPEG, 87 KB) is a low-resolution Blue Marble for the first frame
+offline. Source: NASA GIBS WMS GetMap, layer `BlueMarble_ShadedRelief_Bathymetry`, EPSG:4326 (equirectangular),
+whole globe. It is not used by the globe yet.
