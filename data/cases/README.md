@@ -18,6 +18,8 @@ These files are `CheckResult` responses shared by the API and frontend. Observat
 
 - `series`: one value per calendar year. A missing value stays `null`; do not replace it with zero or compress the time axis.
 - `sen`, `mk`, `ols`, `robustness`: backend statistics, not raw provider measurements. Sen confidence limits are per decade. Historical analysis periods are not anomaly reference baselines.
+- Methods: Mann–Kendall with a Hamed–Rao correction and an AR(1) floor; the Sen 95% interval uses the same autocorrelation inflation (`mk.ess`), so "interval excludes 0" and "p < 0.05" agree except at the boundary. `detection.phi` is the residual lag-1 autocorrelation with the Marriott–Pope bias correction, bounded to 0–0.9.
+- `scenarios.baseline_value` is the observed 1995–2014 mean from the whole record, whatever the case period; `baseline_n_years` says how many years went into it (scenarios are omitted below 15).
 - `witness`: the independent station check, or `null` if no suitable station exists. Keep coverage, gaps and optional rate-comparison information.
 - `steps`: the eight processing explanations.
 - `provenance`: provider/product, request URL, retrieval date and license. Derived quantities also need their corresponding backend method record in the UI.

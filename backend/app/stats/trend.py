@@ -147,17 +147,33 @@ def sen_slope(
     values: Sequence[Optional[float]],
     *,
     start_year: Optional[int] = None,
+    ess: float = 1.0,
 ) -> SenResult:
-    """Compute Sen's median pairwise slope, 95% confidence interval, and intercept."""
+    """Sen's median pairwise slope, 95% confidence interval, and intercept.
+
+    The interval is Sen (1968) eq. 2.6, as in scipy.stats.theilslopes, with the variance of S
+    multiplied by `ess`, the same autocorrelation inflation the Mann-Kendall test uses. With
+    ess = 1 the limits equal theilslopes'; with ess > 1 the interval widens like the p-value.
+    """
     x, y = _filter_valid(years, values)
-    if len(y) < 2:
+    n = len(y)
+    if n < 2:
         raise ValueError("Need at least 2 valid observations for Sen's slope")
-    ts = theilslopes(y, x, alpha=0.95)
-    slope = float(ts.slope)
-    ci_low = float(ts.low_slope) if math.isfinite(ts.low_slope) else slope
-    ci_high = float(ts.high_slope) if math.isfinite(ts.high_slope) else slope
+    iu0, iu1 = np.triu_indices(n, k=1)
+    slopes = np.sort((y[iu1] - y[iu0]) / (x[iu1] - x[iu0]))   # years are strictly increasing
+    nt = len(slopes)
+    slope = float(np.median(slopes))
+
+    _, counts = np.unique(y, return_counts=True)
+    ties = counts[counts > 1]
+    sigsq = (n * (n - 1) * (2 * n + 5) - float(np.sum(ties * (ties - 1) * (2 * ties + 5)))) / 18.0
+    c = _Z_975 * math.sqrt(max(sigsq, 0.0) * max(ess, 1.0))
+    r_low = max(int(np.round((nt - c) / 2.0)) - 1, 0)
+    r_high = min(int(np.round((nt + c) / 2.0)), nt - 1)
+    ci_low, ci_high = float(slopes[r_low]), float(slopes[r_high])
+
     ref_x = float(start_year) if start_year is not None else float(x[0])
-    intercept = float(ts.intercept + slope * ref_x)
+    intercept = float(np.median(y) - slope * np.median(x) + slope * ref_x)
     return SenResult(
         slope_per_year=slope,
         slope_per_decade=slope * 10.0,
@@ -258,6 +274,9 @@ def mann_kendall_batch_p(y_batch: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 def ols_effective(years: Sequence[int], values: Sequence[Optional[float]]) -> OLSResult:
     """OLS linear trend with AR(1) effective sample size adjustment n_eff = n(1-r1)/(1+r1).
 
+    r1 is the residual lag-1 autocorrelation with the Marriott-Pope bias correction (n >= 5),
+    the same correction the Mann-Kendall AR(1) envelope uses.
+
     Negative residual lag-1 estimates keep n_eff at n so sampling noise does not
     inflate effective degrees of freedom above observed sample count n.
     """
@@ -274,6 +293,9 @@ def ols_effective(years: Sequence[int], values: Sequence[Optional[float]]) -> OL
     res = y - (intercept + slope * x)
     res_centered = res - float(np.mean(res))
     r1 = float(_lag_acf_values(res_centered, x, max_lag=1)[0])
+    if n >= 5:
+        # Marriott-Pope: the sample lag-1 autocorrelation of a short series is biased low.
+        r1 = min((n * r1 + 1.0) / (n - 3.0), 0.95)
     phi = min(max(r1, 0.0), 0.9)
     residual_sd = float(np.std(res, ddof=2))
 
@@ -315,8 +337,10 @@ def analyze_trend(
         return None
 
     ref_start = start_year if start_year is not None else int(x[0])
-    sen = sen_slope(x, y, start_year=ref_start)
-    mk = mann_kendall(x, y, detrend_slope=sen.slope_per_year)
+    # Order: slope → MK (gives ess) → slope interval with the same autocorrelation inflation.
+    slope = sen_slope(x, y, start_year=ref_start).slope_per_year
+    mk = mann_kendall(x, y, detrend_slope=slope)
+    sen = sen_slope(x, y, start_year=ref_start, ess=mk.ess)
     ols = ols_effective(x, y)
     return TrendResult(
         n=n,

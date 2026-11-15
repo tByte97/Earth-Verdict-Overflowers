@@ -323,7 +323,8 @@ def _read_layer(path: Path, mtime_ns: int) -> dict:
     layer = json.loads(path.read_text(encoding="utf-8"))
     props = [f["properties"] for f in layer["features"]]
     head = {k: v for k, v in layer.items() if k != "features"}
-    return {**head, "n_cells": len(props),
+    # n_cells counts tested cells only (a cell too short for the test has p = null and is not in the FDR).
+    return {**head, "n_cells": sum(p.get("p") is not None for p in props),
             "n_significant_fdr": sum(bool(p.get("significant_fdr")) for p in props),
             "n_significant_raw": sum(bool(p.get("significant_raw")) for p in props),
             "features": layer["features"]}

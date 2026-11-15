@@ -37,6 +37,8 @@ STATION_RENAMES = {"Kiev": "Kyiv", "Kharkov": "Kharkiv", "Odessa": "Odesa", "Lvo
 LOW_COVERAGE = 0.6
 # Fewer valid years than this: the product has no data here at all (ocean, ice, outside coverage).
 MIN_VALID_YEARS = 3
+# Observed years of 1995–2014 needed to anchor CMIP6 changes to an absolute value.
+MIN_BASELINE_YEARS = 15
 
 METHOD_NOTES = {
     "gsom": None,
@@ -179,13 +181,20 @@ def assemble_result(
     end = spec.end_year
     d, u = var.decimals, var.units
 
+    # The whole record the source gave (scenario baseline and observed analogs use it);
+    # the verdict, robustness and history see only [start, end].
     if main_series.yearly is not None:
-        years = list(range(start, end + 1))
-        vals = [main_series.yearly.get(y) for y in years]
+        full = dict(main_series.yearly)
     else:
         y0, m0 = _ym(main_series.start)
-        years, vals = seasonal_series(main_series.monthly, season, var.agg, start, end,
-                                      per_day=var.per_day, data_start_year=y0, data_start_month=m0)
+        last_year = y0 + (m0 - 1 + len(main_series.monthly) - 1) // 12
+        fy, fv = seasonal_series(main_series.monthly, season, var.agg, y0, last_year,
+                                 per_day=var.per_day, data_start_year=y0, data_start_month=m0)
+        full = dict(zip(fy, fv))
+    full_years = sorted(full)
+    full_vals = [full[y] for y in full_years]
+    years = list(range(start, end + 1))
+    vals = [full.get(y) for y in years]
 
     n_valid = sum(v is not None for v in vals)
     if n_valid < MIN_VALID_YEARS:
@@ -332,15 +341,20 @@ def assemble_result(
 
     scen = None
     if scenarios:
-        base = [v for y, v in zip(years, vals) if 1995 <= y <= 2014 and v is not None]
+        # CMIP6 changes are relative to 1995–2014: the base comes from the full record, not the case period.
+        base = [v for y, v in zip(full_years, full_vals) if 1995 <= y <= 2014 and v is not None]
         scen = dict(scenarios)
-        if base and scen.get("baseline_value") is None:
-            scen["baseline_value"] = round(sum(base) / len(base), d)
-        if scen.get("baseline_value") is not None:
-            scen = add_observed_context(scen, years, vals, d)
-        for p in scenarios.get("provenance", []):
-            prov.append(p)
-        scen.pop("provenance", None)
+        if scen.get("baseline_value") is None:
+            if len(base) >= MIN_BASELINE_YEARS:
+                scen["baseline_value"] = round(sum(base) / len(base), d)
+                scen["baseline_n_years"] = len(base)
+            else:
+                scen = None      # too few observed baseline years to anchor the scenarios
+        if scen is not None:
+            scen = add_observed_context(scen, full_years, full_vals, d)
+            for p in scenarios.get("provenance", []):
+                prov.append(p)
+            scen.pop("provenance", None)
 
     valid_years = [y for y, v in zip(years, vals) if v is not None]
     pivot_year, pivot_value, band = sen_band(
@@ -375,15 +389,19 @@ def assemble_result(
 
 # ---------- live data ----------
 
-def fetch_main_series(var: VariableDef, lat: float, lon: float, start: int, end: int) -> MainSeries:
-    """Monthly series from the variable's source, starting in January of start-1 (for DJF)."""
+def fetch_main_series(var: VariableDef, lat: float, lon: float) -> MainSeries:
+    """The variable's whole monthly record at a point.
+
+    One request either way (POWER and Giovanni return the range in one response), and the cache
+    key is the same for every period asked about this point.
+    """
     from .sources import giovanni, power
 
-    first = max(start - 1, 1981)
+    first, last = var.first_year, var.last_year
     if var.source_kind == "power":
-        pm = power.fetch_monthly(lat, lon, [var.source_param], first, end)
+        pm = power.fetch_monthly(lat, lon, [var.source_param], first, last)
         return MainSeries(monthly=pm.series[var.source_param], start=pm.start, url=pm.url, retrieved_at=_now())
-    g = giovanni.fetch_monthly(var.source_param, lat, lon, first, end)
+    g = giovanni.fetch_monthly(var.source_param, lat, lon, first, last)
     return MainSeries(monthly=g["monthly"], start=g["start"], url=g["url"], retrieved_at=_now())
 
 
@@ -418,7 +436,7 @@ def run_check(spec: CaseSpec) -> CheckResult:
         if var.source_kind == "cag":
             main_series = fetch_cag_series(var, spec.place, spec.season)
         else:
-            main_series = fetch_main_series(var, lat, lon, start, spec.end_year)
+            main_series = fetch_main_series(var, lat, lon)
     except SourceUnavailable as e:
         raise CheckError("source_unavailable", f"{SOURCE_LABEL[var.source_kind]} did not respond: {e.message}")
     try:

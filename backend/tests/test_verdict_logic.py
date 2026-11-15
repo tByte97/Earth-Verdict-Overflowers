@@ -98,7 +98,7 @@ def test_station_renames():
 # ---------- API ----------
 
 def _fake_main(values):
-    def main_series(var, lat, lon, start, end):
+    def main_series(var, lat, lon):
         return MainSeries(monthly=values, start="1980-01", url="https://power.example/test",
                           retrieved_at="2026-11-14T00:00:00Z")
     return main_series
