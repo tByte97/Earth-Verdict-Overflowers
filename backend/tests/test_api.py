@@ -155,6 +155,34 @@ def test_grid_layer():
     assert djf["start_year"] == 1982 and djf["variable_id"] == "air_temp"
 
 
+def test_grid_layer_counts_match_features():
+    for season in ("year", "JJA", "DJF"):
+        gj = client.get("/api/grid", params={"variable_id": "precip", "season": season}).json()
+        props = [f["properties"] for f in gj["features"]]
+        assert gj["n_cells"] == len(props)
+        assert gj["n_significant_fdr"] == sum(p["significant_fdr"] for p in props)
+        assert gj["n_significant_raw"] == sum(p["significant_raw"] for p in props)
+        assert gj["n_significant_fdr"] <= gj["n_significant_raw"] <= gj["n_cells"]
+
+
+def test_grid_index_lists_built_layers(monkeypatch, tmp_path):
+    from app import main
+    index = client.get("/api/grid/index").json()
+    assert len(index) == len(list(main.LAYERS_DIR.glob("trends_*.geojson")))
+    assert {(x["variable_id"], x["season"]) for x in index} == {
+        (v, s) for v in ("air_temp", "precip") for s in ("year", "JJA", "DJF")}
+    djf = next(x for x in index if x["variable_id"] == "air_temp" and x["season"] == "DJF")
+    assert djf == {"variable_id": "air_temp", "season": "DJF", "start_year": 1982, "end_year": 2025,
+                   "units_per_decade": "°C/decade"}
+    # Only what lies in the directory is listed.
+    (tmp_path / "trends_PRECTOTCORR_JJA.geojson").write_bytes(
+        (main.LAYERS_DIR / "trends_PRECTOTCORR_JJA.geojson").read_bytes())
+    monkeypatch.setattr(main, "LAYERS_DIR", tmp_path)
+    assert [(x["variable_id"], x["season"]) for x in client.get("/api/grid/index").json()] == [("precip", "JJA")]
+    monkeypatch.setattr(main, "LAYERS_DIR", tmp_path / "missing")
+    assert client.get("/api/grid/index").json() == []
+
+
 def test_places_short_query_is_empty():
     assert client.get("/api/places", params={"q": "K"}).json() == []
 

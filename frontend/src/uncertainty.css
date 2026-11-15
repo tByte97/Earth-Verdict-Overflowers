@@ -1,20 +1,20 @@
 .uncertainty-panel {
   margin:16px 28px 20px;
   padding:16px;
-  border:1px solid #d8bf87;
+  border:1px solid var(--warn-line);
   border-radius:12px;
-  background:#fff8e8;
+  background:var(--warn-bg);
   font-size:14px;
   line-height:1.6;
 }
 .uncertainty-panel p { margin:0 0 12px; }
 .uncertainty-panel .waiting-value { font-size:16px; }
-.detection-simulator { margin-top:20px; border:1px solid var(--line); border-radius:12px; background:#f7faf6; }
+.detection-simulator { margin-top:20px; border:1px solid var(--line); border-radius:12px; background:var(--tint); }
 .detection-simulator > summary { padding:16px; }
 .detection-simulator .detail-body { padding:0 16px 18px; }
 .detection-simulator label { display:flex; align-items:baseline; justify-content:space-between; gap:12px; font-weight:600; }
 .detection-simulator input[type=range] { width:100%; min-height:36px; accent-color:var(--green); }
-.history-readout { display:grid; gap:8px; margin:12px 0; padding:12px; border-radius:8px; background:white; font-size:14px; }
+.history-readout { display:grid; gap:8px; margin:12px 0; padding:12px; border-radius:8px; background:var(--paper); font-size:14px; }
 .history-actions { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; margin:14px 0; }
 .simulator-help { margin:12px 0 18px; }
 .simulator-help summary { font-size:14px; }
@@ -22,7 +22,7 @@
 .chart-scale { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:12px; margin:6px 0; }
 .history-values { margin:16px 0; }
 .history-values caption { text-align:left; padding:10px 0; font-size:12px; color:var(--muted); }
-.history-values tr[aria-current=true] { background:#e4efdf; }
+.history-values tr[aria-current=true] { background:var(--tint); }
 .rate-experiment { border-top:1px solid var(--line); margin-top:24px; padding-top:4px; }
 .rate-experiment .detection-estimate { margin-top:12px; }
 .detection-simulator .text-button { white-space:normal; text-align:left; }

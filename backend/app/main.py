@@ -16,7 +16,7 @@ from typing import Literal, Optional
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -227,6 +227,32 @@ async def chat(req: ChatRequest):
 
 # ---------- trend layers for the globe (precomputed, FDR-corrected) ----------
 
+LAYER_INDEX_KEYS = ("variable_id", "season", "start_year", "end_year", "units_per_decade")
+
+
+@lru_cache(maxsize=32)
+def _read_layer(path: Path, mtime_ns: int) -> dict:
+    """Layer file plus cell counts taken from its features (the files predate the counts)."""
+    layer = json.loads(path.read_text(encoding="utf-8"))
+    props = [f["properties"] for f in layer["features"]]
+    head = {k: v for k, v in layer.items() if k != "features"}
+    return {**head, "n_cells": len(props),
+            "n_significant_fdr": sum(bool(p.get("significant_fdr")) for p in props),
+            "n_significant_raw": sum(bool(p.get("significant_raw")) for p in props),
+            "features": layer["features"]}
+
+
+def load_layer(path: Path) -> dict:
+    return _read_layer(path, path.stat().st_mtime_ns)
+
+
+@app.get("/api/grid/index")
+async def grid_index():
+    """Layers that are actually built, read from LAYERS_DIR."""
+    return [{k: load_layer(path)[k] for k in LAYER_INDEX_KEYS}
+            for path in sorted(LAYERS_DIR.glob("trends_*.geojson"))]
+
+
 @app.get("/api/grid")
 async def grid(variable_id: Literal["air_temp", "precip"] = "air_temp",
                season: Literal["year", "JJA", "DJF"] = "JJA"):
@@ -236,7 +262,7 @@ async def grid(variable_id: Literal["air_temp", "precip"] = "air_temp",
         return JSONResponse(ErrorResponse(error={"code": "source_unavailable",
                                                  "message": "This trend layer has not been built yet."}).model_dump(),
                             status_code=503)
-    return FileResponse(path, media_type="application/geo+json")
+    return JSONResponse(load_layer(path), media_type="application/geo+json")
 
 
 # ---------- built frontend (single-service deploy) ----------

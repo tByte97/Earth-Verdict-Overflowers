@@ -17,6 +17,8 @@ def detection_history(
     Input values are the same unrounded annual aggregates used for the main trend.
     No power simulation, robustness decision, station verdict or future data is used.
     Keep p at received precision; the main API's mk.p is rounded to three significant digits.
+    emerged_year is the first end year from which every prefix is significant with the
+    Sen slope sign of the full record; None when the full record itself is not significant.
     """
     if not years or len(years) != len(values):
         raise ValueError("History needs non-empty, equally sized years and values")
@@ -25,7 +27,7 @@ def detection_history(
     if not 0 < alpha < 1 or min_observations < 3:
         raise ValueError("Invalid significance threshold or minimum observations")
     by_year = dict(zip(years, values))
-    xs, ys, points = [], [], []
+    xs, ys, points, signs = [], [], [], []
     valid_count = 0
     for end in range(years[0], years[-1] + 1):
         value = by_year.get(end)
@@ -41,5 +43,13 @@ def detection_history(
             correction=None if trend is None else trend.mk.correction,
             status="short_series" if trend is None else "ok",
         ))
+        slope = trend.sen.slope_per_year if trend is not None and trend.mk.p < alpha else 0.0
+        signs.append((slope > 0) - (slope < 0))
+    emerged_year = None
+    for point, sign in zip(reversed(points), reversed(signs)):
+        if not sign or sign != signs[-1]:
+            break
+        emerged_year = point["end_year"]
     return dict(alpha=alpha, min_observations=min_observations,
-                method="sen_mann_kendall", start_year=years[0], points=points)
+                method="sen_mann_kendall", start_year=years[0], points=points,
+                emerged_year=emerged_year)

@@ -130,24 +130,27 @@ test('a case without a station draws no station line', async ({ page }) => {
   assert.doesNotMatch(await hoverYear(page, dry, 2000), /Station/);
 });
 
-test('emergence: no marker and "—" until emerged_year arrives, then a marker and the sentence', async ({ page }) => {
+test('emergence: the saved case marks emerged_year; a null emerged_year shows "—" and no marker', async ({ page }) => {
+  const emerged = heat.detection_history.emerged_year;
+  assert.equal(typeof emerged, 'number');
   await saved(page, 'kyiv-summer-heat');
-  await expect(page.getByTestId('emerged-marker')).toHaveCount(0);
+  await expect(page.getByTestId('emerged-marker')).toContainText(`emerged ${emerged}`);
   await page.locator('.detection-simulator > summary').click();
-  await expect(page.getByTestId('emerged-year')).toHaveText('—');
+  await expect(page.getByTestId('emerged-year')).toHaveText(String(emerged));
+  await expect(page.locator('.history-timeline')).toContainText(`From ${emerged} on the rise stays significant`);
   const blocks = page.locator('.history-timeline rect');
   await expect(blocks).toHaveCount(heat.detection_history.points.length);
   const significant = heat.detection_history.points.map(p => p.status === 'ok' && p.p < heat.detection_history.alpha);
   assert.deepEqual(await blocks.evaluateAll(nodes => nodes.map(node => node.dataset.significant === 'true')), significant);
 
-  // Test-only variant carrying the optional backend field.
+  // Test-only variant: the backend says the signal never emerged.
   const result = structuredClone(heat);
-  result.detection_history.emerged_year = 1998;
+  result.detection_history.emerged_year = null;
   await live(page, result);
-  await expect(page.getByTestId('emerged-marker')).toContainText('emerged 1998');
+  await expect(page.getByTestId('emerged-marker')).toHaveCount(0);
   await page.locator('.detection-simulator > summary').click();
-  await expect(page.getByTestId('emerged-year')).toHaveText('1998');
-  await expect(page.locator('.history-timeline')).toContainText('From 1998 on the rise stays significant');
+  await expect(page.getByTestId('emerged-year')).toHaveText('—');
+  await expect(page.locator('.history-timeline')).toContainText('The signal has not yet clearly left the noise.');
 });
 
 test('the chart fits desktop and phone widths; screenshots', async ({ page }) => {
