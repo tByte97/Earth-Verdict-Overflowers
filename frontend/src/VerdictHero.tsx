@@ -1,4 +1,5 @@
 import type { CheckResult } from './types';
+import { TermHelp } from './TermHelp';
 import { chanceInWords, coords, number, period, seasonName, sourceIndex } from './format';
 
 const verdicts = { confirmed: 'Confirmed', refuted: 'Refuted', not_proven: 'Not proven' };
@@ -36,7 +37,7 @@ export function VerdictHero({ result: r }: { result: CheckResult }) {
   const season = r.case.season === 'year' ? 'yearly' : typeof r.case.season === 'number' ? seasonName(r.case.season) : seasonName(r.case.season).toLowerCase();
   return <div className="hero">
     <p className="where">{where}</p>
-    <span className="eyebrow">Rate of change · Sen’s slope · {period(r)}</span>
+    <span className="eyebrow">Rate of change · Sen’s slope · {period(r)} <TermHelp term="trend" /></span>
     <div className="metric-value">{number(r.sen.slope_per_decade, true)}<span>{units} per decade</span></div>
     <section className={`verdict verdict-${r.verdict}`} aria-label="Verdict">
       <h3>{verdicts[r.verdict]}</h3>
