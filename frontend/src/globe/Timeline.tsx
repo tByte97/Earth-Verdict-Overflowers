@@ -75,7 +75,7 @@ export function YearLegend({ frame, variableLabel }: { frame: Frame; variableLab
     <span className="trend-legend-title">{seasonName(map.season)} {variableLabel.toLowerCase()} in {frame.period}, {map.units} above or below the {map.baseline[0]}–{map.baseline[1]} average</span>
     <div className="trend-legend-bar" style={{ background: gradient(pres.palette) }} />
     <div className="trend-legend-ends"><span>−{formatLimit(lim)}</span><span>0</span><span>+{formatLimit(lim)}</span></div>
-    <div className="trend-legend-note"><div>{pres.down} ◂ ▸ {pres.up}</div></div>
+    <div className="trend-legend-note"><div>{pres.down} ◂ ▸ {pres.up}</div><div>white = about the same as usual, or no data</div></div>
   </div>;
 }
 

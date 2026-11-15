@@ -21,7 +21,7 @@ export function TrendLegend({ view, fade, variableLabel }: { view: TrendView; fa
     <div className="trend-legend-ends"><span>−{formatLimit(lim)}</span><span>0</span><span>+{formatLimit(lim)}</span></div>
     <div className="trend-legend-note">
       <div><i aria-hidden="true" />dots = significant after FDR (q = {layer.q})</div>
-      {fade && <div>faded = could be chance</div>}
+      {fade && <div>white = could be chance (noise)</div>}
       <div>{pres.down} ◂ ▸ {pres.up}</div>
     </div>
   </div>;

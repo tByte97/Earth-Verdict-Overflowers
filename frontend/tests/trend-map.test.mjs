@@ -78,7 +78,7 @@ test('the layer legend and caption repeat the values sent by the API', async () 
     await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Winter' }).click();
     await expect(fade).toBeEnabled();
     await fade.uncheck();
-    await expect(page.getByTestId('trend-legend')).not.toContainText('faded = could be chance');
+    await expect(page.getByTestId('trend-legend')).not.toContainText('white = could be chance');
     await page.getByRole('group', { name: 'Trend map variable' }).getByRole('button', { name: 'Precipitation' }).click();
     await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Year' }).click();
     await expect(fade).toBeDisabled();

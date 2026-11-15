@@ -108,6 +108,7 @@ function markerElement(kind: 'place' | 'station', lines: string[]) {
   return element;
 }
 
+const onEarth = (at: maplibregl.LngLat) => Number.isFinite(at.lng) && Number.isFinite(at.lat);
 const point = (lon: number, lat: number) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: [lon, lat] } });
 
 function chip(word: string, down: boolean) {
@@ -139,6 +140,9 @@ function queueImage(map: maplibregl.Map, id: string, image: maplibregl.UpdateIma
   apply();
 }
 
+// White on the map (noise, or no data) is a little more see-through than colour.
+const NOISE_ALPHA = 0.62;
+
 // Draws the layer: painted colour, FDR stipple and, when the backend found one, the opposite pair.
 function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): maplibregl.Marker[] {
   map.setLayoutProperty('trend', 'visibility', view ? 'visible' : 'none');
@@ -148,7 +152,8 @@ function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): 
   if (!view) return [];
   const { grid, lim, pres } = view;
   queueImage(map, 'trend', paintGrid(grid,
-    cell => Math.max(-1, Math.min(1, cell.slope_per_decade / lim)), cell => (!fade || cell.significant_fdr ? 0.88 : 0.3), t => pres.palette((t + 1) / 2)));
+    // A trend that could be chance is drawn white, like a place with no data: only a clear trend gets colour.
+    cell => (!fade || cell.significant_fdr ? Math.max(-1, Math.min(1, cell.slope_per_decade / lim)) : 0), cell => (!fade || cell.significant_fdr ? 0.88 : NOISE_ALPHA), t => pres.palette((t + 1) / 2)));
   return pair ? [pair.a, pair.b].map(end => new maplibregl.Marker({ element: chip(end.slope_per_decade > 0 ? `▲ ${pres.up}` : `▼ ${pres.down}`, end.slope_per_decade <= 0) })
     .setLngLat([end.lon, end.lat]).addTo(map)) : [];
 }
@@ -160,7 +165,7 @@ function showFrame(map: maplibregl.Map, frame: Frame) {
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(EMPTY);
   const { view: { grid, lim, pres }, cells } = frame;
   queueImage(map, 'trend', paintGrid(grid,
-    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? 0 : 0.88), t => pres.palette((t + 1) / 2)));
+    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88), t => pres.palette((t + 1) / 2)));
 }
 
 export function Globe({ place, station, destination, onPick, trend = null, fade = true, frame = null }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
@@ -197,7 +202,11 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
       return;
     }
     instance.touchPitch.disable();
-    const resize = new ResizeObserver(() => instance.resize());
+    const resize = new ResizeObserver(() => {
+      // Hidden while another mode is on the stage: a running flight cannot go on in a map with no size.
+      if (!container.current?.clientWidth || !container.current.clientHeight) { takeOver(); instance.stop(); return; }
+      instance.resize();
+    });
     resize.observe(container.current!);
     // Sources can take data once the style is parsed; 'load' waits for the first tiles, which may never arrive offline.
     instance.once('style.load', () => {
@@ -225,6 +234,8 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     // Hover shows the exact values of the cell under the pointer, never the blended colour.
     instance.on('mousemove', event => {
       const view = trendView.current, year = yearFrame.current;
+      // Off the globe's disc the pointer has no place on Earth (NaN), and LngLat.wrap() throws on it.
+      if (!onEarth(event.lngLat)) { setTip(null); return; }
       const overMarker = event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker');
       const { lng, lat } = event.lngLat.wrap(), at = { x: event.originalEvent.clientX, y: event.originalEvent.clientY };
       // With a year on the map the tooltip reads that year's cell; otherwise the trend cell.
@@ -236,6 +247,7 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
     instance.on('click', event => {
       if (event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker')) return;
+      if (!onEarth(event.lngLat)) return;
       const { lat, lng } = event.lngLat.wrap(); pick.current?.(pickPoint(lat, lng));
     });
     map.current = instance;

@@ -49,6 +49,9 @@ export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: r
 // `stillWanted` turns false when a newer flight, a view button or the user takes over the camera.
 export async function flyToView(map: maplibregl.Map, view: View, stillWanted: () => boolean) {
   const { clientWidth, clientHeight } = map.getContainer();
+  // A hidden stage (events or CO₂ on screen) has no size: a box cannot be fitted into it and the camera
+  // maths would turn to NaN. The camera stays where it is.
+  if (!clientWidth || !clientHeight) return;
   const target = view.kind === 'globe' ? GLOBE_VIEW : boxCamera(view.box, clientWidth, clientHeight);
   if (reducedMotion()) { map.jumpTo({ ...target, pitch: 0, bearing: 0 }); return; }
   // Listen after starting: easeTo stops the previous animation, whose moveend fires synchronously.

@@ -20,15 +20,16 @@ const YearMapSchema = z.object({
   && [m.mean, m.mean_smooth, m.rank].every(row => row.length === m.years.length), 'Year map arrays do not line up.');
 export type YearMap = z.infer<typeof YearMapSchema>;
 
-const savedFiles = import.meta.glob<unknown>('../../../data/layers/years_*.json', { import: 'default' });
+// Saved mode fetches the files as plain assets: they are large, and a JSON file needs no module wrapper.
+const savedFiles = import.meta.glob<string>('../../../data/layers/years_*.json', { query: '?url', import: 'default', eager: true });
 
 // Resolves to null when no year-by-year map exists for this variable and season: the timeline is then not offered.
 export async function loadYearMap(variableId: string, season: string, signal: AbortSignal): Promise<YearMap | null> {
   let raw: unknown;
   if (!isLive) {
-    const file = savedFiles[`../../../data/layers/years_${variableId}_${season}.json`];
-    if (!file) return null;
-    raw = await file();
+    const url = savedFiles[`../../../data/layers/years_${variableId}_${season}.json`];
+    if (!url) return null;
+    raw = await fetch(url, { signal }).then(response => (response.ok ? response.json() : null));
   } else {
     const response = await fetch(`/api/grid/years?${new URLSearchParams({ variable_id: variableId, season })}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]) });
     if (!response.ok) return null;

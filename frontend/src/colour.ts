@@ -40,15 +40,18 @@ export function niceStep(x: number) {
 }
 
 // Diverging ramp per variable_id: two hues meeting at a neutral grey ("no change"), with the words for both ends.
-export interface VariableColours { ramp: Ramp; up: string; down: string; most: string }
-const warm: VariableColours = { ramp: ramp(['#72a9ee', '#36629e', '#3b3a37', '#b1483d', '#f28466']), up: 'warmer', down: 'cooler', most: 'warmest' };
-const wet: VariableColours = { ramp: ramp(['#c9914f', '#7d5b31', '#3b3a37', '#2c7b73', '#63c7b8']), up: 'wetter', down: 'drier', most: 'wettest' };
+// `map` is the ramp for the globe: the same two hues, but meeting at white, so on the map colour means a
+// clear departure and white means noise or no data.
+export interface VariableColours { ramp: Ramp; map: Ramp; up: string; down: string; most: string }
+const WHITE = '#f4f4f0';
+const warm: VariableColours = { ramp: ramp(['#72a9ee', '#36629e', '#3b3a37', '#b1483d', '#f28466']), map: ramp(['#2f72bd', '#8dbde9', WHITE, '#f0957f', '#c63a2c']), up: 'warmer', down: 'cooler', most: 'warmest' };
+const wet: VariableColours = { ramp: ramp(['#c9914f', '#7d5b31', '#3b3a37', '#2c7b73', '#63c7b8']), map: ramp(['#a8692a', '#dcb27c', WHITE, '#7fcfc0', '#1f8f80']), up: 'wetter', down: 'drier', most: 'wettest' };
 const colours: Record<string, VariableColours> = {
   air_temp: warm,
   global_temp: warm,
   precip: wet,
-  snow_depth: { ramp: ramp(['#b9824a', '#6e4f2f', '#3b3a37', '#4a7fac', '#c4e3f6']), up: 'more snow', down: 'less snow', most: 'snowiest' },
+  snow_depth: { ramp: ramp(['#b9824a', '#6e4f2f', '#3b3a37', '#4a7fac', '#c4e3f6']), map: ramp(['#9a6a35', '#d9b98f', WHITE, '#a9d3ee', '#3f7fb5']), up: 'more snow', down: 'less snow', most: 'snowiest' },
 };
 // A variable the frontend has no words for still renders, on a neutral ramp.
-const neutral: VariableColours = { ramp: ramp(['#7c8aa0', '#4a5262', '#3b3a37', '#6a6250', '#b3a789']), up: 'higher', down: 'lower', most: 'highest' };
+const neutral: VariableColours = { ramp: ramp(['#7c8aa0', '#4a5262', '#3b3a37', '#6a6250', '#b3a789']), map: ramp(['#5f6e85', '#aab4c4', WHITE, '#cfc6ae', '#8f8468']), up: 'higher', down: 'lower', most: 'highest' };
 export const coloursOf = (variableId: string) => colours[variableId] ?? neutral;
