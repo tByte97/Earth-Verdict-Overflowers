@@ -144,6 +144,9 @@ def test_event_happy_path_and_no_control(fake_event_sources):
 
 
 def test_event_error_handling(monkeypatch: pytest.MonkeyPatch):
+    from app import limits
+
+    monkeypatch.setitem(limits.RATE_LIMITS, "event", (20, 60.0))
     base = {
         "compound_id": "no2",
         "place": SASAN,
@@ -408,7 +411,10 @@ def test_control_ring_level_does_not_jump_when_a_point_drops_out(monkeypatch: py
     assert res["control"] == pytest.approx([4.5] * 12)
 
 
-def test_event_profile_matches_single_event_verdicts(fake_event_sources):
+def test_event_profile_matches_single_event_verdicts(fake_event_sources, monkeypatch: pytest.MonkeyPatch):
+    from app import limits
+
+    monkeypatch.setitem(limits.RATE_LIMITS, "event", (20, 60.0))
     spec = {"compound_id": "no2", "place": SASAN, "window_years": 3, "use_control": True}
     r = client.post("/api/event/profile", json=spec)
     assert r.status_code == 200, r.text

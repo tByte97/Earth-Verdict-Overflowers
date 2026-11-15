@@ -6,15 +6,16 @@ The frontend dev server proxies /api to http://127.0.0.1:8000.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
+import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
-from fastapi import FastAPI, Query, Request
+import anyio
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -23,8 +24,10 @@ from pydantic import ValidationError
 
 from .catalog import load_compounds, load_variables
 from .check import REGIONS, CheckError, run_check
-from .llm import explain
 from .event import get_global_co2_summary, list_event_sites, run_co2_impact, run_event, run_event_profile
+from .limits import BusyError, RateLimitError, check_gate, concurrency_guard, event_gate, rate_guard
+from .llm import explain
+from .sources.cache import track_network_fetches
 from .models import (
     CaseSpec,
     ChatRequest,
@@ -58,6 +61,8 @@ STATUS = {"bad_request": 400, "short_series": 400, "unknown_variable": 400, "no_
 MAX_BODY_BYTES = 256 * 1024
 
 logger = logging.getLogger("ev")
+logger.setLevel(logging.INFO)
+log = logger
 
 
 class BodyLimit:
@@ -138,6 +143,40 @@ class InternalErrorMiddleware:
             )
 
 
+class RequestLogMiddleware:
+    """Emit one log line per request: method, route, status, duration ms, cache/network."""
+
+    def __init__(self, asgi_app):
+        self.app = asgi_app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        start = time.perf_counter()
+        status_code = 500
+
+        async def send_wrapper(message):
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+            await send(message)
+
+        with track_network_fetches() as counter:
+            try:
+                await self.app(scope, receive, send_wrapper)
+            finally:
+                duration_ms = (time.perf_counter() - start) * 1000.0
+                route_obj = scope.get("route")
+                route = getattr(route_obj, "path", None) or scope.get("path", "")
+                source = "network" if counter.count > 0 else "cache"
+                if not log.handlers and not logging.getLogger().handlers:
+                    handler = logging.StreamHandler()
+                    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+                    log.addHandler(handler)
+                log.info("%s %s %d %.1fms %s", scope.get("method", ""), route, status_code, duration_ms, source)
+
+
 app = FastAPI(title="Earth Verdict API", version="0.1.0")
 app.add_middleware(BodyLimit)   # added before CORS, so a 413 still carries CORS headers
 app.add_middleware(InternalErrorMiddleware)   # also inside CORS, so a 500 still carries CORS headers
@@ -147,11 +186,24 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+app.add_middleware(RequestLogMiddleware)
 
 
 def error(code: str, message: str) -> JSONResponse:
     body = ErrorResponse(error={"code": code, "message": message}).model_dump()
     return JSONResponse(body, status_code=STATUS.get(code, 400))
+
+
+@app.exception_handler(BusyError)
+async def _busy_error(_: Request, exc: BusyError):
+    return error("busy", exc.message)
+
+
+@app.exception_handler(RateLimitError)
+async def _rate_limit_error(_: Request, exc: RateLimitError):
+    resp = error("rate_limited", exc.message)
+    resp.headers["Retry-After"] = str(exc.retry_after)
+    return resp
 
 
 @app.exception_handler(CheckError)
@@ -188,7 +240,7 @@ async def places(q: str = Query("", max_length=100)):
                or (k == "globe" and q.strip().lower() in ("world", "planet", "earth", "globe"))]
 
     try:
-        found = await asyncio.to_thread(geocode.search_places, q.strip())
+        found = await anyio.to_thread.run_sync(geocode.search_places, q.strip())
     except SourceUnavailable as e:
         if regions:
             return regions
@@ -197,9 +249,10 @@ async def places(q: str = Query("", max_length=100)):
 
 
 @app.post("/api/check", response_model=CheckResult,
-          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+          dependencies=[Depends(rate_guard("check")), Depends(concurrency_guard(check_gate))],
+          responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 async def check(spec: CaseSpec):
-    return await asyncio.to_thread(run_check, spec)
+    return await anyio.to_thread.run_sync(run_check, spec)
 
 
 # ---------- showcase cases (work offline) ----------
@@ -237,15 +290,17 @@ async def compounds():
 
 
 @app.post("/api/event", response_model=EventResult,
-          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+          dependencies=[Depends(rate_guard("event")), Depends(concurrency_guard(event_gate))],
+          responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 async def event(spec: EventSpec):
-    return await asyncio.to_thread(run_event, spec)
+    return await anyio.to_thread.run_sync(run_event, spec)
 
 
 @app.post("/api/event/profile", response_model=EventProfile,
-          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+          dependencies=[Depends(rate_guard("event")), Depends(concurrency_guard(event_gate))],
+          responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 async def event_profile(spec: EventProfileSpec):
-    return await asyncio.to_thread(run_event_profile, spec)
+    return await anyio.to_thread.run_sync(run_event_profile, spec)
 
 
 @app.get("/api/event-sites", response_model=list[EventSite])
@@ -291,23 +346,24 @@ async def event_detail(event_id: str):
 @app.post("/api/co2-impact", response_model=Co2ImpactResult,
           responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 async def co2_impact(spec: Co2ImpactSpec):
-    return await asyncio.to_thread(run_co2_impact, spec)
+    return await anyio.to_thread.run_sync(run_co2_impact, spec)
 
 
 @app.get("/api/co2/global", response_model=Co2GlobalSummary,
          responses={503: {"model": ErrorResponse}})
 async def co2_global():
-    summary, _ = await asyncio.to_thread(get_global_co2_summary)
+    summary, _ = await anyio.to_thread.run_sync(get_global_co2_summary)
     return summary
 
 
 # ---------- plain-language explanation / follow-up questions (Gemini) ----------
 
 @app.post("/api/chat", response_model=ChatResponse,
-          responses={400: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+          dependencies=[Depends(rate_guard("chat"))],
+          responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 async def chat(req: ChatRequest):
     try:
-        return await asyncio.to_thread(explain, req.kind, req.result, req.question, req.lang)
+        return await anyio.to_thread.run_sync(explain, req.kind, req.result, req.question, req.lang)
     except ValidationError as exc:
         return error("bad_request", f"'result' is not a valid {req.kind} result: {exc.errors()[0]['msg']}.")
 

@@ -20,6 +20,34 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 | `EV_DATA_DIR` | Data folder (default `data/`) with `cache/`, `cases/`, `layers/` |
 | `EARTHDATA_TOKEN` | Needed only for Giovanni variables (`precip_gpm`, `evapotranspiration`); or put it in `~/.config/earthdata/token` |
 | `EV_CORS_ORIGINS` | Comma-separated origins allowed to call the API (default: Vite dev server) |
+| `EV_RATE_LIMIT_EXEMPT_LOCAL` | Set to `1` to exempt unproxied loopback requests (`127.0.0.1` / `::1` with no forwarding headers) from per-client rate limits (for local cache warm-up) |
+
+## Deploy
+
+Run with a single worker (`--workers 1`) because rate limits and in-memory event caches live in process memory:
+
+```bash
+PORT=8790 EV_RATE_LIMIT_EXEMPT_LOCAL=1 ./deploy/run.sh
+```
+
+Warm the disk cache sequentially (30 world cities × 4 NASA POWER variables + 5 showcase events; resumable, backs off on `429`/`503`):
+
+```bash
+backend/.venv/bin/python tools/warm_cache.py http://127.0.0.1:8790
+```
+
+### Limits & trusted-proxy rule
+
+| Guard | Scope | Limit | Response |
+|---|---|---|---|
+| Concurrency | `POST /api/check` | 4 in flight | `503` (`busy`) |
+| Concurrency | `POST /api/event`, `POST /api/event/profile` | 2 in flight combined | `503` (`busy`) |
+| Rate limit (per client) | `POST /api/check` | 10 / 60 s | `429` (`rate_limited`, `Retry-After`) |
+| Rate limit (per client) | `POST /api/event`, `POST /api/event/profile` | 4 / 60 s combined | `429` (`rate_limited`, `Retry-After`) |
+| Rate limit (per client) | `POST /api/chat` | 5 / 60 s | `429` (`rate_limited`, `Retry-After`) |
+| Shared LLM quota | `/api/chat` → Gemini (retries count separately) | 20 / 60 s server-wide | `503` (`llm_unavailable`) |
+
+**Trusted-proxy rule:** `CF-Connecting-IP` (cloudflared) or the right-most `X-Forwarded-For` entry (Tailscale Funnel) is used as the client IP **only** when the TCP peer (`request.client.host`) is loopback (`127.0.0.1` / `::1`); otherwise `request.client.host` is used directly and forwarding headers are ignored. Requests carrying forwarding headers are never exempted by `EV_RATE_LIMIT_EXEMPT_LOCAL`.
 
 ## Endpoints
 
@@ -46,7 +74,7 @@ Each `steps[]` item has `fields` (dot paths into the result that the step summar
 Errors always look like `{"error": {"code": "...", "message": "..."}}` with codes
 `unknown_variable`, `short_series`, `no_data` (the product has no data at this point: ocean, ice,
 outside coverage), `bad_request` (400), `place_not_found` (404), `rate_limited` (429),
-`internal` (500, details only in the server log), `source_unavailable`, `busy` (503).
+`internal` (500, details only in the server log), `source_unavailable`, `llm_unavailable`, `busy` (503).
 Request bodies over 256 KB get 413 with `bad_request`.
 
 Robustness: the check is repeated on up to 5 periods with the start and/or end shifted by
