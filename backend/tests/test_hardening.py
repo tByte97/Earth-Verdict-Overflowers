@@ -66,6 +66,10 @@ def _saved_event_payload() -> dict:
     return json.loads((ROOT / "data" / "events" / "sasan-no2.json").read_text(encoding="utf-8"))
 
 
+# As the facts give it, so the tests follow a data rebuild.
+_EFFECT = f"{_saved_event_payload()['effect']:+.3g}"
+
+
 def _fake_monthly(start=1980, end=2025):
     return [10.0 + 0.05 * (y - start) + (m % 3) * 0.2 for y in range(start, end + 1) for m in range(1, 13)]
 
@@ -269,7 +273,7 @@ def test_per_client_rate_limits_and_retry_after(fast_check, fast_event, monkeypa
 
     # /api/chat: 5/min per client (still accepts result from client)
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setattr(llm, "_call_gemini", lambda k, m, p: "It grew +1.37 units.")
+    monkeypatch.setattr(llm, "_call_gemini", lambda k, m, p: f"It grew {_EFFECT} units.")
     ev_res = _saved_event_payload()
     for i in range(5):
         r = client.post("/api/chat", json={"kind": "event", "result": ev_res, "question": f"q{i}"})
@@ -367,7 +371,7 @@ def test_gemini_retry_counts_in_shared_rate_limit(monkeypatch: pytest.MonkeyPatc
 
     def fake_gemini(key, model, prompt):
         calls.append(prompt)
-        return "Invented 99999" if len(calls) == 1 else "It grew +1.37 units."
+        return "Invented 99999" if len(calls) == 1 else f"It grew {_EFFECT} units."
 
     monkeypatch.setattr(llm, "_call_gemini", fake_gemini)
 
