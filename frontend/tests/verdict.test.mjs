@@ -528,7 +528,8 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Earth Verdict');
     await expect(page.locator('.mark p')).toContainText(`NASA data, ${r.case.start_year}–${r.case.end_year}.`);
     await expect(page.locator('.mark [role=tab]')).toHaveText(['Climate claims', 'Pollution events', 'CO₂ calculator']);
-    await expect(page.locator('.stage-title .eyebrow')).toHaveText(`Summer · ${r.case.start_year}–${r.case.end_year} · NASA POWER`);
+    // The case has a trend layer, so the title describes that layer; the layer names no data source.
+    await expect(page.locator('.stage-title .eyebrow')).toHaveText(`Summer · ${r.case.start_year}–${r.case.end_year}`);
     await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${r.variable.label.toLowerCase()} changing?`);
     await expect(page.locator('.stage-title .src')).toHaveText(r.case.place.name);
     await expect(page.locator('.globe')).toHaveAttribute('style', /background-image: url\("data:image\/png/);

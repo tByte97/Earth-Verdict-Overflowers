@@ -74,7 +74,7 @@ No optional `presentation` extension is invented or required.
   `detection`, `extrapolation`, `scenarios` and `meta` remain available in the original JSON.
   Every numeric/null leaf also appears with full received precision in a context table.
 - Future numbers have their own visually distinct disclosure and cannot alter the verdict.
-  Implementing interactive scenario charts remains in issue #7.
+  The scenario paths are drawn on the record chart (see below).
 
 ## Presentation review (issue #1)
 
@@ -184,7 +184,7 @@ the page scrolls; there is no horizontal scroll at 390 px.
 - The panel header holds the wordmark, the one-line promise (its period comes from the open
   case) and the mode tabs. The footer lists the data and imagery credits.
 - Stage chrome: a seeded procedural star field, a vignette that deepens during case flights,
-  the projection badge (3D globe / globe → 2D / 2D map · Web Mercator), the marker legend and
+  the projection badge (3D globe / globe → 2D / 2D map · Web Mercator), the stage legend (trend layer and markers) and
   the stage title built from the result (season, period, series provider, variable).
 - Pollution events and the CO₂ calculator open in the stage with their own scroll; the globe
   stays mounted (only hidden), so returning to Climate claims does not reload the map. They
@@ -213,9 +213,34 @@ the page scrolls; there is no horizontal scroll at 390 px.
 
 ### Globe notes
 
-- Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. Picking fills the form; the check runs only on **Check claim**.
+- Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. The picked spot is drawn as a cream ring; the station keeps its own marker.
 - Camera: choosing a saved case or a searched place flies there in about 3.7 s (rise to orbit, turn, settle on the case box). Dragging the map or a view button interrupts the flight. A picked point leaves the camera where it is. With reduced motion the map jumps without animation. The globe unrolls into a flat map between zoom 3.2 and 4.8.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.
+
+
+## Trend map (issue #41)
+
+The globe shows the precomputed, FDR-corrected trend layer from `GET /api/grid` (code in `src/globe/`).
+
+- **Data.** Period, units, `q`, the opposite pair and the variable all come from the layer. Variable and season
+  buttons come from `GET /api/grid/index`; when the index is missing (404) only the current case's layer is shown.
+  Saved mode reads the same precomputed files from `data/layers/`, so the deployed app shows the map without a backend.
+- **Rendering.** `paint.ts` paints one smooth image on an `image` source: bilinear blend between cell centres,
+  faded next to missing cells and at the data edge, resampled to Web Mercator rows. The blend is colour only.
+  Dots mark `significant_fdr` cells; "Fade trends that could be chance" fades the others.
+- **Colour scale.** Diverging OKLab ramps per variable. The limit is the 95th percentile of |slope| rounded to a
+  nice step: a display scale, not a statistic.
+- **Legend and caption.** The caption share is printed only when the layer carries `n_cells` and
+  `n_significant_fdr`; the browser never counts cells.
+- **Tooltip.** Hovering shows the exact values of the cell under the pointer.
+- **Opposite regions.** With `pair`, two chips and a dashed line mark the regions, and the panel callout repeats both
+  slopes, p-values, the distance and the basis (FDR or raw p). Without it the callout says there are none.
+- **Click to check.** In connected mode a click (not a drag) runs `POST /api/check` for `pt:{lat},{lon}` with the
+  layer's variable, season and period, `claim_direction: "change"` and a template claim. A new click cancels the
+  previous request; changing the layer re-checks the picked spot. Saved mode explains that this needs the backend.
+
+`tests/trend-map.test.mjs` checks the legend against the API, the tooltip, the pair chips, the click request,
+the missing-index fallback and saved mode, and writes `test-results/trend-map-{desktop,mobile}.png`.
 
 
 ## Step pipeline (issue #5)
@@ -236,7 +261,43 @@ table, robustness windows, exact values and data sources stay the detailed view.
   raw step's mini chart shows it.
 - Each step's source button is chosen by step `id` (NASA POWER, NOAA NCEI or backend
   statistics) and opens the matching record in **Data sources**.
-- Mini visuals are small inline SVGs; Chart.js is kept for the full-size charts.
+- Mini visuals are small inline SVGs, like the full-size record chart.
 
 `tests/steps.test.mjs` checks order and text against the canonical JSON, the mini visuals,
 the source links and a response with a missing step.
+
+
+## Record chart and evidence timeline (issue #41, sections 4d–4e)
+
+`src/chart/RecordChart.tsx` draws **The record at this spot** as inline SVG, under the station badge:
+
+- `series` as a thin line with dots, Sen's line from `sen.band[].mid` and the 95% fan from `sen.band[].low/high`.
+- The station `witness.series` in a second colour. A `null` year breaks the line; it is never bridged or drawn as zero.
+- A dashed line at `baseline.mean`, labelled "{baseline.period} average"; the note says whether it is the 1991–2020
+  normal or the whole-record average (`baseline.kind`).
+- One stripe per year under the chart, diverging around `baseline.mean` with the same OKLab ramps as the trend map
+  (`src/chart/ramp.ts`). The colour scale is a display choice only.
+- Hover or the arrow keys show the year, the value, the trend-line value and the station value.
+- The exact values for every year stay in a table under the chart.
+- When the optional `detection_history.emerged_year` is supplied, a dashed vertical line marks it.
+
+The evidence history (`DetectionHistoryChart`) is a block timeline: one block per end year, filled when
+`status == ok` and `p < alpha`, with the exact p in each block's title. "Signal emerged" shows `emerged_year`,
+or "—" while the backend does not supply it. The end-year slider and the exact-values table are unchanged.
+
+## Future scenarios on the record chart (issue #41, section 4f)
+
+When `scenarios` is present, the record chart's time axis runs on to the last node year (2100), as in the team's
+scenarios prototype. Right of a "now" divider at `case.end_year`:
+
+- each path's median is drawn at its node years from `scenarios.paths[].median_value`; the selected path also gets
+  its low–high fan from `low_value` / `high_value`. Lines only join nodes; there are no values in between.
+- three path buttons show the plain `label` with the SSP code beside it; node buttons (2030 / 2050 / 2070 / 2100)
+  are labelled with `windows[i]` ("2050 = average of 2041–2060").
+- the analog sentence is worded from `analogs[i]` (`analog_rank` 1 = highest on record); `beyond_record` reads
+  "would be beyond anything in the {start}–{end} record".
+- the disclaimer, `scenarios.source`, `baseline_period`, `baseline_value` and `note` sit under the controls.
+  Choosing a path or node never changes the verdict.
+- `scenarios: null` hides the future zone and the controls and shows one line explaining why.
+
+All scenario values also stay in **Future illustrations** with their exact precision.

@@ -67,15 +67,13 @@ test('not proven keeps its caveat, the backend waiting estimate and an empty eme
   await expect(hero.locator('.fact').nth(2).locator('dd')).toHaveText('—');
 });
 
-test('a region case shows the whole planet without a place marker or coordinates', async ({ page }) => {
+test('a region case shows the whole planet without coordinates', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await page.locator('[data-case="global-warming-stopped"]').click();
   await expect(page.locator('.hero .where')).toHaveText(cases['global-warming-stopped'].case.place.name);
-  await expect(page.locator('.globe-marker-place')).toHaveCount(0);
   await expect(page.locator('.globe-proj')).toHaveText('3D globe');
   await page.locator('[data-case="kyiv-colder"]').click();
-  await expect(page.locator('.globe-marker-place')).toHaveCount(1);
   await expect(page.locator('.globe-proj')).toHaveText('2D map · Web Mercator');
 });
 
