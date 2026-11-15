@@ -1,47 +1,10 @@
 import type { TrendCell } from './trends';
-
-// Colour: OKLab interpolation keeps diverging ramps perceptually even on both sides of zero.
-type Rgb = [number, number, number];
-const toLin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const fromLin = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
-function hexToLab(hex: string): Rgb {
-  const [r, g, b] = [1, 3, 5].map(i => toLin(parseInt(hex.slice(i, i + 2), 16) / 255));
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-function labToRgb([L, a, b]: Rgb): Rgb {
-  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s]
-    .map(c => Math.round(255 * Math.min(1, Math.max(0, fromLin(c))))) as Rgb;
-}
-export type Ramp = (t: number) => Rgb;
-export function ramp(stops: string[]): Ramp {
-  const labs = stops.map(hexToLab);
-  return t => {
-    t = Math.min(1, Math.max(0, t)) * (labs.length - 1);
-    const i = Math.min(labs.length - 2, Math.floor(t)), f = t - i;
-    return labToRgb(labs[i].map((v, k) => v + (labs[i + 1][k] - v) * f) as Rgb);
-  };
-}
-const css = ([r, g, b]: Rgb) => `rgb(${r},${g},${b})`;
-export const gradient = (fn: Ramp, n = 12) => `linear-gradient(90deg, ${Array.from({ length: n }, (_, i) => css(fn(i / (n - 1)))).join(',')})`;
+import { niceStep, type Ramp } from '../colour';
 
 // Display scale only: the 95th percentile of |slope| rounded up to a nice step, so one extreme cell does not wash out the map.
-export function niceLimit(x: number) {
-  const e = 10 ** Math.floor(Math.log10(x)), f = x / e;
-  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
-}
 export function colourLimit(cells: TrendCell[]) {
   const sorted = cells.map(cell => Math.abs(cell.slope_per_decade)).sort((a, b) => a - b);
-  return niceLimit(sorted[Math.floor(0.95 * (sorted.length - 1))] || 1);
+  return niceStep(sorted[Math.floor(0.95 * (sorted.length - 1))] || 1);
 }
 
 // The layer's cells sit on a regular lat/lon grid; its spacing is read from the cell centres.
