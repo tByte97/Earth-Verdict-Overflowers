@@ -79,7 +79,7 @@ export function LayerControls({ index, value, layer, onChange, fade, onFade, lab
       <input type="checkbox" checked={fade} disabled={!!fadeReason} aria-describedby={fadeReason ? 'fade-reason' : undefined} onChange={event => onFade(event.target.checked)} />
       Fade trends that could be chance
     </label>
-    {fadeReason && <p className="field-help" id="fade-reason">{fadeReason}</p>}
+    {fadeReason && <p className="field-help trend-check-note" id="fade-reason">{fadeReason}</p>}
   </div>;
 }
 

@@ -54,3 +54,7 @@
   .stage-legend:has(.trend-legend) { top: 96px; width: 150px; }
   .trend-legend-note, .trend-caption { display: none; }
 }
+
+.field-help.trend-check-note {
+  margin:6px 0 0 26px;
+}
