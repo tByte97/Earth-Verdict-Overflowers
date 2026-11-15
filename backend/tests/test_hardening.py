@@ -619,3 +619,10 @@ def test_warm_cache_tool_builds_tasks_backs_off_and_resumes(tmp_path: Path):
     )
     assert (ok2, skipped2, failed2) == (0, 121, 0)
     assert calls == []
+
+
+@pytest.mark.parametrize("host, loopback", [("100.112.83.120", False), ("10.0.0.5", False), ("127.0.0.2", True),
+                                            ("::1", True), ("::ffff:127.0.0.1", True), ("2001:db8::1", False), ("testclient", False)])
+def test_loopback_check_handles_every_address_kind(host, loopback):
+    from app import limits
+    assert limits._is_loopback(host) is loopback

@@ -90,7 +90,8 @@ def _is_loopback(host: str) -> bool:
         addr = ipaddress.ip_address(host)
     except ValueError:
         return False
-    return addr.is_loopback or (addr.ipv4_mapped is not None and addr.ipv4_mapped.is_loopback)
+    mapped = getattr(addr, "ipv4_mapped", None)          # IPv6 only; an IPv4 address has no such field
+    return addr.is_loopback or (mapped is not None and mapped.is_loopback)
 
 
 def _forwarded_ip(request: Request) -> str:
