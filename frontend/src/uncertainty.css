@@ -19,16 +19,7 @@
 .simulator-help { margin:12px 0 18px; }
 .simulator-help summary { font-size:14px; }
 .simulator-help ol { margin:12px 0; padding-left:22px; color:var(--muted); font-size:14px; line-height:1.6; }
-.history-charts figure { margin:16px 0; min-width:0; }
-.history-charts figcaption { font-size:14px; font-weight:700; margin-bottom:8px; }
-.history-charts svg { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:8px; background:white; }
 .chart-scale { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:12px; margin:6px 0; }
-.chart-axis { stroke:#bdcbbf; }
-.chart-cursor { stroke:#5c7066; stroke-width:1.5; stroke-dasharray:4 4; }
-.chart-threshold { stroke:#9e493c; stroke-width:2; stroke-dasharray:6 4; }
-.history-curve { fill:none; stroke:var(--green); stroke-width:2.5; }
-.observation-point,.selected-point { fill:var(--green); }
-.muted-point { fill:#c8d0cb; }
 .history-values { margin:16px 0; }
 .history-values caption { text-align:left; padding:10px 0; font-size:12px; color:var(--muted); }
 .history-values tr[aria-current=true] { background:#e4efdf; }

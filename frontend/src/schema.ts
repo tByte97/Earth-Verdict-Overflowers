@@ -38,6 +38,8 @@ const DetectionSchema = z.object({
 export const DetectionHistorySchema = z.object({
   alpha: finite.gt(0).lt(1), min_observations: integer.min(3),
   method: z.literal('sen_mann_kendall'), start_year: integer,
+  // Optional additive field: the first end year from which the trend stays significant; null when it never does.
+  emerged_year: integer.nullable().optional(),
   points: z.array(z.object({
     end_year: integer, n_observations: integer.min(0), p: finite.min(0).max(1).nullable(),
     correction: z.enum(['hamed_rao', 'none']).nullable(), status: z.enum(['ok', 'short_series']),

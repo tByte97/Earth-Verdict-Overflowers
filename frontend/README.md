@@ -211,7 +211,26 @@ table, robustness windows, exact values and data sources stay the detailed view.
   raw step's mini chart shows it.
 - Each step's source button is chosen by step `id` (NASA POWER, NOAA NCEI or backend
   statistics) and opens the matching record in **Data sources**.
-- Mini visuals are small inline SVGs; Chart.js is kept for the full-size charts.
+- Mini visuals are small inline SVGs, like the full-size record chart.
 
 `tests/steps.test.mjs` checks order and text against the canonical JSON, the mini visuals,
 the source links and a response with a missing step.
+
+
+## Record chart and evidence timeline (issue #41, sections 4d–4e)
+
+`src/chart/RecordChart.tsx` draws **The record at this spot** as inline SVG, under the station badge:
+
+- `series` as a thin line with dots, Sen's line from `sen.band[].mid` and the 95% fan from `sen.band[].low/high`.
+- The station `witness.series` in a second colour. A `null` year breaks the line; it is never bridged or drawn as zero.
+- A dashed line at `baseline.mean`, labelled "{baseline.period} average"; the note says whether it is the 1991–2020
+  normal or the whole-record average (`baseline.kind`).
+- One stripe per year under the chart, diverging around `baseline.mean` with the same OKLab ramps as the trend map
+  (`src/chart/ramp.ts`). The colour scale is a display choice only.
+- Hover or the arrow keys show the year, the value, the trend-line value and the station value.
+- The exact values for every year stay in a table under the chart.
+- When the optional `detection_history.emerged_year` is supplied, a dashed vertical line marks it.
+
+The evidence history (`DetectionHistoryChart`) is a block timeline: one block per end year, filled when
+`status == ok` and `p < alpha`, with the exact p in each block's title. "Signal emerged" shows `emerged_year`,
+or "—" while the backend does not supply it. The end-year slider and the exact-values table are unchanged.
