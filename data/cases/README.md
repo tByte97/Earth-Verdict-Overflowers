@@ -11,6 +11,9 @@ These files are `CheckResult` responses shared by the API and frontend. Observat
 | `kyiv-colder.json` | `refuted` | Not applicable (`null`) |
 | `kyiv-summer-rain.json` | `refuted` | Not applicable (`null`) |
 | `global-warming-stopped.json` | `refuted` | Not applicable (`null`) |
+| `phoenix-summer-heat.json` | `confirmed` | Not applicable (`null`); CMIP6 from the `us-southwest` tile |
+| `newyork-winter-warming.json` | `not_proven` (`not_robust`, 2 of 5 windows) | 7 years; DJF starts in 1982 |
+| `kyiv-summer-rain-gpm.json` | `not_proven` | 15 years; GPM IMERG 1998–2024 (compare `kyiv-summer-rain.json`, MERRA-2) |
 
 ## Contract and provenance
 
@@ -36,7 +39,7 @@ The existing presentation interpolation is allowed only between adjacent non-mis
 
 ## Observed prefix history: issue #6 contract addition
 
-`detection_history` is optional/nullable for older responses. Newly generated responses and these seven snapshots include:
+`detection_history` is optional/nullable for older responses. Newly generated responses and these snapshots include:
 
 - `method: "sen_mann_kendall"`, `alpha: 0.05`, `min_observations: 15`, and a fixed `start_year`;
 - one `points` entry for every calendar year through the case's end year;
@@ -54,6 +57,6 @@ This is a coordinated schema addition: the updated client accepts older response
 
 ## Rebuild
 
-After installing the backend dependencies and fetching the source data, `python tools/build_cases.py` uses `app.check.assemble_result` to generate both current statistics and prefix histories. Live `/api/check` uses that same assembly path. No new endpoint, browser-side statistical library or calculation on slider movement is required.
+After installing the backend dependencies and fetching the source data, `python tools/build_cases.py` uses the city files in `data/` for the Ukrainian cases and `run_check` (through the API cache) for the others; both go through `app.check.assemble_result` to generate both current statistics and prefix histories. Live `/api/check` uses that same assembly path. No new endpoint, browser-side statistical library or calculation on slider movement is required.
 
 Regenerate the complete saved responses with that builder after contract updates; do not merge or append JSON fields by hand. The rebuilt responses include `detection_history` together with the Sen pivot/band, baseline, structured steps and expanded scenario metadata. Retrieval/generation metadata may change during a rebuild. The formatted final prefix p-value must still agree with the response's main `mk.p`.

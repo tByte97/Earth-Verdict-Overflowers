@@ -2083,58 +2083,58 @@
   "mean": 0.88,
   "n": 36
  },
- "effect": -0.272,
- "ci_low": -0.371,
- "ci_high": -0.173,
- "bootstrap_ci_low": -0.344,
- "bootstrap_ci_high": -0.197,
- "p": 2.45e-06,
- "relative_change": -0.2324,
+ "effect": -0.267,
+ "ci_low": -0.366,
+ "ci_high": -0.167,
+ "bootstrap_ci_low": -0.346,
+ "bootstrap_ci_high": -0.19,
+ "p": 1.43e-06,
+ "relative_change": -0.228,
  "placebo": [
   {
    "event_month": "2008-11",
-   "effect": -0.591,
-   "p": 7.34e-06
+   "effect": -0.599,
+   "p": 6.95e-06
   },
   {
    "event_month": "2009-11",
-   "effect": -0.648,
-   "p": 1.1e-06
+   "effect": -0.651,
+   "p": 1.11e-07
   },
   {
    "event_month": "2010-11",
-   "effect": -0.426,
-   "p": 0.000409
+   "effect": -0.439,
+   "p": 0.000466
   },
   {
    "event_month": "2011-11",
-   "effect": -0.192,
-   "p": 0.0784
+   "effect": -0.18,
+   "p": 0.0754
   },
   {
    "event_month": "2012-11",
    "effect": -0.085,
-   "p": 0.128
+   "p": 0.265
   },
   {
    "event_month": "2013-11",
    "effect": -0.159,
-   "p": 0.121
+   "p": 0.0711
   },
   {
    "event_month": "2014-11",
-   "effect": -0.272,
-   "p": 2.07e-06
+   "effect": -0.278,
+   "p": 1.61e-06
   },
   {
    "event_month": "2015-11",
-   "effect": -0.261,
-   "p": 0.000218
+   "effect": -0.259,
+   "p": 0.000181
   },
   {
    "event_month": "2016-11",
-   "effect": -0.095,
-   "p": 0.417
+   "effect": -0.1,
+   "p": 0.266
   }
  ],
  "placebo_larger": 4,
@@ -2173,7 +2173,7 @@
   {
    "id": "before_after",
    "title": "Before vs after",
-   "value": "-0.27 10¹⁵ molecules/cm² (-23.2%)",
+   "value": "-0.27 10¹⁵ molecules/cm² (-22.8%)",
    "detail": "Comparing 2019-11–2022-10 (n=36) against 2016-11–2019-10 (n=34) relative to surroundings."
   },
   {
@@ -2201,13 +2201,13 @@
    "source": "NASA Giovanni",
    "product": "OMNO2d v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMNO2d_003_ColumnAmountNO2TropCloudScreened&location=%5B36.904%2C-111.39%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T20:20:01Z",
+   "retrieved_at": "2026-11-15T09:46:52Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T20:20:01Z"
+  "generated_at": "2026-11-15T09:46:52Z"
  }
 }

@@ -205,143 +205,143 @@
  "sen": {
   "slope_per_year": -1.66959,
   "slope_per_decade": -16.6959,
-  "ci_low": -26.7059,
-  "ci_high": -5.07,
+  "ci_low": -28.1433,
+  "ci_high": -3.4846,
   "intercept": 238.801,
   "pivot_year": 2003.0,
   "pivot_value": 202.07,
   "band": [
    {
     "year": 1981,
-    "low": 213.22,
+    "low": 209.74,
     "mid": 238.8,
-    "high": 260.82
+    "high": 263.99
    },
    {
     "year": 1982,
-    "low": 212.72,
+    "low": 209.39,
     "mid": 237.13,
-    "high": 258.15
+    "high": 261.17
    },
    {
     "year": 1983,
-    "low": 212.21,
+    "low": 209.04,
     "mid": 235.46,
-    "high": 255.48
+    "high": 258.36
    },
    {
     "year": 1984,
-    "low": 211.7,
+    "low": 208.69,
     "mid": 233.79,
-    "high": 252.81
+    "high": 255.54
    },
    {
     "year": 1985,
-    "low": 211.2,
+    "low": 208.34,
     "mid": 232.12,
-    "high": 250.14
+    "high": 252.73
    },
    {
     "year": 1986,
-    "low": 210.69,
+    "low": 207.99,
     "mid": 230.45,
-    "high": 247.47
+    "high": 249.91
    },
    {
     "year": 1987,
-    "low": 210.18,
+    "low": 207.65,
     "mid": 228.78,
-    "high": 244.8
+    "high": 247.1
    },
    {
     "year": 1988,
-    "low": 209.68,
+    "low": 207.3,
     "mid": 227.11,
-    "high": 242.13
+    "high": 244.29
    },
    {
     "year": 1989,
-    "low": 209.17,
+    "low": 206.95,
     "mid": 225.44,
-    "high": 239.46
+    "high": 241.47
    },
    {
     "year": 1990,
-    "low": 208.66,
+    "low": 206.6,
     "mid": 223.77,
-    "high": 236.79
+    "high": 238.66
    },
    {
     "year": 1991,
-    "low": 208.15,
+    "low": 206.25,
     "mid": 222.11,
-    "high": 234.12
+    "high": 235.84
    },
    {
     "year": 1992,
-    "low": 207.65,
+    "low": 205.9,
     "mid": 220.44,
-    "high": 231.45
+    "high": 233.03
    },
    {
     "year": 1993,
-    "low": 207.14,
+    "low": 205.55,
     "mid": 218.77,
-    "high": 228.78
+    "high": 230.21
    },
    {
     "year": 1994,
-    "low": 206.63,
+    "low": 205.21,
     "mid": 217.1,
-    "high": 226.11
+    "high": 227.4
    },
    {
     "year": 1995,
-    "low": 206.13,
+    "low": 204.86,
     "mid": 215.43,
-    "high": 223.43
+    "high": 224.58
    },
    {
     "year": 1996,
-    "low": 205.62,
+    "low": 204.51,
     "mid": 213.76,
-    "high": 220.76
+    "high": 221.77
    },
    {
     "year": 1997,
-    "low": 205.11,
+    "low": 204.16,
     "mid": 212.09,
-    "high": 218.09
+    "high": 218.96
    },
    {
     "year": 1998,
-    "low": 204.61,
+    "low": 203.81,
     "mid": 210.42,
-    "high": 215.42
+    "high": 216.14
    },
    {
     "year": 1999,
-    "low": 204.1,
+    "low": 203.46,
     "mid": 208.75,
-    "high": 212.75
+    "high": 213.33
    },
    {
     "year": 2000,
-    "low": 203.59,
+    "low": 203.12,
     "mid": 207.08,
-    "high": 210.08
+    "high": 210.51
    },
    {
     "year": 2001,
-    "low": 203.08,
+    "low": 202.77,
     "mid": 205.41,
-    "high": 207.41
+    "high": 207.7
    },
    {
     "year": 2002,
-    "low": 202.58,
+    "low": 202.42,
     "mid": 203.74,
-    "high": 204.74
+    "high": 204.88
    },
    {
     "year": 2003,
@@ -351,135 +351,135 @@
    },
    {
     "year": 2004,
-    "low": 199.4,
+    "low": 199.26,
     "mid": 200.4,
-    "high": 201.56
+    "high": 201.72
    },
    {
     "year": 2005,
-    "low": 196.73,
+    "low": 196.44,
     "mid": 198.73,
-    "high": 201.06
+    "high": 201.37
    },
    {
     "year": 2006,
-    "low": 194.06,
+    "low": 193.63,
     "mid": 197.06,
-    "high": 200.55
+    "high": 201.02
    },
    {
     "year": 2007,
-    "low": 191.39,
+    "low": 190.81,
     "mid": 195.39,
-    "high": 200.04
+    "high": 200.68
    },
    {
     "year": 2008,
-    "low": 188.72,
+    "low": 188.0,
     "mid": 193.72,
-    "high": 199.54
+    "high": 200.33
    },
    {
     "year": 2009,
-    "low": 186.05,
+    "low": 185.18,
     "mid": 192.05,
-    "high": 199.03
+    "high": 199.98
    },
    {
     "year": 2010,
-    "low": 183.38,
+    "low": 182.37,
     "mid": 190.38,
-    "high": 198.52
+    "high": 199.63
    },
    {
     "year": 2011,
-    "low": 180.71,
+    "low": 179.56,
     "mid": 188.71,
-    "high": 198.01
+    "high": 199.28
    },
    {
     "year": 2012,
-    "low": 178.03,
+    "low": 176.74,
     "mid": 187.04,
-    "high": 197.51
+    "high": 198.93
    },
    {
     "year": 2013,
-    "low": 175.36,
+    "low": 173.93,
     "mid": 185.37,
-    "high": 197.0
+    "high": 198.59
    },
    {
     "year": 2014,
-    "low": 172.69,
+    "low": 171.11,
     "mid": 183.7,
-    "high": 196.49
+    "high": 198.24
    },
    {
     "year": 2015,
-    "low": 170.02,
+    "low": 168.3,
     "mid": 182.03,
-    "high": 195.99
+    "high": 197.89
    },
    {
     "year": 2016,
-    "low": 167.35,
+    "low": 165.48,
     "mid": 180.37,
-    "high": 195.48
+    "high": 197.54
    },
    {
     "year": 2017,
-    "low": 164.68,
+    "low": 162.67,
     "mid": 178.7,
-    "high": 194.97
+    "high": 197.19
    },
    {
     "year": 2018,
-    "low": 162.01,
+    "low": 159.86,
     "mid": 177.03,
-    "high": 194.47
+    "high": 196.84
    },
    {
     "year": 2019,
-    "low": 159.34,
+    "low": 157.04,
     "mid": 175.36,
-    "high": 193.96
+    "high": 196.49
    },
    {
     "year": 2020,
-    "low": 156.67,
+    "low": 154.23,
     "mid": 173.69,
-    "high": 193.45
+    "high": 196.15
    },
    {
     "year": 2021,
-    "low": 154.0,
+    "low": 151.41,
     "mid": 172.02,
-    "high": 192.94
+    "high": 195.8
    },
    {
     "year": 2022,
-    "low": 151.33,
+    "low": 148.6,
     "mid": 170.35,
-    "high": 192.44
+    "high": 195.45
    },
    {
     "year": 2023,
-    "low": 148.66,
+    "low": 145.78,
     "mid": 168.68,
-    "high": 191.93
+    "high": 195.1
    },
    {
     "year": 2024,
-    "low": 145.99,
+    "low": 142.97,
     "mid": 167.01,
-    "high": 191.42
+    "high": 194.75
    },
    {
     "year": 2025,
-    "low": 143.32,
+    "low": 140.15,
     "mid": 165.34,
-    "high": 190.92
+    "high": 194.4
    }
   ]
  },
@@ -497,9 +497,9 @@
  },
  "ols": {
   "slope_per_year": -1.5438,
-  "p": 0.0213,
+  "p": 0.0262,
   "r2": 0.1494,
-  "n_eff": 35.3
+  "n_eff": 33.0
  },
  "robustness": [
   {
@@ -2805,7 +2805,7 @@
    "id": "robustness",
    "title": "Does the choice of years matter?",
    "value": "4 of 5 periods agree",
-   "detail": "We repeat the check with the start and end shifted by a few years.",
+   "detail": "We repeat the check with the start and end shifted by a few years; at least 4 of 5 must agree.",
    "fields": [
     "robustness_summary.significant",
     "robustness_summary.total"
@@ -2856,7 +2856,7 @@
  ],
  "detection": {
   "residual_sd": 48.9436,
-  "phi": 0.1211,
+  "phi": 0.1535,
   "slope_per_year": -1.66959,
   "n_years": 45,
   "multipliers": [
@@ -2868,10 +2868,10 @@
   ],
   "years_needed": [
    78.0,
-   59.0,
+   60.0,
    51.0,
    38.0,
-   32.0
+   33.0
   ]
  },
  "detection_history": {
@@ -2981,7 +2981,7 @@
    {
     "end_year": 1995,
     "n_observations": 15,
-    "p": 0.029448104214274153,
+    "p": 0.029448104214274164,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -2995,7 +2995,7 @@
    {
     "end_year": 1997,
     "n_observations": 17,
-    "p": 0.07651365424139898,
+    "p": 0.076513654241399,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3023,14 +3023,14 @@
    {
     "end_year": 2001,
     "n_observations": 21,
-    "p": 0.08521008299376037,
+    "p": 0.08521008299376036,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2002,
     "n_observations": 22,
-    "p": 0.1758957490227674,
+    "p": 0.17589574902276717,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3044,7 +3044,7 @@
    {
     "end_year": 2004,
     "n_observations": 24,
-    "p": 0.1724913614849527,
+    "p": 0.1724913614849526,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3086,14 +3086,14 @@
    {
     "end_year": 2010,
     "n_observations": 30,
-    "p": 0.08998309024695297,
+    "p": 0.08998309024695299,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2011,
     "n_observations": 31,
-    "p": 0.23414498629430602,
+    "p": 0.2341449862943059,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3114,14 +3114,14 @@
    {
     "end_year": 2014,
     "n_observations": 34,
-    "p": 0.08560310640738501,
+    "p": 0.085603106407385,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2015,
     "n_observations": 35,
-    "p": 0.04802155761628691,
+    "p": 0.04802155761628693,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3156,7 +3156,7 @@
    {
     "end_year": 2020,
     "n_observations": 40,
-    "p": 0.006142605729103355,
+    "p": 0.006142605729103356,
     "correction": "hamed_rao",
     "status": "ok"
    },
@@ -3184,14 +3184,14 @@
    {
     "end_year": 2024,
     "n_observations": 44,
-    "p": 0.011150355784445882,
+    "p": 0.011150355784445886,
     "correction": "hamed_rao",
     "status": "ok"
    },
    {
     "end_year": 2025,
     "n_observations": 45,
-    "p": 0.017771039594809267,
+    "p": 0.017771039594809263,
     "correction": "hamed_rao",
     "status": "ok"
    }
@@ -3354,59 +3354,59 @@
     ],
     "low": [
      165.3,
-     164.0,
-     162.7,
-     161.3,
-     160.0,
-     158.7,
-     157.3,
-     156.0,
-     154.7,
-     153.3,
-     152.0,
-     150.7,
-     149.3,
-     148.0,
-     146.6,
-     145.3,
-     144.0,
-     142.6,
-     141.3,
+     163.9,
+     162.5,
+     161.1,
+     159.7,
+     158.3,
+     156.9,
+     155.5,
+     154.1,
+     152.7,
+     151.3,
+     149.9,
+     148.5,
+     147.0,
+     145.6,
+     144.2,
+     142.8,
+     141.4,
      140.0,
      138.6,
-     137.3,
-     136.0,
-     134.6,
-     133.3,
-     132.0
+     137.2,
+     135.8,
+     134.4,
+     133.0,
+     131.6,
+     130.2
     ],
     "high": [
      165.3,
-     165.1,
+     165.2,
+     165.0,
      164.8,
      164.6,
+     164.5,
      164.3,
      164.1,
+     163.9,
      163.8,
      163.6,
-     163.3,
+     163.4,
+     163.2,
      163.1,
-     162.8,
+     162.9,
+     162.7,
      162.6,
-     162.3,
+     162.4,
+     162.2,
      162.0,
-     161.8,
+     161.9,
+     161.7,
      161.5,
      161.3,
-     161.0,
-     160.8,
-     160.5,
-     160.3,
-     160.0,
-     159.8,
-     159.5,
-     159.3,
-     159.0
+     161.2,
+     161.0
     ]
    },
    {
@@ -3443,59 +3443,59 @@
     ],
     "low": [
      165.3,
-     162.7,
-     160.0,
-     157.3,
-     154.7,
-     152.0,
-     149.3,
-     146.6,
-     144.0,
-     141.3,
-     138.6,
-     136.0,
-     133.3,
-     130.6,
-     128.0,
-     125.3,
-     122.6,
-     119.9,
-     117.3,
-     114.6,
+     162.5,
+     159.7,
+     156.9,
+     154.1,
+     151.3,
+     148.5,
+     145.6,
+     142.8,
+     140.0,
+     137.2,
+     134.4,
+     131.6,
+     128.8,
+     125.9,
+     123.1,
+     120.3,
+     117.5,
+     114.7,
      111.9,
-     109.3,
-     106.6,
-     103.9,
-     101.2,
-     98.6
+     109.1,
+     106.2,
+     103.4,
+     100.6,
+     97.8,
+     95.0
     ],
     "high": [
      165.3,
-     164.8,
+     165.0,
+     164.6,
      164.3,
-     163.8,
-     163.3,
-     162.8,
-     162.3,
-     161.8,
-     161.3,
+     163.9,
+     163.6,
+     163.2,
+     162.9,
+     162.6,
+     162.2,
+     161.9,
+     161.5,
+     161.2,
      160.8,
-     160.3,
+     160.5,
+     160.1,
      159.8,
-     159.3,
+     159.4,
+     159.1,
      158.7,
-     158.2,
+     158.4,
+     158.0,
      157.7,
-     157.2,
-     156.7,
-     156.2,
-     155.7,
-     155.2,
-     154.7,
-     154.2,
-     153.7,
-     153.2,
-     152.7
+     157.3,
+     157.0,
+     156.6
     ]
    },
    {
@@ -3532,68 +3532,69 @@
     ],
     "low": [
      165.3,
-     161.3,
-     157.3,
-     153.3,
-     149.3,
-     145.3,
-     141.3,
-     137.3,
-     133.3,
-     129.3,
-     125.3,
-     121.3,
-     117.3,
-     113.3,
-     109.3,
-     105.3,
-     101.2,
-     97.2,
-     93.2,
-     89.2,
-     85.2,
-     81.2,
-     77.2,
-     73.2,
-     69.2,
-     65.2
+     161.1,
+     156.9,
+     152.7,
+     148.5,
+     144.2,
+     140.0,
+     135.8,
+     131.6,
+     127.3,
+     123.1,
+     118.9,
+     114.7,
+     110.5,
+     106.2,
+     102.0,
+     97.8,
+     93.6,
+     89.4,
+     85.1,
+     80.9,
+     76.7,
+     72.5,
+     68.2,
+     64.0,
+     59.8
     ],
     "high": [
      165.3,
-     164.6,
+     164.8,
+     164.3,
      163.8,
-     163.1,
-     162.3,
-     161.5,
-     160.8,
-     160.0,
-     159.3,
+     163.2,
+     162.7,
+     162.2,
+     161.7,
+     161.2,
+     160.6,
+     160.1,
+     159.6,
+     159.1,
      158.5,
-     157.7,
+     158.0,
+     157.5,
      157.0,
-     156.2,
-     155.5,
-     154.7,
-     153.9,
-     153.2,
-     152.4,
-     151.6,
-     150.9,
-     150.1,
-     149.4,
-     148.6,
-     147.8,
-     147.1,
-     146.3
+     156.5,
+     155.9,
+     155.4,
+     154.9,
+     154.4,
+     153.8,
+     153.3,
+     152.8,
+     152.3
     ]
    }
   ]
  },
  "scenarios": {
   "synthetic": false,
-  "source": "NASA NEX-GDDP-CMIP6 (5-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR)",
+  "source": "NASA NEX-GDDP-CMIP6 (4-model ensemble: ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6)",
   "baseline_period": "1995-2014",
   "baseline_value": 207.0,
+  "baseline_n_years": 20,
   "note": "These are climate-model scenarios, not a forecast. Which one happens depends on what people do.",
   "paths": [
    {
@@ -3612,68 +3613,68 @@
      "2091-2100"
     ],
     "median": [
-     -6.9,
-     1.3,
-     0.0,
-     15.3
+     -12.6,
+     -4.3,
+     -9.0,
+     13.5
     ],
     "low": [
-     -29.5,
-     -16.6,
-     -23.4,
-     -20.4
+     -31.3,
+     -17.7,
+     -24.3,
+     -25.7
     ],
     "high": [
-     20.6,
-     9.8,
-     26.9,
-     28.1
+     11.3,
+     9.2,
+     12.9,
+     18.8
     ],
     "median_value": [
-     200.1,
-     208.3,
-     207.0,
-     222.3
+     194.4,
+     202.7,
+     198.0,
+     220.5
     ],
     "low_value": [
-     177.5,
-     190.4,
-     183.6,
-     186.6
+     175.7,
+     189.3,
+     182.7,
+     181.3
     ],
     "high_value": [
-     227.6,
-     216.8,
-     233.9,
-     235.1
+     218.3,
+     216.2,
+     219.9,
+     225.8
     ],
     "analogs": [
      {
       "year": 2030,
-      "analog_year": 1987,
-      "analog_value": 199.4,
-      "analog_rank": 24,
+      "analog_year": 1995,
+      "analog_value": 195.2,
+      "analog_rank": 26,
       "beyond_record": false
      },
      {
       "year": 2050,
-      "analog_year": 1999,
-      "analog_value": 209.4,
-      "analog_rank": 22,
+      "analog_year": 2001,
+      "analog_value": 202.1,
+      "analog_rank": 23,
       "beyond_record": false
      },
      {
       "year": 2070,
-      "analog_year": 1999,
-      "analog_value": 209.4,
-      "analog_rank": 22,
+      "analog_year": 1991,
+      "analog_value": 197.5,
+      "analog_rank": 25,
       "beyond_record": false
      },
      {
       "year": 2100,
-      "analog_year": 2005,
-      "analog_value": 223.7,
-      "analog_rank": 15,
+      "analog_year": 2004,
+      "analog_value": 218.2,
+      "analog_rank": 16,
       "beyond_record": false
      }
     ]
@@ -3694,68 +3695,68 @@
      "2091-2100"
     ],
     "median": [
-     5.1,
-     -22.8,
-     -5.7,
-     -1.2
+     9.9,
+     -15.6,
+     -18.7,
+     -9.5
     ],
     "low": [
-     -28.8,
-     -33.5,
+     -26.0,
      -32.2,
-     -45.4
+     -32.3,
+     -50.0
     ],
     "high": [
-     15.5,
-     -4.0,
-     4.2,
-     2.5
+     15.6,
+     -3.2,
+     3.5,
+     -0.5
     ],
     "median_value": [
-     212.1,
-     184.2,
-     201.3,
-     205.8
+     216.9,
+     191.4,
+     188.3,
+     197.5
     ],
     "low_value": [
-     178.2,
-     173.5,
+     181.0,
      174.8,
-     161.6
+     174.7,
+     157.0
     ],
     "high_value": [
-     222.5,
-     203.0,
-     211.2,
-     209.5
+     222.6,
+     203.8,
+     210.5,
+     206.5
     ],
     "analogs": [
      {
       "year": 2030,
-      "analog_year": 1989,
-      "analog_value": 211.8,
-      "analog_rank": 21,
+      "analog_year": 1985,
+      "analog_value": 218.2,
+      "analog_rank": 17,
       "beyond_record": false
      },
      {
       "year": 2050,
+      "analog_year": 1995,
+      "analog_value": 195.2,
+      "analog_rank": 26,
+      "beyond_record": false
+     },
+     {
+      "year": 2070,
       "analog_year": 2003,
       "analog_value": 182.9,
       "analog_rank": 27,
       "beyond_record": false
      },
      {
-      "year": 2070,
-      "analog_year": 2001,
-      "analog_value": 202.1,
-      "analog_rank": 23,
-      "beyond_record": false
-     },
-     {
       "year": 2100,
-      "analog_year": 1999,
-      "analog_value": 209.4,
-      "analog_rank": 22,
+      "analog_year": 1991,
+      "analog_value": 197.5,
+      "analog_rank": 25,
       "beyond_record": false
      }
     ]
@@ -3776,68 +3777,68 @@
      "2091-2100"
     ],
     "median": [
-     12.0,
-     -27.8,
-     -40.0,
-     -57.3
+     6.9,
+     -25.0,
+     -51.1,
+     -50.8
     ],
     "low": [
-     -5.4,
-     -36.4,
+     -6.6,
+     -37.6,
      -66.6,
-     -78.4
+     -71.2
     ],
     "high": [
-     32.3,
-     -14.4,
-     -21.0,
-     -25.6
+     21.3,
+     -13.3,
+     -18.5,
+     -22.5
     ],
     "median_value": [
-     219.0,
-     179.2,
-     167.0,
-     149.7
+     213.9,
+     182.0,
+     155.9,
+     156.2
     ],
     "low_value": [
-     201.6,
-     170.6,
+     200.4,
+     169.4,
      140.4,
-     128.6
+     135.8
     ],
     "high_value": [
-     239.3,
-     192.6,
-     186.0,
-     181.4
+     228.3,
+     193.7,
+     188.5,
+     184.5
     ],
     "analogs": [
      {
       "year": 2030,
-      "analog_year": 2004,
-      "analog_value": 218.2,
-      "analog_rank": 16,
+      "analog_year": 2025,
+      "analog_value": 213.5,
+      "analog_rank": 19,
       "beyond_record": false
      },
      {
       "year": 2050,
-      "analog_year": 1996,
-      "analog_value": 179.5,
-      "analog_rank": 31,
+      "analog_year": 2021,
+      "analog_value": 181.3,
+      "analog_rank": 28,
       "beyond_record": false
      },
      {
       "year": 2070,
-      "analog_year": 2000,
-      "analog_value": 164.5,
-      "analog_rank": 34,
+      "analog_year": 2013,
+      "analog_value": 156.2,
+      "analog_rank": 37,
       "beyond_record": false
      },
      {
       "year": 2100,
-      "analog_year": 2008,
-      "analog_value": 150.9,
-      "analog_rank": 38,
+      "analog_year": 2013,
+      "analog_value": 156.2,
+      "analog_rank": 37,
       "beyond_record": false
      }
     ]
@@ -3850,21 +3851,21 @@
    "source": "NASA POWER",
    "product": "PRECTOTCORR (MERRA-2, bias-corrected)",
    "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=PRECTOTCORR&community=AG&latitude=50.45&longitude=30.52&start=1981&end=2025&format=JSON",
-   "retrieved_at": "2026-11-15",
+   "retrieved_at": "2026-11-14",
    "license": "Public domain (NASA)"
   },
   {
    "what": "Future scenarios",
    "source": "NASA NCCS",
-   "product": "NEX-GDDP-CMIP6 v2.0, 5 models, r1i1p1f1",
+   "product": "NEX-GDDP-CMIP6 v2.0, 4 models, r1i1p1f1",
    "url": "https://ds.nccs.nasa.gov/thredds/catalog/AMES/NEX/GDDP-CMIP6/catalog.html",
    "retrieved_at": "2026-11-14",
    "license": "CC BY 4.0 (NASA NEX-GDDP-CMIP6)"
   }
  ],
  "meta": {
-  "stub": true,
+  "stub": false,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-15T08:44:47Z"
+  "generated_at": "2026-11-15T09:46:07Z"
  }
 }
