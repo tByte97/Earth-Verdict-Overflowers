@@ -227,8 +227,6 @@ def explain(kind: str, result: dict, question: Optional[str], lang: str) -> Chat
     key = _api_key()
     if key is None:
         raise CheckError("llm_unavailable", "Explanations are not configured on this server.")
-    if not _rate_ok():
-        raise CheckError("llm_unavailable", "Too many explanation requests; try again in a minute.")
 
     language = "Ukrainian" if lang == "uk" else "English"
     task = {"check": "TASK: explain this result, quoting its key numbers.",
@@ -239,6 +237,8 @@ def explain(kind: str, result: dict, question: Optional[str], lang: str) -> Chat
     text, grounded = "", False
     busy = False
     for _ in range(2):
+        if not _rate_ok():
+            raise CheckError("llm_unavailable", "Too many explanation requests; try again in a minute.")
         try:
             text = _call_gemini(key, model, prompt)
         except _Busy:
