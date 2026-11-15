@@ -10,6 +10,7 @@ import { RecordChart } from './chart/RecordChart';
 import { TermHelp, WordGlossary } from './TermHelp';
 import { glossary, significanceCaution } from './method/glossary';
 import { HowItDecides } from './method/HowItDecides';
+import { Explain } from './events/Explain';
 
 const agreements = {
   agree: ['Sources agree', 'The ground station supports the result.'],
@@ -59,6 +60,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     <WordGlossary />
     <StepPipeline result={r} onSource={openSources} />
     <HowItDecides />
+    <Explain kind="check" result={r} />
     <details className="technical">
       <summary>How we checked this <span>Methods, uncertainty & full precision</span></summary>
       <div className="detail-body">

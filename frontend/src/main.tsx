@@ -13,7 +13,6 @@ import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from
 import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
 import { seasonName as layerSeason } from './globe/presentation';
 import './styles.css';
-import { Explain } from './events/Explain';
 import { CaseFile } from './CaseFile';
 
 const EventsWorkspace = lazy(() => import('./events/EventsWorkspace').then(m => ({ default: m.EventsWorkspace })));
@@ -271,21 +270,18 @@ function App() {
   return <div className="shell">
     <div className="panel">
       <header className="mark">
-        <h1>Earth Verdict</h1>
-        <p>What is changing on Earth, where, how fast, and how sure we can be. NASA data{result ? `, ${result.case.start_year}–${result.case.end_year}` : ''}.</p>
+        <div className="brand-row">
+          <span className="brand-mark" aria-hidden="true">◉</span>
+          <h1>Earth Verdict</h1>
+        </div>
         <button className="help-button" type="button" onClick={() => setHelp(v => !v)} aria-expanded={help}>How to use <span aria-hidden="true">?</span></button>
+        <p>What is changing on Earth, where, how fast, and how sure we can be. NASA data{result ? `, ${result.case.start_year}–${result.case.end_year}` : ''}.</p>
         <div className="mode-tabs" role="tablist" aria-label="What to explore">{modes.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}>{label}</button>)}</div>
       </header>
       <main className="panel-body">
         {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
         {mode === 'claims' ? <div className="investigation-panel">
         <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real NASA and NOAA observations. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
-        <section className="trend-panel" aria-labelledby="trend-heading">
-          <h2 id="trend-heading">Trend map</h2>
-          <LayerControls index={layerIndex} value={layerKey} onChange={chooseLayer} fade={fade} onFade={setFade} labelOf={labelOf} />
-          {pickNote && <p className="trend-note" role="status">{pickNote}</p>}
-          {view && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
-        </section>
         <aside className="case-panel" aria-labelledby="case-heading">
           <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Your investigation</p><h2 id="case-heading">Open a case</h2></div></div>
           <div className="cases" role="group" aria-label="Cases">{cases.map(item => {
@@ -318,11 +314,13 @@ function App() {
           </form>
           </details>
         </aside>
-        <section className="result-panel" aria-label="Check result" aria-busy={busy}>
-          <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
-          <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
-          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={resultSaved} /><Explain kind="check" result={result} /><CaseFile result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Fetching satellite records and the nearest weather station. A new place can take up to a minute.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+        <section className="trend-panel" aria-labelledby="trend-heading">
+          <h2 id="trend-heading">Trend map</h2>
+          <LayerControls index={layerIndex} value={layerKey} onChange={chooseLayer} fade={fade} onFade={setFade} labelOf={labelOf} />
+          {pickNote && <p className="trend-note" role="status">{pickNote}</p>}
+          {view && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
         </section>
+        {result && <button type="button" className="see-evidence" onClick={() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })}>See the evidence <span aria-hidden="true">↓</span></button>}
         </div> : <p className="panel-note">Choose “Climate claims” to return to the globe.</p>}
       </main>
       <footer className="credits">
@@ -354,6 +352,13 @@ function App() {
       </div>
       {mode === 'events' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary></div>}
       {mode === 'co2' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary></div>}
+    </section>
+    <section id="results-section" className="result-panel" hidden={mode !== 'claims'} aria-label="Check result" aria-busy={busy}>
+      <div className="result-container">
+        <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
+        <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
+        {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={resultSaved} /><CaseFile result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Fetching satellite records and the nearest weather station. A new place can take up to a minute.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+      </div>
     </section>
   </div>;
 }

@@ -503,11 +503,11 @@ test('desktop puts the panel left of the full-height stage; mobile stacks the st
     const panel = await page.locator('.panel').boundingBox();
     const stage = await page.locator('.stage').boundingBox();
     assert.equal(panel.x, 0);
-    assert.equal(Math.round(panel.width), 500);
+    assert.equal(Math.round(panel.width), 440);
     assert.ok(Math.abs(stage.x - panel.width) < 2 && stage.height === 1100 && stage.x + stage.width === 1440);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight), true);
     assert.ok(await page.locator('.panel .case-panel').count());
-    assert.ok(await page.locator('.panel .verdict-card').count());
+    assert.ok(await page.locator('.result-panel .verdict-card').count());
     assert.equal(await page.getByLabel('Claim', { exact: true }).isVisible(), false);
     await page.locator('.case-parameters > summary').click();
     await expect(page.getByLabel('Claim', { exact: true })).toBeVisible();

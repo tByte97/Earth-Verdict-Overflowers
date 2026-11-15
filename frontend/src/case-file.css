@@ -1,8 +1,7 @@
-.case-file { margin: 0 28px 24px; padding-top: 18px; border-top: 1px solid var(--rule); }
-.case-file h3 { margin: 0 0 6px; font: 600 22px/1.2 var(--serif); color: var(--ink); }
-.case-file p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--ink-3); }
+.case-file { margin: 0; padding: 20px 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.case-file h3 { margin: 0 0 6px; font: 700 18px/1.25 var(--display); letter-spacing: -0.4px; color: var(--ink); }
+.case-file p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
 .case-file-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
-.case-file-button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--ink); font: 12px var(--mono); cursor: pointer; }
-.case-file-button:hover, .case-file-button:focus-visible { background: var(--cream); color: var(--accent-ink); }
+.case-file-button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: #f8faf6; color: var(--green); font: 600 12px var(--sans); cursor: pointer; }
+.case-file-button:hover, .case-file-button:focus-visible { background: var(--green); border-color: var(--green); color: #ffffff; }
 .case-file .case-file-status { min-height: 1.6em; overflow-wrap: anywhere; }
-@media (max-width: 900px) { .case-file { margin: 0 14px 18px; } }

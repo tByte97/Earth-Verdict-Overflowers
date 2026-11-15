@@ -8,7 +8,7 @@ import './chart.css';
 const H = 210;
 const STRIPE = 14;
 const P = { l: 44, r: 12, t: 14, b: 24 };
-const STATION = '#a99be6';
+const STATION = '#3a6fc4';
 const axisNumber = (x: number) => Math.abs(x) >= 10 ? x.toFixed(0) : Math.abs(x) >= 1 ? x.toFixed(1) : Math.abs(x) >= 0.1 ? x.toFixed(2) : x.toFixed(3);
 
 // One "M…L…" path per run of supplied values: a null year breaks the line, it is never bridged or drawn as zero.

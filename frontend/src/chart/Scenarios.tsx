@@ -4,9 +4,9 @@ import { palette, seasonName } from './ramp';
 
 export type ScenarioPath = NonNullable<CheckResult['scenarios']>['paths'][number];
 export const SSP: Record<ScenarioPath['id'], { code: string; color: string }> = {
-  ssp126: { code: 'SSP1-2.6', color: '#7fb3d5' },
-  ssp245: { code: 'SSP2-4.5', color: '#e0b45c' },
-  ssp585: { code: 'SSP5-8.5', color: '#e8705a' },
+  ssp126: { code: 'SSP1-2.6', color: '#2b709c' },
+  ssp245: { code: 'SSP2-4.5', color: '#c4861e' },
+  ssp585: { code: 'SSP5-8.5', color: '#c94c36' },
 };
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
