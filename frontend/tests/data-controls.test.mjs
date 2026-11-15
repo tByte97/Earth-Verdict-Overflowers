@@ -74,10 +74,33 @@ test('opening global-warming-stopped in live mode never requests an invalid grid
   await expect(page.locator('.trend-status')).toContainText('No trend map for temperature of the planet or a continent (whole year).');
   assert.equal(gridRequests.some(u => u.includes('global_temp')), false);
 
+  // The whole planet has no map and no place to mark: only the claim and its verdict are on the stage.
+  await expect(page.locator('.stage-title .big')).toHaveText(stopped.case.claim_text);
+  await expect(page.getByTestId('stage-verdict')).toContainText('Refuted');
+  await expect(page.getByTestId('trend-legend')).toHaveCount(0);
+  await expect(page.getByTestId('mark-legend')).toHaveCount(0);
+
+  // A case in the US: the Ukraine map must not stay on the globe; the case's own result is drawn at its place.
   await page.locator('[data-case="newyork-winter-warming"]').click();
-  await expect(page.locator('.stage-title .big')).toHaveText('Where is air temperature changing over Ukraine?');
+  await expect(page.locator('.stage-title .big')).toHaveText(ny.case.claim_text);
   await expect(page.locator('.stage-title .src')).toHaveText(ny.case.place.name);
-  await expect(page.locator('.trend-caption')).toContainText('over Ukraine');
+  await expect(page.getByTestId('trend-legend')).toHaveCount(0);
+  await expect(page.getByTestId('timeline')).toHaveCount(0);
+  await expect(page.locator('.trend-caption')).toHaveCount(0);
+  await expect(page.getByTestId('mark-legend')).toContainText(`This case at ${ny.case.place.name}`);
+  const verdict = page.getByTestId('stage-verdict');
+  await expect(verdict).toContainText({ confirmed: 'Confirmed', refuted: 'Refuted', not_proven: 'Not proven' }[ny.verdict]);
+  // White when the trend could be chance, the variable's colour when it is clear.
+  if (ny.verdict === 'not_proven') await expect(verdict).toHaveAttribute('data-mark', 'rgb(244,244,240)');
+  else await expect(verdict).not.toHaveAttribute('data-mark', 'rgb(244,244,240)');
+  await expect(page.locator('.trend-status')).toContainText('The trend map covers Ukraine and its neighbours.');
+
+  // A layer picked by hand is shown again, and says it is not about the open case.
+  await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Winter' }).click();
+  await expect(page.getByTestId('trend-legend')).toBeVisible();
+  await expect(page.locator('.stage-title .big')).toHaveText('Where is air temperature changing over Ukraine?');
+  await expect(page.locator('.stage-title .src')).toHaveText('The map you picked; it is not about the open case');
+  await expect(page.getByTestId('stage-verdict')).toHaveCount(0);
   assert.deepEqual(errors, []);
 });
 

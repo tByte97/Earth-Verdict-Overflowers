@@ -23,7 +23,7 @@ const withoutCounts = ({ n_cells, n_significant_fdr, n_significant_raw, stats_en
 const fixturePair = { a: { lat: 50, lon: 40, slope_per_decade: 3.9633, p: 0.00024 }, b: { lat: 46.5, lon: 40, slope_per_decade: -12.0948, p: 0 }, distance_km: 389, significance: 'fdr' };
 const entry = ({ variable_id, season, start_year, end_year, units_per_decade }) => ({ variable_id, season, start_year, end_year, units_per_decade });
 
-async function open({ live = false, index = true, counts = true, pair = false, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
+async function open({ echo = false, live = false, index = true, counts = true, pair = false, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
   const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
   // Assertions run offline; review screenshots load the imagery.
   if (!imagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
@@ -42,7 +42,7 @@ async function open({ live = false, index = true, counts = true, pair = false, i
       return route.fulfill({ json: counts ? withCounts(layer) : withoutCounts(layer) });
     });
     await page.route('**/api/places?*', route => route.fulfill({ json: [heat.case.place] }));
-    await page.route('**/api/check', route => { checks.push(route.request().postDataJSON()); return route.fulfill({ json: heat }); });
+    await page.route('**/api/check', route => { checks.push(route.request().postDataJSON()); return route.fulfill({ json: echo ? (({ place, variable_id, season }) => ({ ...heat, case: { ...heat.case, place, variable_id, season } }))(route.request().postDataJSON()) : heat }); });
   }
   await page.goto(baseURL + (live ? '/?source=live' : '/') + hash);
   await expect(page.locator('.globe-map canvas')).toBeVisible({ timeout: 20_000 });
@@ -159,7 +159,8 @@ test('a map click checks that spot with the layer variable, season and period', 
 });
 
 test('a picked-spot link restores the spot and checks it in live mode', async () => {
-  const { page, errors, checks } = await open({ live: true, hash: '#v=precip&s=DJF&p=1990-2020&pt=30.52,50.45' });
+  // The backend answers for the case it was asked about, so the map of that variable and season stays on.
+  const { page, errors, checks } = await open({ live: true, echo: true, hash: '#v=precip&s=DJF&p=1990-2020&pt=30.52,50.45' });
   try {
     await expect.poll(() => checks.length).toBe(1);
     assert.deepEqual([checks[0].variable_id, checks[0].season, checks[0].start_year, checks[0].end_year, checks[0].place.place_id, checks[0].claim_direction], ['precip', 'DJF', 1990, 2020, 'pt:50.45,30.52', 'change']);

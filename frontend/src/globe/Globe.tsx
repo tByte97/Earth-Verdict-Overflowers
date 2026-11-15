@@ -8,6 +8,7 @@ import { paintGrid, cellAt, mercatorWorld, MERCATOR_LAT } from './paint';
 import { CellTip, type TrendView } from './TrendMap';
 import { YearTip } from './Timeline';
 import type { Frame, YearCell } from './years';
+import { paintMark, type CaseMark } from './caseMark';
 import type { TrendCell } from './trends';
 import './globe.css';
 
@@ -169,7 +170,15 @@ function showFrame(map: maplibregl.Map, frame: Frame) {
     cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88) * cell.fade, t => pres.palette((t + 1) / 2)));
 }
 
-export function Globe({ place, station, destination, onPick, pickHint = 'Click the map to check a spot', trend = null, fade = true, frame = null }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; pickHint?: string; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
+// A case with no map of its own: one disc at its place, in the same image source.
+function showMark(map: maplibregl.Map, mark: CaseMark) {
+  map.setLayoutProperty('trend', 'visibility', 'visible');
+  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(EMPTY);
+  (map.getSource('pair') as maplibregl.GeoJSONSource).setData(EMPTY);
+  queueImage(map, 'trend', paintMark(mark));
+}
+
+export function Globe({ place, station, destination, onPick, pickHint = 'Click the map to check a spot', trend = null, fade = true, frame = null, mark = null }: { mark?: CaseMark | null } & { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; pickHint?: string; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
@@ -272,9 +281,10 @@ export function Globe({ place, station, destination, onPick, pickHint = 'Click t
     if (!styleReady) return;
     setTip(null);
     if (frame) { showFrame(map.current!, frame); return; }
+    if (!trend && mark) { showMark(map.current!, mark); return; }
     const chips = showTrend(map.current!, trend, fade);
     return () => { for (const marker of chips) marker.remove(); };
-  }, [styleReady, trend, fade, frame]);
+  }, [styleReady, trend, fade, frame, mark]);
 
   useEffect(() => {
     if (!station || !map.current) return;

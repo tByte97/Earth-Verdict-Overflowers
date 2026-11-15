@@ -13,6 +13,9 @@ import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from
 import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
 import { seasonName as layerSeason } from './globe/presentation';
 import { describe, firstIndex, frameOf, loadYearMap, yearView, type YearMap } from './globe/years';
+import { caseMark, caseOnMap, markColour } from './globe/caseMark';
+import { css, gradient } from './colour';
+import { presentationOf } from './globe/presentation';
 import { Timeline, YearLegend } from './globe/Timeline';
 import './styles.css';
 import { CaseFile } from './CaseFile';
@@ -154,6 +157,18 @@ function App() {
   }, [years, timelineYear, smooth]);
   const yearsRef = useRef(years);
   yearsRef.current = years;
+  // The map belongs on the globe only when it answers for the open case (same variable and season, place
+  // inside the painted area). Otherwise the case's own result is drawn at its place. With no case open the
+  // map is there to explore.
+  // A layer the user picked by hand in "Trend map" stays on until another case is opened: `explored` is the
+  // result that was open when they picked it.
+  const [explored, setExplored] = useState<CheckResult | null>(null);
+  const onMap = !!result && view !== null && caseOnMap(result, view);
+  const exploring = !!result && explored === result && !onMap;
+  const covered = !result || onMap || exploring;
+  const layerLoading = !!layerKey && !layer && layerStatus.startsWith('Loading');
+  const mark = useMemo(() => (result && !covered && !layerLoading ? caseMark(result) : null), [result, covered, layerLoading]);
+  const slopeText = (slope: number) => `${slope > 0 ? '+' : slope < 0 ? '−' : ''}${Math.abs(slope) >= 10 ? Math.abs(slope).toFixed(0) : Math.abs(slope).toFixed(2)}`;
   const pickYear = useCallback((index: number | null) => setTimelineYear(index === null ? null : yearsRef.current?.map.years[index] ?? null), []);
   const labelOf = (variableId: string) => variables.find(variable => variable.id === variableId)?.label ?? variableId;
 
@@ -403,6 +418,7 @@ function App() {
     pendingLayer.current = null;
     setLayerNote('');
     setLayerKey(key);
+    setExplored(result);
     if (picked && isLive) checkPoint(picked, key);
   }
 
@@ -469,7 +485,8 @@ function App() {
           <h2 id="trend-heading">Trend map</h2>
           <LayerControls index={layerIndex} value={layerKey} layer={layer} onChange={chooseLayer} fade={fade} onFade={setFade} labelOf={labelOf} />
           {pickNote && <p className="trend-note" role="status">{pickNote}</p>}
-          {view && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
+          {view && covered && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
+          {!covered && <p className="trend-note">The map covers Ukraine and its neighbours, so it is hidden for this case. Open a case in Ukraine to see it.</p>}
         </section>
         {result && <button type="button" className="see-evidence" onClick={() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })}>See the evidence <span aria-hidden="true">↓</span></button>}
         </div> : <div className="investigation-panel" ref={setPanelSlot} />}
@@ -483,16 +500,24 @@ function App() {
     <section className="stage" aria-label={mode === 'claims' ? 'Case location' : modes.find(([id]) => id === mode)![1]}>
       <div className="stage-globe">
         <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={mode !== 'claims' ? modePlace : selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={mode === 'claims' ? result?.witness?.station ?? null : null}
-          trend={mode === 'claims' ? view : null} fade={fade} frame={mode === 'claims' ? frame : null}
+          trend={mode === 'claims' && covered ? view : null} fade={fade} frame={mode === 'claims' && covered ? frame : null} mark={mode === 'claims' ? mark : null}
           pickHint={mode === 'events' ? 'Click the map to move the event there' : undefined}
           onPick={!isLive || mode === 'co2' ? undefined : mode === 'events' ? point => setEventPick(pick => ({ point, key: (pick?.key ?? 0) + 1 })) : point => checkPoint(point)} /></Suspense></ErrorBoundary>
         {mode === 'claims' ? <><div className="stage-legend">
-          {frame ? <YearLegend frame={frame} variableLabel={labelOf(frame.view.map.variable_id)} /> : view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
+          {!covered ? mark && result && <div className="trend-legend" data-testid="mark-legend">
+            <span className="trend-legend-title">This case at {result.case.place.name}</span>
+            <div className="trend-legend-bar" style={{ background: gradient(presentationOf(result.case.variable_id).palette) }} />
+            <div className="trend-legend-note"><div>{presentationOf(result.case.variable_id).down} ◂ ▸ {presentationOf(result.case.variable_id).up}</div><div>white = could be chance (noise)</div></div>
+          </div> : frame ? <YearLegend frame={frame} variableLabel={labelOf(frame.view.map.variable_id)} /> : view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
           <div className="stage-legend-markers"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </div>
         <div className="stage-title">
           {/* With a trend layer on the map, the title describes that layer. */}
-          {frame ? <>
+          {!covered && result ? <>
+            {/* No map answers for this case: the title is the claim itself. */}
+            <div className="eyebrow">{result.variable.label} · {seasonName(result.case.season)} · {result.case.start_year}–{result.case.end_year}{source ? ` · ${source}` : ''}</div>
+            <div className="big">{result.case.claim_text}</div>
+          </> : frame ? <>
             <div className="eyebrow">{layerSeason(frame.view.map.season)} {labelOf(frame.view.map.variable_id).toLowerCase()} over Ukraine{frame.smooth ? ` · ${frame.view.map.window}-year average` : ''}</div>
             <div className="big" data-testid="timeline-headline">{describe(frame).headline}</div>
           </> : layer ? <>
@@ -502,11 +527,14 @@ function App() {
             {result && <div className="eyebrow">{seasonName(result.case.season)} · {result.case.start_year}–{result.case.end_year}{source ? ` · ${source}` : ''}</div>}
             <div className="big">Where is {result ? result.variable.label.toLowerCase() : 'the climate'} changing?</div>
           </>}
-          <div className="src">{frame ? describe(frame).detail : selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</div>
-          {layer && !frame && <TrendCaption layer={layer} />}
-          {(layerNote || layerStatus) && <p className="trend-status" role="status">{layerNote || layerStatus}</p>}
+          <div className="src">{frame ? describe(frame).detail : exploring ? 'The map you picked; it is not about the open case' : selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</div>
+          {result && !exploring && !(covered && frame) && <p className={`stage-verdict ${result.verdict}`} data-testid="stage-verdict" data-mark={mark ? css(markColour(mark)) : undefined}>
+            <strong>{{ confirmed: 'Confirmed', refuted: 'Refuted', not_proven: 'Not proven' }[result.verdict]}</strong> · {slopeText(result.sen.slope_per_decade)} {result.variable.units} per decade · {result.case.place.name}</p>}
+          {covered && layer && !frame && <TrendCaption layer={layer} />}
+          {covered ? (layerNote || layerStatus) && <p className="trend-status" role="status">{layerNote || layerStatus}</p>
+            : <p className="trend-status" role="status">{layerNote || 'The trend map covers Ukraine and its neighbours. Here the globe shows the result of this case at its place.'}</p>}
         </div>
-        {years && <Timeline view={years} index={frame ? frame.index : null} smooth={smooth} onIndex={pickYear} onSmooth={setSmooth} />}
+        {years && covered && <Timeline view={years} index={frame ? frame.index : null} smooth={smooth} onIndex={pickYear} onSmooth={setSmooth} />}
         </> : <>
           {/* Events and CO₂ write their own headline here; the globe shows where (or, for CO₂, the whole planet). */}
           {mode === 'events' && <div className="stage-legend"><div className="stage-legend-markers"><span><i className="legend-place" />Event place</span></div></div>}

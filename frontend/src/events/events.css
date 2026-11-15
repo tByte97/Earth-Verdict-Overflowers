@@ -11,12 +11,6 @@
 /* The controls sit in the left panel, the headline over the globe, the evidence under it. */
 .ev-events { grid-template-columns: 1fr; margin-bottom: 10px; }
 .ev-controls .case-parameters { margin-top: 10px; }
-.stage-verdict {
-  display: inline-block; margin: 10px 0 0; padding: 6px 11px; border: 1px solid var(--rule); border-radius: 8px;
-  background: rgba(5, 7, 11, .72); color: var(--ink); font: 500 13px/1.4 var(--sans); text-shadow: none;
-}
-.stage-verdict strong { font-weight: 700; color: #f0d58c; }
-.stage-verdict.clear_change strong { color: #8fe0ad; }
 .ev-main { display: grid; gap: 18px; min-width: 0; }
 .ev-controls label { display: grid; gap: 6px; }
 .ev-controls fieldset { border: 0; padding: 0; margin: 0; }

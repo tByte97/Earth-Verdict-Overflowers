@@ -226,6 +226,27 @@ a {
 }
 
 /* ---------- Stage chrome over the globe ---------- */
+.stage-verdict {
+  display: table;
+  margin: 10px 0 0;
+  padding: 6px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: rgba(5, 7, 11, .72);
+  color: var(--ink);
+  font: 500 13px/1.4 var(--sans);
+  text-shadow: none;
+}
+.stage-verdict strong {
+  font-weight: 700;
+  color: #f0d58c;
+}
+.stage-verdict:is(.clear_change, .confirmed) strong {
+  color: #8fe0ad;
+}
+.stage-verdict.refuted strong {
+  color: #f3a195;
+}
 .stage-title {
   position: absolute;
   z-index: 2;
