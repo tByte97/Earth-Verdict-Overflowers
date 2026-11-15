@@ -230,11 +230,38 @@ test('events workspace filters window radios from valid_windows, clamps when swi
   // Pending slider debounce is cancelled if a preset is chosen before it fires.
   const beforePosts = eventPosts;
   await page.locator('.ev-range').fill(String(Number(await page.locator('.ev-range').getAttribute('min')) + 1));
-  await page.getByLabel('Ready-made event').selectOption('la-no2-lockdown');
+  await page.locator('[data-event="la-no2-lockdown"]').click();
   await page.waitForTimeout(600);
   assert.equal(eventPosts, beforePosts);
 
   await page.getByLabel('Place', { exact: true }).fill('Berlin');
   await expect(page.getByRole('alert')).toContainText('Place search failed: Geocoder offline');
+  assert.deepEqual(errors, []);
+});
+
+test('in the events mode a click on the globe moves the event to that spot', async ({ page }) => {
+  const errors = [], posted = [];
+  page.on('pageerror', e => errors.push(e.stack || e.message));
+  await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
+  const profile = { spec: { compound_id: laNo2.compound.id, place: evSites[3].place, window_years: 1, use_control: true }, compound: laNo2.compound,
+    site: laNo2.site, control: laNo2.control, earliest: '2006-01', latest: '2025-01', points: [], provenance: laNo2.provenance, meta: laNo2.meta };
+  await page.route('**/api/cases', route => route.fulfill({ json: [] }));
+  await page.route('**/api/event-sites', route => route.fulfill({ json: [evSites[3]] }));
+  await page.route('**/api/compounds', route => route.fulfill({ json: [laNo2.compound] }));
+  await page.route('**/api/events/*', route => route.fulfill({ json: laNo2 }));
+  await page.route('**/api/event/profile', route => route.fulfill({ json: profile }));
+  await page.route('**/api/event', route => { posted.push(route.request().postDataJSON()); return route.fulfill({ json: laNo2 }); });
+
+  await page.goto('/?source=live&mode=events');
+  await expect(page.locator('.stage-title .big')).toHaveText(evSites[3].label);
+  await expect(page.locator('.globe-hint')).toHaveText('Click the map to move the event there', { timeout: 20_000 });
+  await expect(page.locator('.globe')).not.toHaveAttribute('data-flight', 'true', { timeout: 15_000 });
+  const box = await page.locator('.globe-map canvas').boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect.poll(() => posted.length).toBe(1);
+  assert.match(posted[0].place.place_id, /^pt:-?\d+\.\d\d,-?\d+\.\d\d$/);
+  assert.equal(posted[0].compound_id, laNo2.compound.id);
+  await expect(page.getByLabel('Place', { exact: true })).toHaveValue(posted[0].place.name);
+  await expect(page.locator('.panel [data-event][aria-pressed="true"]')).toHaveCount(0);
   assert.deepEqual(errors, []);
 });

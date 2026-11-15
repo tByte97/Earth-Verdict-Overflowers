@@ -544,22 +544,47 @@ test('header, stage title, projection badge and footer credits come from the she
   } finally { await page.close(); }
 });
 
-test('events and CO₂ open in the stage while the globe stays mounted for the return', async () => {
+test('events and CO₂ use the same shell: controls in the panel, the answer over the globe, the evidence under it', async () => {
   const { page, errors } = await open('/', { blockImagery: true });
   try {
     await expect(page.locator('.globe')).not.toHaveAttribute('data-state', 'loading', { timeout: 20_000 });
     await page.locator('.globe-map canvas').evaluate(canvas => { canvas.dataset.marker = 'first'; });
-    for (const [tab, mode] of [['Pollution events', 'events'], ['CO₂ calculator', 'co2']]) {
-      await page.getByRole('tab', { name: tab }).click();
-      await expect(page.locator('.stage .stage-workspace')).toBeVisible();
-      await expect(page.locator('.stage-globe')).toBeHidden();
-      await expect(page).toHaveURL(new RegExp(`mode=${mode}`));
+    const sites = JSON.parse(await readFile(new URL('../../data/events/_sites.json', import.meta.url), 'utf8'));
+    const first = JSON.parse(await readFile(new URL(`../../data/events/${sites[0].id}.json`, import.meta.url), 'utf8'));
+
+    await page.getByRole('tab', { name: 'Pollution events' }).click();
+    await expect(page).toHaveURL(/mode=events/);
+    // The globe stays on stage and now shows the event; the trend map and the timeline belong to the claims.
+    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.getByTestId('trend-legend')).toHaveCount(0);
+    await expect(page.getByTestId('timeline')).toHaveCount(0);
+    await expect(page.locator('.panel .ev-controls')).toBeVisible();
+    await expect(page.locator('.panel [data-event]')).toHaveCount(sites.length);
+    await expect(page.locator(`.panel [data-event="${sites[0].id}"]`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.stage-title .big')).toHaveText(sites[0].label);
+    await expect(page.locator('.stage-title .src')).toHaveText(sites[0].place.name);
+    await expect(page.getByTestId('stage-verdict')).toContainText(first.verdict === 'clear_change' ? 'Clear change' : 'Not proven');
+    await expect(page.locator('#results-section .ev-card')).toBeVisible();
+    // Another event: the headline over the globe follows it.
+    await page.locator(`.panel [data-event="${sites[1].id}"]`).click();
+    await expect(page.locator('.stage-title .big')).toHaveText(sites[1].label);
+    await expect(page.locator('#results-section .ev-card h2.claim')).toHaveText(sites[1].label);
+
+    await page.getByRole('tab', { name: 'CO₂ calculator' }).click();
+    await expect(page).toHaveURL(/mode=co2/);
+    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.locator('.panel .ev-controls')).toContainText('What does one source add?');
+    await expect(page.locator('.stage-title .big')).toContainText('the air of the whole planet');
+    await expect(page.locator('#results-section')).toContainText('The CO₂ calculator needs the backend.');
+
+    for (const mode of ['events', 'co2']) {
+      await page.getByRole('tab', { name: mode === 'events' ? 'Pollution events' : 'CO₂ calculator' }).click();
       await page.setViewportSize({ width: 390, height: 844 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.setViewportSize({ width: 1440, height: 1100 });
     }
     await page.getByRole('tab', { name: 'Climate claims' }).click();
-    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.getByTestId('trend-legend')).toBeVisible();
     await expect(page.locator('.globe-map canvas[data-marker="first"]')).toHaveCount(1);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

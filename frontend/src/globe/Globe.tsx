@@ -168,7 +168,7 @@ function showFrame(map: maplibregl.Map, frame: Frame) {
     cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88), t => pres.palette((t + 1) / 2)));
 }
 
-export function Globe({ place, station, destination, onPick, trend = null, fade = true, frame = null }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
+export function Globe({ place, station, destination, onPick, pickHint = 'Click the map to check a spot', trend = null, fade = true, frame = null }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; pickHint?: string; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
@@ -294,7 +294,7 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
         {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
         <button type="button" disabled={!place} title={place ? undefined : 'Pick a city or a point to zoom in; regions have no local view'} aria-description={place ? undefined : 'Pick a city or a point to zoom in; regions have no local view'} onClick={() => { takeOver(); if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
       </div>
-      {onPick && <p className="globe-hint">{ready ? 'Click the map to check a spot' : 'Loading imagery…'}</p>}
+      {onPick && <p className="globe-hint">{ready ? pickHint : 'Loading imagery…'}</p>}
     </div>}
     {tip?.yearCell && frame && <YearTip frame={frame} cell={tip.yearCell} x={tip.x} y={tip.y} />}
     {tip?.cell && trend && !frame && <CellTip view={trend} cell={tip.cell} x={tip.x} y={tip.y} />}

@@ -65,6 +65,8 @@ function App() {
   const [mode, setModeState] = useState<Mode>(initialMode);
   function setMode(m: Mode) {
     setModeState(m);
+    // Back to the claims: the globe returns to the open case.
+    if (m === 'claims' && mode !== 'claims' && result) flyTo(result.case.claim_text, caseView(result));
     const url = new URL(window.location.href); if (m === 'claims') url.searchParams.delete('mode'); else url.searchParams.set('mode', m);
     window.history.replaceState(null, '', url);
   }
@@ -81,6 +83,14 @@ function App() {
   const userActed = useRef(false);
 
   function flyTo(title: string, view: Destination['view']) { setDestination({ key: ++flightKey.current, title, view }); }
+  // Events and CO₂ put their controls in the left panel and their headline over the globe; the globe shows
+  // the event's place, or the whole planet for CO₂.
+  const [panelSlot, setPanelSlot] = useState<HTMLElement | null>(null);
+  const [stageSlot, setStageSlot] = useState<HTMLElement | null>(null);
+  const [modePlace, setModePlace] = useState<Place | null>(null);
+  const [eventPick, setEventPick] = useState<{ point: PickedPoint; key: number } | null>(null);
+  const showOnGlobe = useCallback((place: Place, title: string) => { setModePlace(place); setDestination({ key: ++flightKey.current, title, view: placeView(place) }); }, []);
+  const showPlanet = useCallback(() => { setModePlace(null); setDestination({ key: ++flightKey.current, title: 'The whole planet', view: { kind: 'globe' } }); }, []);
   function openCase(id: string, next: CheckResult) {
     autoOpen.current = null; userActed.current = true; request.current?.abort(); setBusy(false);
     setDemoId(id); setCaseId(id); setSpec(next.case); setParamsFor(next.case.claim_text); setManual(false); setReadNotes([]); setQuery(next.case.place.name); setSelectedPlace(true); setPicked(null);
@@ -407,7 +417,7 @@ function App() {
           <h1>Earth Verdict</h1>
         </div>
         <button className="help-button" type="button" onClick={() => setHelp(v => !v)} aria-expanded={help}>How to use <span aria-hidden="true">?</span></button>
-        <p>What is changing on Earth, where, how fast, and how sure we can be. NASA data{result ? `, ${result.case.start_year}–${result.case.end_year}` : ''}.</p>
+        <p>What is changing on Earth, where, how fast, and how sure we can be. NASA data{mode === 'claims' && result ? `, ${result.case.start_year}–${result.case.end_year}` : ''}.</p>
         <div className="mode-tabs" role="tablist" aria-label="What to explore">{modes.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}>{label}</button>)}</div>
       </header>
       <main className="panel-body">
@@ -462,7 +472,7 @@ function App() {
           {view && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
         </section>
         {result && <button type="button" className="see-evidence" onClick={() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })}>See the evidence <span aria-hidden="true">↓</span></button>}
-        </div> : <p className="panel-note">Choose “Climate claims” to return to the globe.</p>}
+        </div> : <div className="investigation-panel" ref={setPanelSlot} />}
       </main>
       <footer className="credits">
         <p>Data: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noreferrer">NASA POWER</a> (MERRA-2 reanalysis), <a href="https://www.ncei.noaa.gov/" target="_blank" rel="noreferrer">NOAA NCEI</a> stations and <a href="https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/" target="_blank" rel="noreferrer">Climate at a Glance</a>, <a href="https://www.nccs.nasa.gov/services/data-collections/land-based-products/nex-gddp-cmip6" target="_blank" rel="noreferrer">NEX-GDDP-CMIP6</a> scenarios.</p>
@@ -471,9 +481,12 @@ function App() {
       </footer>
     </div>
     <section className="stage" aria-label={mode === 'claims' ? 'Case location' : modes.find(([id]) => id === mode)![1]}>
-      <div className="stage-globe" hidden={mode !== 'claims'}>
-        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={result?.witness?.station ?? null} trend={view} fade={fade} frame={frame} onPick={isLive ? point => checkPoint(point) : undefined} /></Suspense></ErrorBoundary>
-        <div className="stage-legend">
+      <div className="stage-globe">
+        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={mode !== 'claims' ? modePlace : selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={mode === 'claims' ? result?.witness?.station ?? null : null}
+          trend={mode === 'claims' ? view : null} fade={fade} frame={mode === 'claims' ? frame : null}
+          pickHint={mode === 'events' ? 'Click the map to move the event there' : undefined}
+          onPick={!isLive || mode === 'co2' ? undefined : mode === 'events' ? point => setEventPick(pick => ({ point, key: (pick?.key ?? 0) + 1 })) : point => checkPoint(point)} /></Suspense></ErrorBoundary>
+        {mode === 'claims' ? <><div className="stage-legend">
           {frame ? <YearLegend frame={frame} variableLabel={labelOf(frame.view.map.variable_id)} /> : view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
           <div className="stage-legend-markers"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </div>
@@ -494,16 +507,24 @@ function App() {
           {(layerNote || layerStatus) && <p className="trend-status" role="status">{layerNote || layerStatus}</p>}
         </div>
         {years && <Timeline view={years} index={frame ? frame.index : null} smooth={smooth} onIndex={pickYear} onSmooth={setSmooth} />}
+        </> : <>
+          {/* Events and CO₂ write their own headline here; the globe shows where (or, for CO₂, the whole planet). */}
+          {mode === 'events' && <div className="stage-legend"><div className="stage-legend-markers"><span><i className="legend-place" />Event place</span></div></div>}
+          <div className="stage-title stage-mode-title" ref={setStageSlot} />
+        </>}
       </div>
-      {mode === 'events' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary></div>}
-      {mode === 'co2' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary></div>}
     </section>
-    <section id="results-section" className="result-panel" hidden={mode !== 'claims'} aria-label="Check result" aria-busy={busy}>
-      <div className="result-container">
+    <section id="results-section" className="result-panel" aria-label={mode === 'claims' ? 'Check result' : mode === 'events' ? 'Event evidence' : 'CO₂ estimate'} aria-busy={mode === 'claims' ? busy : undefined}>
+      {mode !== 'claims' ? <div className="result-container">
+        <div className="result-heading"><span className="step">02</span><p className="eyebrow">{mode === 'events' ? 'The evidence, in focus' : 'How it is calculated'}</p></div>
+        <ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}>
+          {mode === 'events' ? <EventsWorkspace panel={panelSlot} stage={stageSlot} onPlace={showOnGlobe} pick={eventPick} /> : <Co2Calculator panel={panelSlot} stage={stageSlot} onGlobe={showPlanet} />}
+        </Suspense></ErrorBoundary>
+      </div> : <div className="result-container">
         <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
         <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
         {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={resultSaved} /><CaseFile result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Fetching satellite records and the nearest weather station. A new place can take up to a minute.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
-      </div>
+      </div>}
     </section>
   </div>;
 }

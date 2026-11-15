@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { findPlaces, isLive } from '../api';
 import { number } from '../format';
 import type { Place } from '../types';
+import { pointPlace, type PickedPoint } from '../globe/place';
 import { getCompounds, getEventSites, getProfile, runEvent, savedEvent } from './api';
 import { EventCard } from './EventCard';
 import { EventChart, indexYm, ymIndex } from './EventChart';
@@ -16,7 +18,11 @@ const reasonShort: Record<string, string> = {
 };
 const monthName = (ym: string) => new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1));
 
-export function EventsWorkspace() {
+// The parts live in three places of the shell, like a climate claim does: the controls in the left panel,
+// the verdict over the globe, the evidence under it. `pick` is a point the user clicked on the globe.
+export function EventsWorkspace({ panel, stage, onPlace, pick }: {
+  panel: HTMLElement | null; stage: HTMLElement | null; onPlace: (place: Place, title: string) => void; pick: { point: PickedPoint; key: number } | null;
+}) {
   const [sites, setSites] = useState<EventSite[]>([]);
   const [compounds, setCompounds] = useState<Compound[]>([]);
   const [siteId, setSiteId] = useState('');
@@ -41,6 +47,19 @@ export function EventsWorkspace() {
     return () => { c.abort(); profileReq.current?.abort(); eventReq.current?.abort(); window.clearTimeout(timer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The globe follows the event's place.
+  useEffect(() => {
+    if (setup) onPlace(setup.place, setup.label);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setup?.place.lat, setup?.place.lon]);
+  // A click on the globe moves the event there (live mode only: a new place needs the satellite record).
+  useEffect(() => {
+    if (!pick || !isLive || !setup) return;
+    const place = pointPlace(pick.point);
+    setQuery(place.name); setPlaces([]); update({ place }, { immediate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pick?.key]);
 
   const compound = compounds.find(c => c.id === setup?.compound_id);
   const bounds = compound?.event_bounds.find(b => b.window_years === setup?.window_years);
@@ -124,16 +143,16 @@ export function EventsWorkspace() {
   const validWindows = compound?.valid_windows ?? compound?.event_bounds.map(b => b.window_years) ?? [1, 2, 3, 4, 5];
   const stale = result && setup && (result.spec.event_month !== setup.event_month || result.spec.window_years !== setup.window_years || result.spec.compound_id !== setup.compound_id || result.spec.use_control !== setup.use_control || result.spec.place.lat !== setup.place.lat || result.spec.place.lon !== setup.place.lon);
 
-  return <div className="ev-workspace">
+  const controls = <>
     <aside className="case-panel ev-controls" aria-labelledby="ev-heading">
       <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Pollution events</p><h2 id="ev-heading">Did the air change?</h2></div></div>
       <p className="field-help">Pick a place and the month something happened there: a plant opened or closed, a lockdown began. We compare the satellite record before and after that month with a ring of points about 120 km around it.</p>
-      <label>Ready-made event<select value={siteId} onChange={e => { const s = sites.find(x => x.id === e.target.value); if (s) choosePreset(s); }}>
-        {!siteId && <option value="">Your own place</option>}
-        {sites.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-      </select></label>
+      <div className="cases ev-events" role="group" aria-label="Ready-made events">{sites.map(s =>
+        <button key={s.id} type="button" className="case" data-event={s.id} aria-pressed={siteId === s.id} onClick={() => choosePreset(s)}>
+          <b>{s.label}</b><span>{compounds.find(c => c.id === s.compound_id)?.label ?? s.compound_id} · {monthName(s.event_month)}</span>
+        </button>)}</div>
       {siteId && <p className="field-help">{sites.find(s => s.id === siteId)?.note}</p>}
-      {setup && <>
+      {setup && <details className="case-parameters" open={isLive}><summary>{isLive ? 'Change the place, the gas or the window' : 'What was compared'}</summary>
         {isLive && <><label>Place<input value={query} autoComplete="off" onChange={e => setQuery(e.target.value)} /></label>
           {places.length > 0 && <ul className="place-results">{places.map(p => <li key={p.place_id}><button type="button" onClick={() => { setQuery(p.name); setPlaces([]); update({ place: p }, { immediate: true }); }}>{p.name}</button></li>)}</ul>}</>}
         <label>What to measure<select value={setup.compound_id} disabled={!isLive} onChange={e => update({ compound_id: e.target.value }, { immediate: true })}>
@@ -144,12 +163,28 @@ export function EventsWorkspace() {
           {validWindows.map(w => <button key={w} type="button" role="radio" aria-checked={setup.window_years === w} className={setup.window_years === w ? 'on' : ''} disabled={!isLive} onClick={() => update({ window_years: w }, { immediate: true })}>{w}</button>)}
         </div></fieldset>
         <label className="ev-toggle"><input type="checkbox" checked={setup.use_control} disabled={!isLive} onChange={e => update({ use_control: e.target.checked }, { immediate: true })} /> Subtract the surrounding ring (recommended)</label>
+        {isLive && <p className="field-help">You can also click the globe to move the event to that spot.</p>}
         {!isLive && <p className="field-help">Saved mode shows the ready-made events. Connect the backend to move the date or choose your own place.</p>}
-      </>}
+      </details>}
       {error && <div className="error" role="alert">{error}</div>}
     </aside>
+    {result && <button type="button" className="see-evidence" onClick={() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })}>See the evidence <span aria-hidden="true">↓</span></button>}
+  </>;
 
-    <section className="result-panel ev-main" aria-label="Event evidence" aria-busy={profileBusy || resultBusy}>
+  // Over the globe: what was checked and the answer, in the words the card below uses.
+  const shown = result && !stale ? result : null;
+  const headline = setup && <>
+    <div className="eyebrow">Pollution event{compound ? ` · ${compound.label}` : ''} · {monthName(setup.event_month)}</div>
+    <div className="big">{setup.label}</div>
+    <div className="src">{setup.place.name}</div>
+    {shown ? <p className={`stage-verdict ${shown.verdict}`} data-testid="stage-verdict"><strong>{verdictWord[shown.verdict]}</strong>{shown.effect !== null && <> · {number(shown.effect, true)} {shown.compound.units} after the event</>} · {reasonShort[shown.reason]}</p>
+      : (resultBusy || profileBusy) && <p className="trend-status" role="status">Checking the satellite record…</p>}
+  </>;
+
+  return <>
+    {panel && createPortal(controls, panel)}
+    {stage && createPortal(headline, stage)}
+    <section className="ev-main" aria-label="Event evidence" aria-busy={profileBusy || resultBusy}>
       {setup && <div className="verdict-card ev-slider-card">
         <div className="ev-slider-head">
           <div><span className="eyebrow">Event month</span><strong className="ev-month">{monthName(setup.event_month)}</strong></div>
@@ -171,5 +206,5 @@ export function EventsWorkspace() {
       {result ? <div className={stale || resultBusy ? 'ev-stale' : ''}><EventCard result={result} saved={!isLive || (!!siteId && result.spec.event_month === sites.find(s => s.id === siteId)?.event_month)} /></div>
         : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{resultBusy ? 'Checking the evidence…' : 'Choose an event.'}</h2></div>}
     </section>
-  </div>;
+  </>;
 }
