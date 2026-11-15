@@ -12,14 +12,14 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pymannkendall as pmk
-from scipy import stats
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT / "tools"))
 
+from app.check import STATS_ENGINE  # noqa: E402
 from app.stats.fdr import benjamini_hochberg  # noqa: E402
+from app.stats.trend import analyze_trend  # noqa: E402
 from fetch_data import DATA, END, START, haversine_km  # noqa: E402
 
 GRID_DIR = DATA / "grid"
@@ -38,8 +38,8 @@ FDR_Q = 0.05
 MIN_YEARS = 15
 
 
-def sig3(p: float) -> float:
-    return float(f"{p:.3g}")
+def sig3(p: float):
+    return float(f"{p:.3g}") if math.isfinite(p) else None
 
 
 def aggregate_seasonal(monthly: list, season: str, agg: str, per_day: bool, y0: int = START, y1: int = END):
@@ -66,18 +66,15 @@ def aggregate_seasonal(monthly: list, season: str, agg: str, per_day: bool, y0: 
     return np.asarray(years, dtype=float), np.asarray(values, dtype=float)
 
 
-def cell_trend(years: np.ndarray, values: np.ndarray) -> tuple[float, float, str]:
-    """Повертає (slope_per_decade, mk_p, test_used)."""
-    if len(values) < MIN_YEARS:
-        return float("nan"), float("nan"), "short"
-    ts = stats.theilslopes(values, years, alpha=0.95)
-    with np.errstate(invalid="ignore"):
-        mk = pmk.hamed_rao_modification_test(values)
-    used = "hamed_rao"
-    if not math.isfinite(mk.p):
-        mk = pmk.original_test(values)
-        used = "original"
-    return float(ts.slope * 10.0), float(mk.p), used
+def cell_trend(years: np.ndarray, values: np.ndarray) -> tuple[float, float]:
+    """(slope_per_decade, mk_p) from the same Sen / Mann-Kendall code as a point check.
+
+    A cell with fewer than MIN_YEARS values gives NaN and is left out of the BH-FDR denominator.
+    """
+    tr = analyze_trend([int(y) for y in years], [float(v) for v in values], min_years=MIN_YEARS)
+    if tr is None:
+        return float("nan"), float("nan")
+    return float(tr.sen.slope_per_decade), float(tr.mk.p)
 
 
 def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell_size: dict, cells_out: list[dict], raw_flags: list[bool],
@@ -174,7 +171,6 @@ def main():
             t0 = time.perf_counter()
             slopes = np.empty(len(cells), dtype=float)
             p_vals = np.empty(len(cells), dtype=float)
-            fallbacks = 0
 
             span = [math.inf, -math.inf]
             for i, cell in enumerate(cells):
@@ -183,20 +179,17 @@ def main():
                 )
                 if len(years):
                     span = [min(span[0], years[0]), max(span[1], years[-1])]
-                s_dec, p, used = cell_trend(years, vals)
-                slopes[i] = s_dec
-                p_vals[i] = p
-                if used == "original":
-                    fallbacks += 1
+                slopes[i], p_vals[i] = cell_trend(years, vals)
 
-            raw_sig = p_vals < FDR_Q
+            with np.errstate(invalid="ignore"):
+                raw_sig = p_vals < FDR_Q          # NaN (short cell) compares False
             fdr_sig = benjamini_hochberg(p_vals, q=FDR_Q)
 
             cells_out = [
                 {
                     "lat": c["lat"],
                     "lon": c["lon"],
-                    "slope_per_decade": round(float(s), 4),
+                    "slope_per_decade": round(float(s), 4) if math.isfinite(s) else None,
                     "p": sig3(float(p)),
                     "significant_fdr": bool(sf),
                 }
@@ -205,21 +198,24 @@ def main():
 
             n_raw = int(np.sum(raw_sig))
             n_fdr = int(np.sum(fdr_sig))
+            n_tested = int(np.sum(np.isfinite(p_vals)))
             out_json = {
                 "param": param,
                 "season": season,
                 "units_per_decade": cfg["units_per_decade"],
                 "q": FDR_Q,
-                "n_cells": len(cells_out),
+                "n_cells": n_tested,
                 "n_significant_raw": n_raw,
                 "n_significant_fdr": n_fdr,
+                "stats_engine": STATS_ENGINE,
                 "cells": cells_out,
             }
             json_path = GRID_DIR / f"trends_{param}_{season}.json"
             json_path.write_text(json.dumps(out_json, ensure_ascii=False, separators=(",", ":")))
 
             meta = {"variable_id": cfg["variable_id"], "start_year": int(span[0]), "end_year": int(span[1]),
-                    "pair": pair_meta(cells_out, p_vals)}
+                    "n_cells": n_tested, "n_significant_fdr": n_fdr, "n_significant_raw": n_raw,
+                    "stats_engine": STATS_ENGINE, "pair": pair_meta(cells_out, p_vals)}
             geojson = build_geojson(
                 param, season, cfg["units_per_decade"], FDR_Q, cell_size, cells_out, raw_sig.tolist(), meta
             )
@@ -232,7 +228,7 @@ def main():
             mean_slope = float(np.nanmean(slopes))
             print(
                 f"[{param} {season:4}] n={len(cells_out)}, raw_sig={n_raw}, fdr_sig={n_fdr}, "
-                f"mean_slope={mean_slope:+.3f} {cfg['units_per_decade']}, fallbacks={fallbacks}, "
+                f"mean_slope={mean_slope:+.3f} {cfg['units_per_decade']}, tested={n_tested}, "
                 f"json={json_path.stat().st_size / 1024:.1f} КБ, "
                 f"geojson={geojson_path.stat().st_size / 1024:.1f} КБ ({dt:.2f} с)"
             )

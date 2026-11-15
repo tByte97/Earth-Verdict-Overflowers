@@ -59,7 +59,7 @@ export function fieldContext(path: string, r: CheckResult): { unit: string; cont
     const prefix = /^detection_history\.points\.(\d+)\./.exec(path);
     const point = prefix ? r.detection_history?.points[Number(prefix[1])] : undefined;
     context = `${r.detection_history?.start_year ?? r.case.start_year}–${point?.end_year ?? r.case.end_year} · ${r.case.season} · Observed prefix test; not a verdict or forecast`;
-    unit = path === 'detection_history' ? 'not supplied by this response' : /\.(start_year|end_year)$/.test(path) ? 'calendar year' : /\.(min_observations|n_observations)$/.test(path) ? 'observed years' : path.endsWith('.correction') ? 'not applicable · test not performed' : 'dimensionless';
+    unit = path === 'detection_history' ? 'not supplied by this response' : /\.(start_year|end_year|emerged_year)$/.test(path) ? 'calendar year' : /\.(min_observations|n_observations)$/.test(path) ? 'observed years' : path.endsWith('.correction') ? 'not applicable · test not performed' : 'dimensionless';
   }
   if (path.startsWith('extrapolation.')) {
     context = `${r.extrapolation?.from_year}–${r.extrapolation?.years.at(-1)} · Illustration, not a forecast`;
@@ -69,8 +69,9 @@ export function fieldContext(path: string, r: CheckResult): { unit: string; cont
   }
   if (path.startsWith('scenarios.')) {
     context = `relative to ${r.scenarios?.baseline_period} · ${r.scenarios?.synthetic ? 'Stylised scenario illustration' : 'Conditional model scenario'}, not a forecast`;
-    unit = /years\.\d+$/.test(path) ? 'calendar year' : r.variable.units;
+    unit = /years\.\d+$/.test(path) ? 'calendar year' : path.endsWith('baseline_n_years') ? 'observed years' : r.variable.units;
     if (path.endsWith('baseline_value')) context = `Baseline mean · ${r.scenarios?.baseline_period}`;
+    else if (path.endsWith('baseline_n_years')) context = `Baseline observations · ${r.scenarios?.baseline_period}`;
   }
   return { unit, context };
 }
