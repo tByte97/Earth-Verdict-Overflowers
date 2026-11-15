@@ -9,12 +9,14 @@ const flat = await load('global-warming-stopped');
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
+  // Live mode lists /api/cases; an empty list keeps these tests on the form path.
+  await page.route('**/api/cases', route => route.fulfill({ json: [] }));
 });
 
 async function saved(page, id, viewport = { width: 1440, height: 1100 }) {
   await page.setViewportSize(viewport);
   await page.goto('/');
-  await page.getByLabel('Saved case').selectOption(id);
+  await page.locator(`[data-case="${id}"]`).click();
   await page.getByTestId('record-chart').scrollIntoViewIfNeeded();
 }
 

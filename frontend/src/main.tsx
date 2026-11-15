@@ -1,15 +1,17 @@
 import { StrictMode, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { demoCases, findPlaces, getVariables, isLive, runCheck } from './api';
+import { demoCases, findPlaces, getCase, getCases, getVariables, isLive, runCheck, type CaseItem } from './api';
 import { VerdictCard } from './VerdictCard';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CaseSpecSchema } from './schema';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
 import { pointPlace, type PickedPoint } from './globe/place';
+import { seasonName, seasons, sourceIndex } from './format';
+import { caseView, placeView, type Destination } from './globe/camera';
+import { parseHash, writeHash } from './url';
 import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from './globe/trends';
 import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
 import { seasonName as layerSeason } from './globe/presentation';
-import { sourceIndex } from './format';
 import './styles.css';
 import { Explain } from './events/Explain';
 
@@ -21,13 +23,19 @@ const initialMode = (): Mode => { const m = new URLSearchParams(window.location.
 
 const Globe = lazy(() => import('./globe/Globe').then(module => ({ default: module.Globe })));
 
-const seasons = [['year', 'Whole year'], ['DJF', 'Winter · Dec–Feb'], ['MAM', 'Spring · Mar–May'], ['JJA', 'Summer · Jun–Aug'], ['SON', 'Autumn · Sep–Nov'], ...Array.from({ length: 12 }, (_, i) => [String(i + 1), new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1))])];
+
+const hashCase = () => { const state = parseHash(window.location.hash); return state?.kind === 'case' ? state.id : null; };
+const hashSpot = () => { const state = parseHash(window.location.hash); return state?.kind === 'spot' ? state : null; };
+const savedResults = (): Record<string, CheckResult | 'error'> => isLive ? {} : Object.fromEntries(demoCases.map(item => [item.id, item.result]));
 
 function App() {
-  const initial = demoCases[0];
+  const initial = demoCases.find(item => item.id === hashCase()) ?? demoCases[0];
+  // A picked-spot link is restored once the variables are known; until then no case opens.
+  const linkedSpot = useRef(hashSpot());
+  const startWithCase = !isLive && !linkedSpot.current;
   const [demoId, setDemoId] = useState(initial.id);
   const [spec, setSpec] = useState<CaseSpec>(isLive ? { claim_text: '', variable_id: '', place: { place_id: '', name: '', lat: 0, lon: 0 }, season: 'year', start_year: 1981, end_year: 2025, claim_direction: 'change' } : initial.result.case);
-  const [result, setResult] = useState<CheckResult | null>(isLive ? null : initial.result);
+  const [result, setResult] = useState<CheckResult | null>(startWithCase ? initial.result : null);
   const [variables, setVariables] = useState<Variable[]>(isLive ? [] : [initial.result.variable]);
   const [query, setQuery] = useState(isLive ? '' : initial.result.case.place.name);
   const [places, setPlaces] = useState<Place[]>([]);
@@ -35,7 +43,7 @@ function App() {
   const [searchStatus, setSearchStatus] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [phase, setPhase] = useState<'initial' | 'edited' | 'loading' | 'success' | 'error'>(isLive ? 'initial' : 'success');
+  const [phase, setPhase] = useState<'initial' | 'edited' | 'loading' | 'success' | 'error'>(startWithCase ? 'success' : 'initial');
   const [catalogueLoading, setCatalogueLoading] = useState(true);
   const [help, setHelp] = useState(false);
   const [picked, setPicked] = useState<PickedPoint | null>(null);
@@ -46,6 +54,53 @@ function App() {
     window.history.replaceState(null, '', url);
   }
   const request = useRef<AbortController | null>(null);
+  const [cases, setCases] = useState<CaseItem[]>(isLive ? [] : demoCases.map(item => ({ id: item.id, claim_text: item.result.case.claim_text })));
+  // Full responses per case id; 'error' keeps the button working without its subtitle.
+  const [caseResults, setCaseResults] = useState(savedResults);
+  const [casesError, setCasesError] = useState('');
+  const [caseId, setCaseId] = useState<string | null>(startWithCase ? initial.id : null);
+  const flightKey = useRef(1);
+  const [destination, setDestination] = useState<Destination | null>(!startWithCase ? null : { key: 1, title: initial.result.case.claim_text, view: caseView(initial.result) });
+  // In live mode the first case (or the linked one) opens as soon as it arrives, unless the user acted first.
+  const autoOpen = useRef<string | null>(null);
+
+  function flyTo(title: string, view: Destination['view']) { setDestination({ key: ++flightKey.current, title, view }); }
+  function openCase(id: string, next: CheckResult) {
+    autoOpen.current = null; request.current?.abort(); setBusy(false);
+    setDemoId(id); setCaseId(id); setSpec(next.case); setQuery(next.case.place.name); setSelectedPlace(true); setPicked(null);
+    setPickNote(''); setError(''); setResult(next); setPhase('success');
+    setLayerKey({ variable_id: next.case.variable_id, season: String(next.case.season) });
+    flyTo(next.case.claim_text, caseView(next));
+    writeHash({ kind: 'case', id });
+  }
+  async function chooseCase(id: string) {
+    const known = caseResults[id];
+    if (known && known !== 'error') { openCase(id, known); return; }
+    autoOpen.current = null;
+    try { const next = await getCase(id); setCaseResults(current => ({ ...current, [id]: next })); openCase(id, next); }
+    catch (e) { setError(`Cannot open this case: ${e instanceof Error ? e.message : 'request failed'}`); setPhase('error'); }
+  }
+  const chooseCaseRef = useRef(chooseCase);
+  chooseCaseRef.current = chooseCase;
+  const caseIdRef = useRef(caseId);
+  caseIdRef.current = caseId;
+
+  useEffect(() => {
+    if (!isLive) return;
+    const controller = new AbortController();
+    getCases(controller.signal).then(items => {
+      if (controller.signal.aborted) return;
+      setCases(items);
+      autoOpen.current = linkedSpot.current ? null : items.find(item => item.id === hashCase())?.id ?? items[0]?.id ?? null;
+      // All cases load in parallel; each button gets its subtitle when its response arrives.
+      for (const item of items) getCase(item.id, controller.signal).then(next => {
+        setCaseResults(current => ({ ...current, [item.id]: next }));
+        if (autoOpen.current === item.id) openCase(item.id, next);
+      }).catch(() => { if (!controller.signal.aborted) setCaseResults(current => ({ ...current, [item.id]: 'error' })); });
+    }).catch(e => { if (!controller.signal.aborted) setCasesError(`Saved cases are unavailable: ${e.message}`); });
+    return () => controller.abort();
+  }, []);
+
   // Trend map: the index lists the layers that exist (null = no index yet, show only the case's layer).
   const [layerIndex, setLayerIndex] = useState<LayerEntry[] | null>(null);
   const [layerKey, setLayerKey] = useState<LayerKey | null>(isLive ? null : { variable_id: initial.result.case.variable_id, season: String(initial.result.case.season) });
@@ -64,6 +119,12 @@ function App() {
       if (index?.length) setLayerKey(current => current ?? { variable_id: index[0].variable_id, season: index[0].season });
     }).catch(() => { if (!controller.signal.aborted) setLayerIndex(null); });
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => { const id = hashCase(); if (id && id !== caseIdRef.current) void chooseCaseRef.current(id); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
   useEffect(() => {
@@ -93,6 +154,8 @@ function App() {
   }, []);
 
   function edit(next: Partial<CaseSpec>) {
+    autoOpen.current = null;
+    setCaseId(null); writeHash(null);
     request.current?.abort(); setBusy(false); setError(''); setResult(null); setPhase('edited'); setSpec(current => ({ ...current, ...next }));
   }
   useEffect(() => {
@@ -126,31 +189,37 @@ function App() {
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
-  function chooseDemo(id: string) {
-    const next = demoCases.find(item => item.id === id)!;
-    request.current?.abort(); setBusy(false); setDemoId(id); setSpec(next.result.case);
-    setQuery(next.result.case.place.name); setSelectedPlace(true); setPicked(null); setPickNote(''); setError(''); setResult(next.result); setPhase('success');
-    setLayerKey({ variable_id: next.result.case.variable_id, season: String(next.result.case.season) });
-  }
-
   // A map click checks that spot right away with the layer's variable, season and period.
   // Without a layer the form's current choices are used. The question is always "is it changing?".
   function checkPoint(point: PickedPoint, key = layerKey) {
     if (!isLive) { setPickNote('Checking a new spot needs the backend. Saved mode covers the saved cases only.'); return; }
     const entry = (layer && key && layer.variable_id === key.variable_id && layer.season === key.season ? layer : null)
       ?? layerIndex?.find(item => key && item.variable_id === key.variable_id && item.season === key.season);
-    const variableId = entry?.variable_id ?? spec.variable_id;
-    const season = CaseSpecSchema.shape.season.parse(entry?.season ?? spec.season);
+    checkSpot(point, entry?.variable_id ?? spec.variable_id, CaseSpecSchema.shape.season.parse(entry?.season ?? spec.season), entry?.start_year ?? spec.start_year, entry?.end_year ?? spec.end_year);
+  }
+
+  // Checks one spot and writes it to the URL. A restored link also flies there; saved mode only shows the spot.
+  function checkSpot(point: PickedPoint, variableId: string, season: CaseSpec['season'], start: number, end: number, restored = false) {
     if (!variables.some(variable => variable.id === variableId)) { setPhase('error'); setError('Select an available backend variable.'); return; }
     const place = pointPlace(point);
     const subject = season === 'year' ? labelOf(variableId).toLowerCase() : `${layerSeason(String(season)).toLowerCase()} ${labelOf(variableId).toLowerCase()}`;
-    const next: CaseSpec = {
-      claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season,
-      start_year: entry?.start_year ?? spec.start_year, end_year: entry?.end_year ?? spec.end_year, claim_direction: 'change',
-    };
-    setPicked(point); setSelectedPlace(true); setQuery(place.name); setPlaces([]); setPickNote(''); setSpec(next);
+    const next: CaseSpec = { claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season, start_year: start, end_year: end, claim_direction: 'change' };
+    autoOpen.current = null; setCaseId(null);
+    setPicked(point); setSelectedPlace(true); setQuery(place.name); setPlaces([]); setSpec(next);
+    if (restored) { setLayerKey({ variable_id: variableId, season: String(season) }); flyTo('', placeView(place)); }
+    writeHash({ kind: 'spot', variable: variableId, season, start, end, lon: point.lon, lat: point.lat });
+    if (!isLive) { setResult(null); setPhase('initial'); setPickNote('Checking a new spot needs the backend. Saved mode covers the saved cases only.'); return; }
+    setPickNote('');
     void check(next);
   }
+  const checkSpotRef = useRef(checkSpot);
+  checkSpotRef.current = checkSpot;
+  useEffect(() => {
+    const spot = linkedSpot.current;
+    if (catalogueLoading || !spot) return;
+    linkedSpot.current = null;
+    checkSpotRef.current({ lat: spot.lat, lon: spot.lon }, spot.variable, spot.season, spot.start, spot.end, true);
+  }, [catalogueLoading]);
 
   // Changing the layer keeps the picked spot and checks it again with the new layer.
   function chooseLayer(key: LayerKey) {
@@ -158,7 +227,7 @@ function App() {
     if (picked && isLive) checkPoint(picked, key);
   }
 
-  const seasonName = (season: CaseSpec['season']) => seasons.find(([value]) => value === String(season))?.[1].split(' · ')[0] ?? String(season);
+
   const source = result ? result.provenance[sourceIndex('series', result) ?? -1]?.source : undefined;
 
   return <div className="shell">
@@ -180,16 +249,22 @@ function App() {
           {view && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
         </section>
         <aside className="case-panel" aria-labelledby="case-heading">
-          <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Your investigation</p><h2 id="case-heading">Set up a check</h2></div></div>
-          {!isLive && <label className="demo-select">Saved case<select value={demoId} onChange={e => chooseDemo(e.target.value)}>{demoCases.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
-          <details className="case-parameters" open={!result}><summary>Edit parameters</summary>
+          <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Your investigation</p><h2 id="case-heading">Open a case</h2></div></div>
+          <div className="cases" role="group" aria-label="Cases">{cases.map(item => {
+            const loaded = caseResults[item.id];
+            return <button key={item.id} type="button" className="case" data-case={item.id} aria-pressed={caseId === item.id} onClick={() => void chooseCase(item.id)}>
+              <b>{item.claim_text}</b>{loaded && loaded !== 'error' && <span>{loaded.variable.label} · {seasonName(loaded.case.season)}</span>}
+            </button>;
+          })}</div>
+          {casesError && <p className="field-help" role="status">{casesError}</p>}
+          <details className="case-parameters" open={!result}><summary>Check your own claim</summary>
           <form onSubmit={submit}>
             <label>Claim<input required value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} /></label>
             <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
             {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(2)}, {picked.lon.toFixed(2)}</p>}
-            {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); }}>{place.name}</button></li>)}</ul>}
+            {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); flyTo('', placeView(place)); }}>{place.name}</button></li>)}</ul>}
             <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
             <label>Season<select value={spec.season} onChange={e => edit({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <fieldset><legend>Observation period</legend><div className="year-fields"><label>From<input type="number" required min="1" max="9999" value={Number.isNaN(spec.start_year) ? '' : spec.start_year} onChange={e => edit({ start_year: e.target.valueAsNumber })} /></label><span aria-hidden="true">—</span><label>To<input type="number" required min="1" max="9999" value={Number.isNaN(spec.end_year) ? '' : spec.end_year} onChange={e => edit({ end_year: e.target.valueAsNumber })} /></label></div></fieldset>
@@ -215,7 +290,7 @@ function App() {
     </div>
     <section className="stage" aria-label={mode === 'claims' ? 'Case location' : modes.find(([id]) => id === mode)![1]}>
       <div className="stage-globe" hidden={mode !== 'claims'}>
-        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} trend={view} fade={fade} onPick={point => checkPoint(point)} /></Suspense></ErrorBoundary>
+        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={result?.witness?.station ?? null} trend={view} fade={fade} onPick={point => checkPoint(point)} /></Suspense></ErrorBoundary>
         <div className="stage-legend">
           {view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
           <div className="stage-legend-markers"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>

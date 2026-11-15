@@ -8,6 +8,8 @@ const snow = await load('kyiv-winter-snow');
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
+  // Live mode lists /api/cases; an empty list keeps these tests on the form path.
+  await page.route('**/api/cases', route => route.fulfill({ json: [] }));
 });
 
 async function liveResult(page, result) {
@@ -50,7 +52,7 @@ test('not-proven reasons and conditional waiting are visible before opening any 
 
 test('keyboard record-length and rate controls preserve the verdict, wait and case period', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Saved case').selectOption('lviv-drier');
+  await page.locator('[data-case="lviv-drier"]').click();
   const verdict = await page.locator('.verdict').innerText();
   const wait = await page.getByTestId('visible-wait').innerText();
   await page.locator('.detection-simulator > summary').click();
@@ -77,7 +79,7 @@ test('keyboard record-length and rate controls preserve the verdict, wait and ca
   await page.getByRole('button', { name: 'Return to full record' }).click();
   await expect(slider).toHaveValue(String(dry.case.end_year));
   await expect(page.getByTestId('selected-p-point')).toHaveAttribute('data-value', String(dry.detection_history.points.at(-1).p));
-  await page.getByLabel('Saved case').selectOption('kyiv-winter-snow');
+  await page.locator('[data-case="kyiv-winter-snow"]').click();
   await page.locator('.detection-simulator > summary').click();
   await expect(slider).toHaveAttribute('min', String(snow.case.start_year));
   await expect(slider).toHaveValue(String(snow.case.end_year));
@@ -160,7 +162,7 @@ test('uncertainty and the open simulator fit desktop and mobile and produce revi
   await mkdir(new URL('../test-results/', import.meta.url), { recursive: true });
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto('/');
-  await page.getByLabel('Saved case').selectOption('lviv-drier');
+  await page.locator('[data-case="lviv-drier"]').click();
   await expect(page.getByRole('region', { name: 'Why not proven' })).toBeVisible();
   await page.locator('.verdict-card').screenshot({ path: 'test-results/uncertainty-default.png' });
   await page.locator('.detection-simulator > summary').click();

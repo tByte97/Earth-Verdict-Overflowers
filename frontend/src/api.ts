@@ -50,6 +50,23 @@ export async function runCheck(spec: CaseSpec, _demoId: string, signal?: AbortSi
       original.season === spec.season && original.start_year === spec.start_year &&
       original.end_year === spec.end_year && original.claim_direction === spec.claim_direction;
   });
-  if (!fixture) throw new Error('No saved backend response matches these parameters. Choose one of the three saved cases. Custom calculations require the calculation API.');
+  if (!fixture) throw new Error('No saved backend response matches these parameters. Open one of the saved cases. Custom calculations require the calculation API.');
   return structuredClone(fixture.result);
+}
+
+const CaseListSchema = z.array(z.object({ id: z.string().min(1), claim_text: z.string(), place: z.string(), variable_id: z.string(), verdict: z.string() }));
+export type CaseItem = { id: string; claim_text: string };
+
+// The case grid: GET /api/cases in live mode, the saved responses otherwise.
+export async function getCases(signal?: AbortSignal): Promise<CaseItem[]> {
+  if (!isLive) return demoCases.map(item => ({ id: item.id, claim_text: item.result.case.claim_text }));
+  const parsed = CaseListSchema.safeParse(await request('/cases', undefined, signal));
+  if (!parsed.success) throw new Error('Invalid case list returned by the backend.');
+  return parsed.data.map(({ id, claim_text }) => ({ id, claim_text }));
+}
+export async function getCase(id: string, signal?: AbortSignal): Promise<CheckResult> {
+  if (isLive) return parseCheckResult(await request(`/cases/${encodeURIComponent(id)}`, undefined, signal));
+  const saved = demoCases.find(item => item.id === id);
+  if (!saved) throw new Error(`Unknown saved case '${id}'.`);
+  return structuredClone(saved.result);
 }

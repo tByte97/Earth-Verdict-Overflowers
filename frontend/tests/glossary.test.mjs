@@ -60,7 +60,7 @@ test('help fits a phone and preserves the not-proven caveat and missing-station 
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await page.locator('.demo-select select').selectOption('lviv-drier');
+  await page.locator('[data-case="lviv-drier"]').click();
   await expect(page.locator('.variable-definition')).toHaveText(lviv.variable.definition);
   await expect(page.locator('.verdict h3')).toHaveText('Not proven');
   await expect(page.getByText('Not enough evidence does not mean no change.', { exact: false })).toBeVisible();
