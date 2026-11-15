@@ -3195,7 +3195,8 @@
     "correction": "hamed_rao",
     "status": "ok"
    }
-  ]
+  ],
+  "emerged_year": 2015
  },
  "extrapolation": {
   "note": "What-if line, not a forecast: it only shows where the trend would go at this pace. For physically based futures see the climate-model scenarios.",
@@ -3864,6 +3865,6 @@
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T22:10:53Z"
+  "generated_at": "2026-11-15T08:44:47Z"
  }
 }

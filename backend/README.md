@@ -38,7 +38,8 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 | POST | `/api/co2-impact` | Body `Co2ImpactSpec` → cumulative CO₂ forcing & warming `Co2ImpactResult` |
 | GET | `/api/co2/global` | Latest NOAA GML global monthly CO₂, YoY growth, and 1980+ Sen slope |
 | POST | `/api/chat` | `{kind: check\|event\|co2, result, question?, lang?}` → plain-language explanation from Gemini (`GEMINI_API_KEY` or `~/.config/gemini/api_key`, model `EV_LLM_MODEL`); numbers are checked against the result |
-| GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected); top level has `variable_id`, `start_year`, `end_year` and `pair` (nearest cells with opposite significant trends, or null) |
+| GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected); top level has `variable_id`, `start_year`, `end_year`, `pair` (nearest cells with opposite significant trends, or null) and the cell counts `n_cells`, `n_significant_fdr`, `n_significant_raw` (counted from the features when served) |
+| GET | `/api/grid/index` | Built trend layers: `[{variable_id, season, start_year, end_year, units_per_decade}]`, read from `data/layers/` |
 
 Each `steps[]` item has `fields` (dot paths into the result that the step summarises) and step-specific fields: `raw` → `n_months`, `monthly`; `season` → `months`, `aggregation`, `years_dropped`; `random_check` → `alpha`, `methods_agree`, `methods_reason`. They are `null` on the other steps.
 

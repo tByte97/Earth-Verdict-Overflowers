@@ -494,24 +494,69 @@ test('unknown cities do not inherit Kyiv aliases', async () => {
 });
 
 
-test('desktop uses a 60/40 globe-left workspace and the form/card stay in the right panel', async () => {
+test('desktop puts the panel left of the full-height stage; mobile stacks the stage above the panel', async () => {
   const { page, errors } = await open();
   try {
     await page.locator('.case-parameters').evaluate(element => { element.open = false; });
-    const globe = await page.locator('.globe-column').boundingBox();
-    const panel = await page.locator('.investigation-panel').boundingBox();
-    assert.ok(globe.x < panel.x && Math.abs(globe.y - panel.y) < 2);
-    assert.ok(Math.abs(globe.width / (globe.width + panel.width) - 0.6) < 0.01);
-    assert.ok(await page.locator('.investigation-panel .case-panel').count());
-    assert.ok(await page.locator('.investigation-panel .verdict-card').count());
+    const panel = await page.locator('.panel').boundingBox();
+    const stage = await page.locator('.stage').boundingBox();
+    assert.equal(panel.x, 0);
+    assert.equal(Math.round(panel.width), 500);
+    assert.ok(Math.abs(stage.x - panel.width) < 2 && stage.height === 1100 && stage.x + stage.width === 1440);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true);
+    assert.ok(await page.locator('.panel .case-panel').count());
+    assert.ok(await page.locator('.panel .verdict-card').count());
     assert.equal(await page.getByLabel('Claim', { exact: true }).isVisible(), false);
     await page.locator('.case-parameters > summary').click();
     await expect(page.getByLabel('Claim', { exact: true })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    const mobileGlobe = await page.locator('.globe-column').boundingBox();
-    const mobilePanel = await page.locator('.investigation-panel').boundingBox();
-    assert.ok(mobileGlobe.y < mobilePanel.y);
+    const mobileStage = await page.locator('.stage').boundingBox();
+    const mobilePanel = await page.locator('.panel').boundingBox();
+    assert.ok(mobileStage.y < mobilePanel.y);
+    assert.ok(Math.abs(mobileStage.height - 844 * 0.58) < 2);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('header, stage title, projection badge and footer credits come from the shell and the case data', async () => {
+  const { page, errors } = await open('/', { blockImagery: true });
+  try {
+    const r = fixtures[0].result;
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Earth Verdict');
+    await expect(page.locator('.mark p')).toContainText(`NASA data, ${r.case.start_year}–${r.case.end_year}.`);
+    await expect(page.locator('.mark [role=tab]')).toHaveText(['Climate claims', 'Pollution events', 'CO₂ calculator']);
+    // The case has a trend layer, so the title describes that layer; the layer names no data source.
+    await expect(page.locator('.stage-title .eyebrow')).toHaveText(`Summer · ${r.case.start_year}–${r.case.end_year}`);
+    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${r.variable.label.toLowerCase()} changing?`);
+    await expect(page.locator('.stage-title .src')).toHaveText(r.case.place.name);
+    await expect(page.locator('.globe')).toHaveAttribute('style', /background-image: url\("data:image\/png/);
+    await expect(page.locator('.globe-vignette')).toHaveCount(1);
+    await expect(page.locator('.globe-proj')).toHaveText('3D globe');
+    for (const name of ['NASA POWER', 'NOAA NCEI', 'Climate at a Glance', 'NEX-GDDP-CMIP6', 'GIBS', 'MapLibre GL JS']) await expect(page.locator('.credits').getByRole('link', { name, exact: true })).toHaveCount(1);
+    await page.getByLabel('Saved case').selectOption('lviv-drier');
+    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing?`);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('events and CO₂ open in the stage while the globe stays mounted for the return', async () => {
+  const { page, errors } = await open('/', { blockImagery: true });
+  try {
+    await expect(page.locator('.globe')).not.toHaveAttribute('data-state', 'loading', { timeout: 20_000 });
+    await page.locator('.globe-map canvas').evaluate(canvas => { canvas.dataset.marker = 'first'; });
+    for (const [tab, mode] of [['Pollution events', 'events'], ['CO₂ calculator', 'co2']]) {
+      await page.getByRole('tab', { name: tab }).click();
+      await expect(page.locator('.stage .stage-workspace')).toBeVisible();
+      await expect(page.locator('.stage-globe')).toBeHidden();
+      await expect(page).toHaveURL(new RegExp(`mode=${mode}`));
+      await page.setViewportSize({ width: 390, height: 844 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.setViewportSize({ width: 1440, height: 1100 });
+    }
+    await page.getByRole('tab', { name: 'Climate claims' }).click();
+    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.locator('.globe-map canvas[data-marker="first"]')).toHaveCount(1);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

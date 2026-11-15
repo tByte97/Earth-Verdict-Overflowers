@@ -56,6 +56,65 @@ def test_calendar_gaps_are_not_compressed_and_constant_values_are_not_missing():
     assert result['points'][-1]['n_observations'] == 19
 
 
+def expected_emergence(years, values, result):
+    """Brute force: the earliest end year whose every later prefix is significant with the final sign."""
+    def sign(i):
+        trend = analyze_trend(years[:i + 1], values[:i + 1], min_years=15, start_year=years[0])
+        if trend is None or trend.mk.p >= 0.05:
+            return 0
+        return (trend.sen.slope_per_year > 0) - (trend.sen.slope_per_year < 0)
+    signs = [sign(i) for i in range(len(years))]
+    for i in range(len(years)):
+        if signs[-1] and all(s == signs[-1] for s in signs[i:]):
+            return result['points'][i]['end_year']
+    return None
+
+
+def test_emerged_year_for_a_steady_trend():
+    years = list(range(1981, 2026))
+    values = (np.random.default_rng(1).normal(size=len(years)) * 0.5 + np.arange(len(years)) * 0.08).tolist()
+    result = history(years, values)
+    assert result['emerged_year'] is not None
+    assert result['emerged_year'] == expected_emergence(years, values, result)
+    DetectionHistory.model_validate(result)
+    later = [point for point in result['points'] if point['end_year'] >= result['emerged_year']]
+    assert all(point['p'] < 0.05 for point in later)
+    before = result['points'][result['emerged_year'] - years[0] - 1]
+    assert before['p'] is None or before['p'] >= 0.05
+
+
+def test_emerged_year_is_null_without_a_significant_full_record():
+    years = list(range(1981, 2026))
+    values = np.random.default_rng(3).normal(size=len(years)).tolist()
+    result = history(years, values)
+    assert result['points'][-1]['p'] >= 0.05
+    assert result['emerged_year'] is None
+    assert history(years[:10], values[:10])['emerged_year'] is None   # never enough observations
+
+
+def test_emerged_year_ignores_significance_with_the_opposite_sign():
+    years = list(range(1981, 2026))
+    rng = np.random.default_rng(0)
+    values = (np.arange(45) * -0.1 + rng.normal(size=45) * 0.5).tolist()
+    values[:18] = (np.arange(18) * 0.4 + rng.normal(size=18) * 0.3).tolist()   # an early rise
+    result = history(years, values)
+    early = analyze_trend(years[:18], values[:18], min_years=15, start_year=1981)
+    full = analyze_trend(years, values, min_years=15, start_year=1981)
+    assert early.mk.p < 0.05 and early.sen.slope_per_year > 0
+    assert full.mk.p < 0.05 and full.sen.slope_per_year < 0
+    assert result['emerged_year'] == expected_emergence(years, values, result)
+    assert result['emerged_year'] > 2005
+
+
+def test_contract_accepts_old_history_and_rejects_false_emergence():
+    payload = history(list(range(2000, 2020)), list(range(20)))
+    old = {k: v for k, v in payload.items() if k != 'emerged_year'}
+    assert DetectionHistory.model_validate(old).emerged_year is None
+    for year in (2005, 1999, 2020):   # short-series prefix, before and after the record
+        with pytest.raises(ValidationError):
+            DetectionHistory.model_validate({**payload, 'emerged_year': year})
+
+
 @pytest.mark.parametrize('change', ['order', 'count', 'p', 'status', 'correction'])
 def test_contract_rejects_inconsistent_history(change):
     payload = history(list(range(2000, 2020)), list(range(20)))

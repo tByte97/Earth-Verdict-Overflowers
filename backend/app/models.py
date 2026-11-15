@@ -238,6 +238,9 @@ class DetectionHistory(Strict):
     method: Literal["sen_mann_kendall"]
     start_year: int
     points: list[DetectionHistoryPoint] = Field(min_length=1)
+    # #41: first end year from which every prefix is significant with the full-record sign;
+    # None = not emerged or not supplied (additive, old responses remain valid)
+    emerged_year: Optional[int] = None
 
     @model_validator(mode="after")
     def coherent_points(self):
@@ -253,6 +256,11 @@ class DetectionHistory(Strict):
                 raise ValueError("History status/p must match the observation threshold")
             if enough != (point.correction is not None):
                 raise ValueError("History correction must identify each performed test")
+        if self.emerged_year is not None:
+            later = self.points[self.emerged_year - self.start_year:]
+            if self.emerged_year < self.start_year or not later or any(
+                    point.p is None or point.p >= self.alpha for point in later):
+                raise ValueError("Emergence year must start a run of significant prefixes")
         return self
 
 

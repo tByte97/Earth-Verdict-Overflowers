@@ -8,7 +8,8 @@ import type { CaseSpec, CheckResult, Place, Variable } from './types';
 import { pointPlace, type PickedPoint } from './globe/place';
 import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from './globe/trends';
 import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
-import { seasonName } from './globe/presentation';
+import { seasonName as layerSeason } from './globe/presentation';
+import { sourceIndex } from './format';
 import './styles.css';
 import { Explain } from './events/Explain';
 
@@ -142,7 +143,7 @@ function App() {
     const season = CaseSpecSchema.shape.season.parse(entry?.season ?? spec.season);
     if (!variables.some(variable => variable.id === variableId)) { setPhase('error'); setError('Select an available backend variable.'); return; }
     const place = pointPlace(point);
-    const subject = season === 'year' ? labelOf(variableId).toLowerCase() : `${seasonName(String(season)).toLowerCase()} ${labelOf(variableId).toLowerCase()}`;
+    const subject = season === 'year' ? labelOf(variableId).toLowerCase() : `${layerSeason(String(season)).toLowerCase()} ${labelOf(variableId).toLowerCase()}`;
     const next: CaseSpec = {
       claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season,
       start_year: entry?.start_year ?? spec.start_year, end_year: entry?.end_year ?? spec.end_year, claim_direction: 'change',
@@ -157,27 +158,21 @@ function App() {
     if (picked && isLive) checkPoint(picked, key);
   }
 
-  return <>
-    <header className="site-header"><a className="brand" href="./"><span className="brand-mark" aria-hidden="true">◉</span> Earth Verdict<span className="brand-caption">EVIDENCE, CLEARLY</span></a><button className="help-button" type="button" onClick={() => setHelp(v => !v)} aria-expanded={help}>How to use <span aria-hidden="true">?</span></button></header>
-    <main>
-      <div className="intro"><p className="eyebrow">A closer look at our changing planet</p><h1>A claim. A check.<br /><span>A clearer answer.</span></h1><p>Choose what you want to investigate.<br />See the conclusion, then explore the evidence behind it.</p></div>
-      {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
-      <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real observations · provisional statistics. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
-      <div className="mode-tabs" role="tablist" aria-label="What to explore">{modes.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}>{label}</button>)}</div>
-      {mode === 'events' && <ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary>}
-      {mode === 'co2' && <ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary>}
-      {mode === 'claims' && <div className="workspace">
-        <section className="globe-column" aria-label="Case location">
-          <div className="globe-heading"><span className="eyebrow">Explore the planet</span><p>{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</p></div>
-          <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} trend={view} fade={fade} onPick={point => checkPoint(point)} /></Suspense></ErrorBoundary>
-          <div className="trend-stage">
-            {view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
-            {layer && <TrendCaption layer={layer} />}
-            {layerStatus && <p className="trend-status" role="status">{layerStatus}</p>}
-          </div>
-          <div className="globe-legend"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
-        </section>
-        <div className="investigation-panel">
+  const seasonName = (season: CaseSpec['season']) => seasons.find(([value]) => value === String(season))?.[1].split(' · ')[0] ?? String(season);
+  const source = result ? result.provenance[sourceIndex('series', result) ?? -1]?.source : undefined;
+
+  return <div className="shell">
+    <div className="panel">
+      <header className="mark">
+        <h1>Earth Verdict</h1>
+        <p>What is changing on Earth, where, how fast, and how sure we can be. NASA data{result ? `, ${result.case.start_year}–${result.case.end_year}` : ''}.</p>
+        <button className="help-button" type="button" onClick={() => setHelp(v => !v)} aria-expanded={help}>How to use <span aria-hidden="true">?</span></button>
+        <div className="mode-tabs" role="tablist" aria-label="What to explore">{modes.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}>{label}</button>)}</div>
+      </header>
+      <main className="panel-body">
+        {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
+        {mode === 'claims' ? <div className="investigation-panel">
+        <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real observations · provisional statistics. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
         <section className="trend-panel" aria-labelledby="trend-heading">
           <h2 id="trend-heading">Trend map</h2>
           <LayerControls index={layerIndex} value={layerKey} onChange={chooseLayer} fade={fade} onFade={setFade} labelOf={labelOf} />
@@ -210,11 +205,39 @@ function App() {
           <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
           {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /><Explain kind="check" result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
         </section>
+        </div> : <p className="panel-note">Choose “Climate claims” to return to the globe.</p>}
+      </main>
+      <footer className="credits">
+        <p>Data: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noreferrer">NASA POWER</a> (MERRA-2 reanalysis), <a href="https://www.ncei.noaa.gov/" target="_blank" rel="noreferrer">NOAA NCEI</a> stations and <a href="https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/" target="_blank" rel="noreferrer">Climate at a Glance</a>, <a href="https://www.nccs.nasa.gov/services/data-collections/land-based-products/nex-gddp-cmip6" target="_blank" rel="noreferrer">NEX-GDDP-CMIP6</a> scenarios.</p>
+        <p>Imagery: NASA Blue Marble and Black Marble via <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">GIBS</a>. Map: <a href="https://maplibre.org/" target="_blank" rel="noreferrer">MapLibre GL JS</a>.</p>
+        <p>Earth Verdict · Team Overflowers. Past observations describe evidence about change. They are not a forecast.</p>
+      </footer>
+    </div>
+    <section className="stage" aria-label={mode === 'claims' ? 'Case location' : modes.find(([id]) => id === mode)![1]}>
+      <div className="stage-globe" hidden={mode !== 'claims'}>
+        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} trend={view} fade={fade} onPick={point => checkPoint(point)} /></Suspense></ErrorBoundary>
+        <div className="stage-legend">
+          {view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
+          <div className="stage-legend-markers"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </div>
-      </div>}
-      <footer><span>Earth Verdict · Team Overflowers</span><p>Past observations describe evidence about change. They are not a forecast.</p></footer>
-    </main>
-  </>;
+        <div className="stage-title">
+          {/* With a trend layer on the map, the title describes that layer. */}
+          {layer ? <>
+            <div className="eyebrow">{layerSeason(layer.season)} · {layer.start_year}–{layer.end_year}</div>
+            <div className="big">Where is {labelOf(layer.variable_id).toLowerCase()} changing?</div>
+          </> : <>
+            {result && <div className="eyebrow">{seasonName(result.case.season)} · {result.case.start_year}–{result.case.end_year}{source ? ` · ${source}` : ''}</div>}
+            <div className="big">Where is {result ? result.variable.label.toLowerCase() : 'the climate'} changing?</div>
+          </>}
+          <div className="src">{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</div>
+          {layer && <TrendCaption layer={layer} />}
+          {layerStatus && <p className="trend-status" role="status">{layerStatus}</p>}
+        </div>
+      </div>
+      {mode === 'events' && <div className="stage-workspace legacy-light"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary></div>}
+      {mode === 'co2' && <div className="stage-workspace legacy-light"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary></div>}
+    </section>
+  </div>;
 }
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ErrorBoundary><App /></ErrorBoundary></StrictMode>);
