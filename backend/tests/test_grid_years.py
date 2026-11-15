@@ -41,3 +41,12 @@ def test_cell_without_enough_baseline_years_stays_empty_and_winter_starts_a_year
     assert out["years"][0] == 1982
     assert all(row[0] is None for row in out["anomaly"]) and all(row[1] == 0.0 for row in out["anomaly"])
     assert out["mean"][0] == 0.0
+
+
+def test_halo_cells_do_not_change_core_means_or_ranks():
+    core = [cell(50.0, lambda y: float(y - 1981)), cell(46.0, lambda y: float(2 * (y - 1981)))]
+    halo = [cell(41.0, lambda y: -999.0 if y == 2024 else 0.0), cell(55.5, lambda y: 999.0)]
+    base = year_anomalies(core, "JJA", "mean", False, digits=2)
+    with_halo = year_anomalies(core + halo, "JJA", "mean", False, digits=2)
+    for key in ("mean", "rank", "mean_smooth", "normal"):
+        assert with_halo[key] == base[key]

@@ -10,7 +10,7 @@ export interface TrendView { layer: TrendLayer; grid: Grid; cells: TrendCell[]; 
 export function trendView(layer: TrendLayer): TrendView {
   const cells = layer.features.map(feature => feature.properties);
   const core = cells.filter(cell => !cell.halo);
-  return { layer, grid: gridOf(cells, layer.halo_cells), cells, core, lim: colourLimit(core), pres: presentationOf(layer.variable_id) };
+  return { layer, grid: gridOf(cells), cells, core, lim: colourLimit(core), pres: presentationOf(layer.variable_id) };
 }
 
 export function TrendLegend({ view, fade, variableLabel }: { view: TrendView; fade: boolean; variableLabel: string }) {

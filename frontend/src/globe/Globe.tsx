@@ -146,14 +146,15 @@ const NOISE_ALPHA = 0.62;
 // Draws the layer: painted colour, FDR stipple and, when the backend found one, the opposite pair.
 function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): maplibregl.Marker[] {
   map.setLayoutProperty('trend', 'visibility', view ? 'visible' : 'none');
-  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(view ? { type: 'FeatureCollection', features: view.core.filter(cell => cell.significant_fdr).map(cell => point(cell.lon, cell.lat)) } : EMPTY);
+  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(view ? { type: 'FeatureCollection', features: view.core.filter(cell => cell.significant_fdr && (cell.fade ?? 1) === 1).map(cell => point(cell.lon, cell.lat)) } : EMPTY);
   const pair = view?.layer.pair;
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(pair ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[pair.a.lon, pair.a.lat], [pair.b.lon, pair.b.lat]] } } : EMPTY);
   if (!view) return [];
   const { grid, lim, pres } = view;
   queueImage(map, 'trend', paintGrid(grid,
     // A trend that could be chance is drawn white, like a place with no data: only a clear trend gets colour.
-    cell => (!fade || cell.significant_fdr ? Math.max(-1, Math.min(1, cell.slope_per_decade / lim)) : 0), cell => (!fade || cell.significant_fdr ? 0.88 : NOISE_ALPHA), t => pres.palette((t + 1) / 2)));
+    cell => (!fade || cell.significant_fdr ? Math.max(-1, Math.min(1, cell.slope_per_decade / lim)) : 0),
+    cell => (!fade || cell.significant_fdr ? 0.88 : NOISE_ALPHA) * (cell.fade ?? 1), t => pres.palette((t + 1) / 2)));
   return pair ? [pair.a, pair.b].map(end => new maplibregl.Marker({ element: chip(end.slope_per_decade > 0 ? `▲ ${pres.up}` : `▼ ${pres.down}`, end.slope_per_decade <= 0) })
     .setLngLat([end.lon, end.lat]).addTo(map)) : [];
 }
@@ -165,7 +166,7 @@ function showFrame(map: maplibregl.Map, frame: Frame) {
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(EMPTY);
   const { view: { grid, lim, pres }, cells } = frame;
   queueImage(map, 'trend', paintGrid(grid,
-    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88), t => pres.palette((t + 1) / 2)));
+    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88) * cell.fade, t => pres.palette((t + 1) / 2)));
 }
 
 export function Globe({ place, station, destination, onPick, trend = null, fade = true, frame = null }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {

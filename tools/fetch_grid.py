@@ -15,7 +15,7 @@ from fetch_data import DATA, END, START, get_json, months
 REGIONAL_URL = "https://power.larc.nasa.gov/api/temporal/monthly/regional"
 GRID_DIR = DATA / "grid"
 DEFAULT_PARAMS = ["T2M", "PRECTOTCORR"]
-DEFAULT_BBOX = (44, 53, 22, 41)  # lat_min, lat_max, lon_min, lon_max
+DEFAULT_BBOX = (40, 56.5, 16, 46.5)  # lat_min, lat_max, lon_min, lon_max (Ukraine + fade halo)
 MAX_SPAN = 10.0
 MIN_SPAN = 2.0
 

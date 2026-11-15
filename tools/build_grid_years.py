@@ -16,8 +16,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from build_grid_trends import GRID_DIR, LAYERS_DIR, PARAM_CONFIG, SEASONS, aggregate_seasonal, halo_rings, in_core  # noqa: E402
+from build_grid_trends import GRID_DIR, LAYERS_DIR, PARAM_CONFIG, SEASONS, aggregate_seasonal, in_core  # noqa: E402
 from fetch_data import END, START  # noqa: E402
+from ukraine_outline import FADE_KM, cells_fade  # noqa: E402
 
 BASELINE = (1991, 2020)
 MIN_BASELINE_YEARS = 20          # a cell with a thinner baseline has no normal and stays empty
@@ -81,14 +82,23 @@ def main() -> None:
         path = GRID_DIR / f"{param}.json"
         if not path.exists():
             sys.exit(f"{path} not found; run tools/fetch_grid.py first")
-        cells = json.loads(path.read_text())["cells"]
+        raw_cells = json.loads(path.read_text())["cells"]
+        fades = cells_fade([(c["lat"], c["lon"]) for c in raw_cells])
+        cells = []
+        kept_fades = []
+        for c, f in zip(raw_cells, fades):
+            if in_core(c) and f <= 0:
+                raise ValueError(f"Core cell ({c['lat']}, {c['lon']}) has fade=0; increase FADE_KM")
+            if f > 0:
+                cells.append(c)
+                kept_fades.append(f)
         units, digits = UNITS[param]
         for season in SEASONS:
             out = year_anomalies(cells, season, cfg["agg"], cfg["per_day"], digits)
             layer = {"variable_id": cfg["variable_id"], "param": param, "season": season, "units": units,
                      "baseline": list(BASELINE), "start_year": out["years"][0], "end_year": out["years"][-1],
-                     "source": "NASA POWER (MERRA-2)", "halo_cells": halo_rings(cells),
-                     "lat": [c["lat"] for c in cells], "lon": [c["lon"] for c in cells], **out}
+                     "source": "NASA POWER (MERRA-2)", "fade_km": int(FADE_KM),
+                     "lat": [c["lat"] for c in cells], "lon": [c["lon"] for c in cells], "fade": kept_fades, **out}
             target = LAYERS_DIR / f"years_{cfg['variable_id']}_{season}.json"
             target.write_text(json.dumps(layer, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
             print(f"{target.name}: {len(out['years'])} years x {len(cells)} cells, {target.stat().st_size // 1024} KB, "

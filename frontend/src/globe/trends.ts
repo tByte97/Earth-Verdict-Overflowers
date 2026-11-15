@@ -5,7 +5,7 @@ import { isLive, request } from '../api';
 const CellSchema = z.object({
   type: z.literal('Feature'),
   // `halo` marks a cell outside the tested area: drawn so the map fades out over real data, never counted.
-  properties: z.object({ lat: z.number(), lon: z.number(), slope_per_decade: z.number(), p: z.number(), significant_fdr: z.boolean(), halo: z.boolean().optional() }).passthrough(),
+  properties: z.object({ lat: z.number(), lon: z.number(), slope_per_decade: z.number(), p: z.number(), significant_fdr: z.boolean(), halo: z.boolean().optional(), fade: z.number().min(0).max(1).optional() }).passthrough(),
 }).passthrough();
 const PairEndSchema = z.object({ lat: z.number(), lon: z.number(), slope_per_decade: z.number(), p: z.number() });
 const LayerEntrySchema = z.object({
@@ -17,7 +17,8 @@ const TrendLayerSchema = LayerEntrySchema.extend({
   pair: z.object({ a: PairEndSchema, b: PairEndSchema, distance_km: z.number(), significance: z.enum(['fdr', 'raw']) }).nullable(),
   // Cell counts arrive with the layer index; older layer files do not carry them.
   n_cells: z.number().int().optional(), n_significant_fdr: z.number().int().optional(),
-  // Rows of halo cells around the tested area; the map fades out across them.
+  // Fade distance outside Ukraine's border in km (or legacy halo_cells ring count).
+  fade_km: z.number().positive().optional(),
   halo_cells: z.number().int().nonnegative().optional(),
   features: z.array(CellSchema).min(1),
 }).passthrough();

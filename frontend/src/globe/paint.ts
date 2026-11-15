@@ -8,16 +8,14 @@ export function colourLimit(cells: TrendCell[]) {
 }
 
 // The layer's cells sit on a regular lat/lon grid; its spacing is read from the cell centres.
-// `feather` is how many cells from the data edge the colour takes to reach full strength.
-export interface Grid<T = TrendCell> { lat0: number; lon0: number; dlat: number; dlon: number; nlat: number; nlon: number; feather: number; cells: (T | undefined)[] }
-const DEFAULT_FEATHER = 3;
+export interface Grid<T = TrendCell> { lat0: number; lon0: number; dlat: number; dlon: number; nlat: number; nlon: number; cells: (T | undefined)[] }
 const step = (values: number[]) => {
   const sorted = [...new Set(values)].sort((a, b) => a - b);
   return { first: sorted[0], step: sorted.length > 1 ? sorted[1] - sorted[0] : 1, count: sorted.length > 1 ? Math.round((sorted.at(-1)! - sorted[0]) / (sorted[1] - sorted[0])) + 1 : 1 };
 };
-export function gridOf<T extends { lat: number; lon: number }>(cells: T[], feather = DEFAULT_FEATHER): Grid<T> {
+export function gridOf<T extends { lat: number; lon: number }>(cells: T[]): Grid<T> {
   const lat = step(cells.map(cell => cell.lat)), lon = step(cells.map(cell => cell.lon));
-  const grid: Grid<T> = { lat0: lat.first, lon0: lon.first, dlat: lat.step, dlon: lon.step, nlat: lat.count, nlon: lon.count, feather: Math.max(1, feather || DEFAULT_FEATHER), cells: [] };
+  const grid: Grid<T> = { lat0: lat.first, lon0: lon.first, dlat: lat.step, dlon: lon.step, nlat: lat.count, nlon: lon.count, cells: [] };
   for (const cell of cells) grid.cells[Math.round((cell.lat - grid.lat0) / grid.dlat) * grid.nlon + Math.round((cell.lon - grid.lon0) / grid.dlon)] = cell;
   return grid;
 }
@@ -30,7 +28,6 @@ export function cellAt<T>(grid: Grid<T>, lon: number, lat: number) {
 const mx = (lon: number) => (lon + 180) / 360;
 const my = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) / Math.PI) / 2;
 const latOfY = (y: number) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180 / Math.PI;
-const smooth = (t: number) => (t = Math.min(1, Math.max(0, t))) * t * (3 - 2 * t);
 
 // Web Mercator stops at this latitude; beyond it there is no map to draw on.
 export const MERCATOR_LAT = 85.0511;
@@ -52,13 +49,14 @@ export function mercatorWorld(image: HTMLImageElement) {
 export type ImageCoordinates = [[number, number], [number, number], [number, number], [number, number]];
 
 // Pure rendering: per-cell value in [-1, 1] and opacity → a smooth image. The bilinear blend is for
-// colour only; tooltips always read the exact cell. Colour fades next to missing cells and over the
-// last `grid.feather` cells at the data edge, with rounded corners, so the map has no hard border.
+// colour only; tooltips always read the exact cell. Colour fades next to missing cells; the outer
+// shape and soft border come from the per-cell `fade` weight in `alpha`.
 export function paintGrid<T>(grid: Grid<T>, value: (cell: T) => number, alpha: (cell: T) => number, colour: Ramp) {
-  const { lat0, lon0, dlat, dlon, nlat, nlon, cells, feather } = grid;
-  const west = lon0 - dlon / 2, east = lon0 + (nlon - 0.5) * dlon;
-  const south = lat0 - dlat / 2, north = lat0 + (nlat - 0.5) * dlat;
-  const W = nlon * 8, yN = my(north), yS = my(south);
+  const { lat0, lon0, dlat, dlon, nlat, nlon, cells } = grid;
+  // Pad by one cell on every side so outermost cells fade next to empty space like interior edges.
+  const west = lon0 - dlon, east = lon0 + nlon * dlon;
+  const south = lat0 - dlat, north = lat0 + nlat * dlat;
+  const W = (nlon + 1) * 8, yN = my(north), yS = my(south);
   const H = Math.max(1, Math.round(W * (yS - yN) / (mx(east) - mx(west))));
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
@@ -79,9 +77,7 @@ export function paintGrid<T>(grid: Grid<T>, value: (cell: T) => number, alpha: (
         sw += w; sv += w * value(cell); sa += w * alpha(cell);
       }
       const o = (py * W + px) * 4;
-      // Distance into the data, in cells; near a corner both edges count, which rounds the fade.
-      const short = Math.hypot(Math.max(0, feather - Math.min(fr + 0.5, nlat - 0.5 - fr)), Math.max(0, feather - Math.min(fc + 0.5, nlon - 0.5 - fc)));
-      const edge = Math.min(1, Math.max(0, (sw - 0.2) / 0.4)) * smooth(1 - short / feather);
+      const edge = Math.min(1, Math.max(0, (sw - 0.2) / 0.4));
       if (!edge) continue;
       const [R, G, B] = colour(sv / sw);
       d[o] = R; d[o + 1] = G; d[o + 2] = B; d[o + 3] = Math.round(255 * edge * sa / sw);

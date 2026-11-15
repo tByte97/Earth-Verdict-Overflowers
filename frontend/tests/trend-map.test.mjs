@@ -207,6 +207,8 @@ test('saved mode reads the saved layers; map picking is hidden and clicking leav
     await expect(page.locator('.globe-hint')).toHaveCount(0);
     // The saved files carry the cell counts, so the share is printed.
     const saved = layers['air_temp/JJA'];
+    const fades = saved.features.map(f => f.properties.fade);
+    assert.ok(fades.every(f => f > 0 && f <= 1) && fades.some(f => f === 1) && fades.some(f => f < 1));
     await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(saved.n_significant_fdr / saved.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~5%`);
     const [x, y] = await mapCentre(page);
     await page.mouse.click(x + 80, y);

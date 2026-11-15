@@ -24,6 +24,8 @@ test('the timeline puts one year on the globe, in plain words, and returns to th
   await expect(page.getByTestId('timeline-now')).toHaveText(`${summer.years[0]}–${summer.years.at(-1)}: pick a year or press play`);
   await expect(page.getByTestId('trend-legend')).toBeVisible();
   assert.equal(await timeline.locator('.timeline-bars i').count(), summer.years.length);
+  assert.equal(summer.fade.length, summer.lat.length);
+  assert.ok(summer.fade.every(f => f > 0 && f <= 1) && summer.fade.some(f => f === 1) && summer.fade.some(f => f < 1));
 
   const slider = page.getByRole('slider', { name: 'Year' });
   await slider.focus();

@@ -21,6 +21,7 @@ from app.check import STATS_ENGINE  # noqa: E402
 from app.stats.fdr import benjamini_hochberg  # noqa: E402
 from app.stats.trend import analyze_trend  # noqa: E402
 from fetch_data import DATA, END, START, haversine_km  # noqa: E402
+from ukraine_outline import FADE_KM, cells_fade  # noqa: E402
 
 GRID_DIR = DATA / "grid"
 SEASONS = ["JJA", "DJF", "year"]
@@ -44,18 +45,6 @@ CORE_BBOX = (44.0, 53.0, 22.0, 41.0)   # lat_min, lat_max, lon_min, lon_max
 
 def in_core(cell: dict) -> bool:
     return CORE_BBOX[0] <= cell["lat"] <= CORE_BBOX[1] and CORE_BBOX[2] <= cell["lon"] <= CORE_BBOX[3]
-
-
-def halo_rings(cells: list[dict]) -> int:
-    """How many rows/columns of halo cells surround the core on its thinnest side."""
-    lats = sorted({c["lat"] for c in cells})
-    lons = sorted({c["lon"] for c in cells})
-    core_lats = [v for v in lats if CORE_BBOX[0] <= v <= CORE_BBOX[1]]
-    core_lons = [v for v in lons if CORE_BBOX[2] <= v <= CORE_BBOX[3]]
-    if not core_lats or not core_lons:
-        return 0
-    return min(lats.index(core_lats[0]), len(lats) - 1 - lats.index(core_lats[-1]),
-               lons.index(core_lons[0]), len(lons) - 1 - lons.index(core_lons[-1]))
 
 
 def sig3(p: float):
@@ -132,13 +121,14 @@ def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell
                 "significant": c["significant_fdr"],
                 "significant_fdr": c["significant_fdr"],
                 "significant_raw": bool(sig_raw),
+                "fade": c["fade"],
             },
         })
     # Halo cells carry no polygon: the map is painted from the cell centres.
     for c in halo or []:
         features.append({"type": "Feature", "geometry": None,
                          "properties": {"lat": c["lat"], "lon": c["lon"], "slope_per_decade": c["slope_per_decade"], "p": c["p"],
-                                        "significant_fdr": c["significant_fdr"], "halo": True}})
+                                        "significant_fdr": c["significant_fdr"], "halo": True, "fade": c["fade"]}})
     return {
         "type": "FeatureCollection",
         "param": param,
@@ -168,6 +158,7 @@ def cells_with_trends(cells: list[dict], season: str, cfg: dict):
             "slope_per_decade": round(float(s), 4) if math.isfinite(s) else None,
             "p": sig3(float(p)),
             "significant_fdr": bool(sf),
+            **({"fade": c["fade"]} if "fade" in c else {}),
         }
         for c, s, p, sf in zip(cells, slopes, p_vals, fdr_sig)
     ]
@@ -213,9 +204,16 @@ def main():
         if not grid_path.exists():
             sys.exit(f"Не знайдено {grid_path}; спочатку запустіть python3 tools/fetch_grid.py")
         grid = json.loads(grid_path.read_text())
-        rings = halo_rings(grid["cells"])
-        cells = [c for c in grid["cells"] if in_core(c)]
-        halo_cells = [c for c in grid["cells"] if not in_core(c)]
+        fades = cells_fade([(c["lat"], c["lon"]) for c in grid["cells"]])
+        cells = []
+        halo_cells = []
+        for c, f in zip(grid["cells"], fades):
+            if in_core(c):
+                if f <= 0:
+                    raise ValueError(f"Core cell ({c['lat']}, {c['lon']}) has fade=0; increase FADE_KM")
+                cells.append({**c, "fade": f})
+            elif f > 0:
+                halo_cells.append({**c, "fade": f})
         cell_size = grid["cell_size"]
 
         for season in SEASONS:
@@ -245,7 +243,7 @@ def main():
 
             meta = {"variable_id": cfg["variable_id"], "start_year": int(span[0]), "end_year": int(span[1]),
                     "n_cells": n_tested, "n_significant_fdr": n_fdr, "n_significant_raw": n_raw,
-                    "stats_engine": STATS_ENGINE, "pair": pair_meta(cells_out, p_vals), "halo_cells": rings}
+                    "stats_engine": STATS_ENGINE, "pair": pair_meta(cells_out, p_vals), "fade_km": int(FADE_KM)}
             geojson = build_geojson(
                 param, season, cfg["units_per_decade"], FDR_Q, cell_size, cells_out, raw_sig.tolist(), meta, halo_out
             )
