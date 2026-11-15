@@ -112,8 +112,7 @@ More detail: [backend/README.md](backend/README.md) (API, environment variables,
 
 ## Stack
 
-Python · FastAPI · NumPy · SciPy · React 19 · TypeScript · MapLibre GL · Gemini 3.5 Flash-Lite · Docker.
-Tests: 222 backend (pytest) and 95 end-to-end (Playwright).
+Python · FastAPI · NumPy · SciPy · React 19 · TypeScript · MapLibre GL · Gemini API (Gemini 3.5 Flash-Lite) · Docker.
 
 ## Next
 
