@@ -993,6 +993,12 @@ pre {
     right:16px;
     flex-direction:column;
     gap:4px;
+    transition:opacity .5s ease,visibility .5s;
+  }
+  /* The narrow stage has no room beside the flight title; the legend steps aside until the camera lands. */
+  .stage:has(.globe[data-flight]) .stage-legend {
+    opacity:0;
+    visibility:hidden;
   }
   .mark h1 {
     font-size:24px;
