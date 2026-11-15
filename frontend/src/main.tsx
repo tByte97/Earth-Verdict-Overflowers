@@ -1,4 +1,4 @@
-import { StrictMode, Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { StrictMode, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { demoCases, findPlaces, getVariables, isLive, runCheck } from './api';
 import { VerdictCard } from './VerdictCard';
@@ -6,6 +6,9 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { CaseSpecSchema } from './schema';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
 import { pointPlace, type PickedPoint } from './globe/place';
+import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from './globe/trends';
+import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
+import { seasonName } from './globe/presentation';
 import './styles.css';
 import { Explain } from './events/Explain';
 
@@ -42,6 +45,37 @@ function App() {
     window.history.replaceState(null, '', url);
   }
   const request = useRef<AbortController | null>(null);
+  // Trend map: the index lists the layers that exist (null = no index yet, show only the case's layer).
+  const [layerIndex, setLayerIndex] = useState<LayerEntry[] | null>(null);
+  const [layerKey, setLayerKey] = useState<LayerKey | null>(isLive ? null : { variable_id: initial.result.case.variable_id, season: String(initial.result.case.season) });
+  const [layer, setLayer] = useState<TrendLayer | null>(null);
+  const [layerStatus, setLayerStatus] = useState('');
+  const [fade, setFade] = useState(true);
+  const [pickNote, setPickNote] = useState('');
+  const view = useMemo(() => (layer ? trendView(layer) : null), [layer]);
+  const labelOf = (variableId: string) => variables.find(variable => variable.id === variableId)?.label ?? variableId;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadLayerIndex(controller.signal).then(index => {
+      if (controller.signal.aborted) return;
+      setLayerIndex(index);
+      if (index?.length) setLayerKey(current => current ?? { variable_id: index[0].variable_id, season: index[0].season });
+    }).catch(() => { if (!controller.signal.aborted) setLayerIndex(null); });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    setLayer(null);
+    if (!layerKey) { setLayerStatus(''); return; }
+    const controller = new AbortController();
+    setLayerStatus('Loading the trend map…');
+    loadTrendLayer(layerKey.variable_id, layerKey.season, controller.signal).then(next => {
+      if (controller.signal.aborted) return;
+      setLayer(next); setLayerStatus(next ? '' : `No trend map for ${labelOf(layerKey.variable_id).toLowerCase()} in this season yet.`);
+    }).catch(e => { if (!controller.signal.aborted) setLayerStatus(`Trend map unavailable: ${e.message}`); });
+    return () => controller.abort();
+  }, [layerKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -77,9 +111,16 @@ function App() {
     if (!variables.some(variable => variable.id === spec.variable_id)) { setError('Select an available backend variable.'); setPhase('error'); return; }
     if (!selectedPlace) { setPhase('error'); setError('Select a place from the search results first.'); return; }
     if (!Number.isInteger(spec.start_year) || !Number.isInteger(spec.end_year) || spec.start_year > spec.end_year) { setPhase('error'); setError('Choose valid years: the start must not be after the end.'); return; }
+    setPickNote('');
+    // The map follows the case being checked, when a layer exists for it.
+    if (!layerIndex || layerIndex.some(entry => entry.variable_id === spec.variable_id && entry.season === String(spec.season))) setLayerKey({ variable_id: spec.variable_id, season: String(spec.season) });
+    await check(spec);
+  }
+
+  async function check(next: CaseSpec) {
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
     setBusy(true); setPhase('loading'); setResult(null); setError('');
-    try { const response = await runCheck(spec, demoId, controller.signal); if (!controller.signal.aborted) { setResult(response); setPhase('success'); } }
+    try { const response = await runCheck(next, demoId, controller.signal); if (!controller.signal.aborted) { setResult(response); setPhase('success'); } }
     catch (e) { if (!controller.signal.aborted) { setError(e instanceof Error ? e.message : 'The check failed. Please try again.'); setPhase('error'); } }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
@@ -87,7 +128,33 @@ function App() {
   function chooseDemo(id: string) {
     const next = demoCases.find(item => item.id === id)!;
     request.current?.abort(); setBusy(false); setDemoId(id); setSpec(next.result.case);
-    setQuery(next.result.case.place.name); setSelectedPlace(true); setPicked(null); setError(''); setResult(next.result); setPhase('success');
+    setQuery(next.result.case.place.name); setSelectedPlace(true); setPicked(null); setPickNote(''); setError(''); setResult(next.result); setPhase('success');
+    setLayerKey({ variable_id: next.result.case.variable_id, season: String(next.result.case.season) });
+  }
+
+  // A map click checks that spot right away with the layer's variable, season and period.
+  // Without a layer the form's current choices are used. The question is always "is it changing?".
+  function checkPoint(point: PickedPoint, key = layerKey) {
+    if (!isLive) { setPickNote('Checking a new spot needs the backend. Saved mode covers the saved cases only.'); return; }
+    const entry = (layer && key && layer.variable_id === key.variable_id && layer.season === key.season ? layer : null)
+      ?? layerIndex?.find(item => key && item.variable_id === key.variable_id && item.season === key.season);
+    const variableId = entry?.variable_id ?? spec.variable_id;
+    const season = CaseSpecSchema.shape.season.parse(entry?.season ?? spec.season);
+    if (!variables.some(variable => variable.id === variableId)) { setPhase('error'); setError('Select an available backend variable.'); return; }
+    const place = pointPlace(point);
+    const subject = season === 'year' ? labelOf(variableId).toLowerCase() : `${seasonName(String(season)).toLowerCase()} ${labelOf(variableId).toLowerCase()}`;
+    const next: CaseSpec = {
+      claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season,
+      start_year: entry?.start_year ?? spec.start_year, end_year: entry?.end_year ?? spec.end_year, claim_direction: 'change',
+    };
+    setPicked(point); setSelectedPlace(true); setQuery(place.name); setPlaces([]); setPickNote(''); setSpec(next);
+    void check(next);
+  }
+
+  // Changing the layer keeps the picked spot and checks it again with the new layer.
+  function chooseLayer(key: LayerKey) {
+    setLayerKey(key);
+    if (picked && isLive) checkPoint(picked, key);
   }
 
   return <>
@@ -102,14 +169,21 @@ function App() {
       {mode === 'claims' && <div className="workspace">
         <section className="globe-column" aria-label="Case location">
           <div className="globe-heading"><span className="eyebrow">Explore the planet</span><p>{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</p></div>
-          <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} onPick={point => {
-            const place = pointPlace(point);
-            setPicked(point); setSelectedPlace(true); setQuery(place.name);
-            edit({ place });
-          }} /></Suspense></ErrorBoundary>
+          <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace ? spec.place : null} station={result?.witness?.station ?? null} trend={view} fade={fade} onPick={point => checkPoint(point)} /></Suspense></ErrorBoundary>
+          <div className="trend-stage">
+            {view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
+            {layer && <TrendCaption layer={layer} />}
+            {layerStatus && <p className="trend-status" role="status">{layerStatus}</p>}
+          </div>
           <div className="globe-legend"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </section>
         <div className="investigation-panel">
+        <section className="trend-panel" aria-labelledby="trend-heading">
+          <h2 id="trend-heading">Trend map</h2>
+          <LayerControls index={layerIndex} value={layerKey} onChange={chooseLayer} fade={fade} onFade={setFade} labelOf={labelOf} />
+          {pickNote && <p className="trend-note" role="status">{pickNote}</p>}
+          {view && <PairCallout view={view} variableLabel={labelOf(view.layer.variable_id)} />}
+        </section>
         <aside className="case-panel" aria-labelledby="case-heading">
           <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Your investigation</p><h2 id="case-heading">Set up a check</h2></div></div>
           {!isLive && <label className="demo-select">Saved case<select value={demoId} onChange={e => chooseDemo(e.target.value)}>{demoCases.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}

@@ -182,15 +182,40 @@ is explored, and loads separately from the core form/card bundle.
 
 The contributor's MapLibre globe keeps point/station markers and NASA GIBS Blue Marble
 imagery. **Globe view** shows planetary context; **Local view** zooms to the selected place.
-Clicking a point updates the case coordinates and clears the old result. Unsupported
+Clicking a point checks that spot (see Trend map below). Unsupported
 browsers get a map-only fallback while the form and evidence remain usable. External
 imagery still depends on NASA GIBS availability.
 
 ### Globe notes
 
-- Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. Picking fills the form; the check runs only on **Check claim**.
+- Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. The picked spot is drawn as a cream ring; the station keeps its own marker.
 - Camera: choosing a saved case or a searched place flies there in about 3.7 s (rise to orbit, turn, descend to the local view at zoom 4.75). Dragging the map or a view button interrupts the flight. A picked point leaves the camera where it is. With reduced motion the map jumps without animation. The globe unrolls into a flat map between zoom 3.2 and 4.8.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.
+
+
+## Trend map (issue #41)
+
+The globe shows the precomputed, FDR-corrected trend layer from `GET /api/grid` (code in `src/globe/`).
+
+- **Data.** Period, units, `q`, the opposite pair and the variable all come from the layer. Variable and season
+  buttons come from `GET /api/grid/index`; when the index is missing (404) only the current case's layer is shown.
+  Saved mode reads the same precomputed files from `data/layers/`, so the deployed app shows the map without a backend.
+- **Rendering.** `paint.ts` paints one smooth image on an `image` source: bilinear blend between cell centres,
+  faded next to missing cells and at the data edge, resampled to Web Mercator rows. The blend is colour only.
+  Dots mark `significant_fdr` cells; "Fade trends that could be chance" fades the others.
+- **Colour scale.** Diverging OKLab ramps per variable. The limit is the 95th percentile of |slope| rounded to a
+  nice step: a display scale, not a statistic.
+- **Legend and caption.** The caption share is printed only when the layer carries `n_cells` and
+  `n_significant_fdr`; the browser never counts cells.
+- **Tooltip.** Hovering shows the exact values of the cell under the pointer.
+- **Opposite regions.** With `pair`, two chips and a dashed line mark the regions, and the panel callout repeats both
+  slopes, p-values, the distance and the basis (FDR or raw p). Without it the callout says there are none.
+- **Click to check.** In connected mode a click (not a drag) runs `POST /api/check` for `pt:{lat},{lon}` with the
+  layer's variable, season and period, `claim_direction: "change"` and a template claim. A new click cancels the
+  previous request; changing the layer re-checks the picked spot. Saved mode explains that this needs the backend.
+
+`tests/trend-map.test.mjs` checks the legend against the API, the tooltip, the pair chips, the click request,
+the missing-index fallback and saved mode, and writes `test-results/trend-map-{desktop,mobile}.png`.
 
 
 ## Step pipeline (issue #5)
