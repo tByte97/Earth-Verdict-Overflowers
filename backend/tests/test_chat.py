@@ -101,7 +101,7 @@ def test_errors(monkeypatch):
 
 
 def test_rate_limit(monkeypatch):
-    _fake(monkeypatch, ["+1.37"])
+    _fake(monkeypatch, [EFFECT])
     monkeypatch.setattr(llm, "RATE_LIMIT", (2, 60.0))
     codes = [client.post("/api/chat", json={"kind": "event", "result": _event(), "question": f"q{i}"}).status_code
              for i in range(3)]
