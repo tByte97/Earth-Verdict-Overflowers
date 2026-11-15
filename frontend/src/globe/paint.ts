@@ -30,6 +30,23 @@ const my = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + lat * Math.PI /
 const latOfY = (y: number) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180 / Math.PI;
 const smooth = (t: number) => (t = Math.min(1, Math.max(0, t))) * t * (3 - 2 * t);
 
+// Web Mercator stops at this latitude; beyond it there is no map to draw on.
+export const MERCATOR_LAT = 85.0511;
+
+// An equirectangular (EPSG:4326) world image re-laid in Mercator rows, so an image source lines up with the tiles.
+export function mercatorWorld(image: HTMLImageElement) {
+  const W = image.naturalWidth, H = W;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  const top = my(MERCATOR_LAT), bottom = my(-MERCATOR_LAT);
+  for (let py = 0; py < H; py++) {
+    const lat = latOfY(top + (py + 0.5) / H * (bottom - top));
+    ctx.drawImage(image, 0, (90 - lat) / 180 * image.naturalHeight, W, 1, 0, py, W, 1);
+  }
+  return canvas.toDataURL('image/jpeg', 0.9);
+}
+
 export type ImageCoordinates = [[number, number], [number, number], [number, number], [number, number]];
 
 // Pure rendering: per-cell value in [-1, 1] and opacity → a smooth image. The bilinear blend is for
