@@ -1,0 +1,63 @@
+/* Record chart and evidence timeline. Tokens come from the dark shell; fallbacks keep the same look without it. */
+.record, .history-timeline {
+  --chart-surface: var(--surface, #0b0e14);
+  --chart-rule: var(--rule, rgba(236,235,230,.09));
+  --chart-ink: var(--ink, #ecebe6);
+  --chart-ink-2: var(--ink-2, #b4b3ab);
+  --chart-ink-3: var(--ink-3, #7c7b74);
+  --chart-cream: var(--cream, #efe6d2);
+  --chart-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--chart-surface); color: var(--chart-ink); border: 1px solid var(--chart-rule); border-radius: 10px;
+  padding: 16px; margin: 18px 0; min-width: 0;
+}
+.record h3 { margin: 0; font: 600 22px/1.2 'Cormorant Garamond', Georgia, serif; color: var(--chart-ink); }
+.record-context { margin: 4px 0 10px; font: 500 11px/1.4 var(--chart-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--chart-ink-3); }
+.record-plot { position: relative; min-width: 0; }
+.record-plot svg { display: block; width: 100%; height: auto; touch-action: pan-y; outline: none; }
+.record-plot svg:focus-visible { outline: 2px solid var(--chart-cream); outline-offset: 2px; border-radius: 4px; }
+.record-plot text { font: 10px var(--chart-mono); fill: var(--chart-ink-3); }
+.record .grid line { stroke: rgba(236,235,230,.07); }
+.record .band { opacity: .16; }
+.record .baseline { stroke: var(--chart-ink-2); stroke-dasharray: 5 4; opacity: .7; }
+.record .baseline-label, .record .emerged text { paint-order: stroke; stroke: var(--chart-surface); stroke-width: 3px; }
+.record .baseline-label { fill: var(--chart-ink-2); }
+.record .emerged line { stroke: var(--chart-cream); stroke-dasharray: 3 3; opacity: .5; }
+.record .emerged text { fill: var(--chart-ink-2); }
+.record .series-line { fill: none; stroke: var(--chart-ink-3); stroke-width: 1.2; }
+.record .series-dot { fill: var(--chart-ink-2); stroke: var(--bg, #05070b); stroke-width: 1; }
+.record .station-line { fill: none; stroke-width: 1.4; opacity: .9; }
+.record .trend-line { fill: none; stroke-width: 2.4; stroke-linecap: round; }
+.record .crosshair { stroke: var(--chart-cream); opacity: .4; }
+.record-tip {
+  position: absolute; top: 8px; z-index: 2; pointer-events: none; min-width: 160px;
+  background: rgba(11,14,20,.96); border: 1px solid rgba(236,235,230,.16); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; color: var(--chart-ink); box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.record-tip strong { font-weight: 500; margin-bottom: 2px; }
+.record-tip span { display: flex; justify-content: space-between; gap: 14px; color: var(--chart-ink-2); }
+.record-tip b { color: var(--chart-ink); font: 500 12px var(--chart-mono); }
+.record-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--chart-ink-2); }
+.record-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.record-legend i { display: inline-block; width: 14px; height: 2px; border-radius: 1px; }
+.record-legend .key-series { height: 6px; width: 6px; border-radius: 50%; background: var(--chart-ink-2); }
+.record-legend .key-trend { height: 3px; }
+.record-legend .key-band { height: 8px; opacity: .35; }
+.record-legend .key-baseline { background: none; border-top: 1px dashed var(--chart-ink-2); height: 0; }
+.record-note { margin: 8px 0 0; font-size: 12px; color: var(--chart-ink-3); }
+.record .chart-values { margin-top: 12px; }
+.record .chart-values summary { cursor: pointer; color: var(--chart-ink-2); font-size: 13px; }
+.record .chart-values summary span { color: var(--chart-ink-3); font-size: 11px; margin-left: 6px; }
+.record .chart-table { margin-top: 8px; }
+.record .chart-table table { color: var(--chart-ink-2); font-size: 12px; }
+.record .chart-table th, .record .chart-table td { border-color: var(--chart-rule); background: transparent; }
+.record .chart-table td { font-family: var(--chart-mono); }
+.record a { color: var(--chart-cream); }
+
+.history-timeline h5 { margin: 0 0 8px; font: 500 11px/1.4 var(--chart-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--chart-ink-3); }
+.history-timeline svg { display: block; width: 100%; height: auto; }
+.history-timeline text { font: 9px var(--chart-mono); fill: var(--chart-ink-3); }
+.history-timeline .block-later { opacity: .3; }
+.history-timeline .block-selected { stroke: var(--chart-cream); stroke-width: 1.5; }
+.history-timeline p { margin: 8px 0 0; font-size: 12px; color: var(--chart-ink-2); }
+.history-timeline .timeline-key { color: var(--chart-ink-3); }

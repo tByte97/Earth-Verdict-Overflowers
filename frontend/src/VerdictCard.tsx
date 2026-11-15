@@ -5,6 +5,7 @@ import { DetectionSimulator } from './DetectionSimulator';
 import { UncertaintyPanel } from './UncertaintyPanel';
 import { waitingExplanation } from './detection';
 import { StepPipeline } from './steps/StepPipeline';
+import { RecordChart } from './chart/RecordChart';
 
 const verdicts = { confirmed: ['Confirmed', '✓'], refuted: ['Refuted', '×'], not_proven: ['Not proven', '?'] };
 const reasons: Record<string, string> = {
@@ -67,6 +68,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     <div className={`witness witness-${r.witness?.agreement ?? 'no_station'}`}><span className="witness-dot" aria-hidden="true" /><div><strong>{agreement[0]}</strong><p>{agreement[1]}{r.witness ? ` Station: ${r.witness.station.name}.` : ''}</p></div></div>
     {r.variable.caveat && <p className="data-note">{r.variable.caveat}</p>}
     {r.meta?.stub && <p className="data-note"><strong>Provisional statistics.</strong> Supplied by the team’s backend snapshot; results may change when the final statistics engine is ready.</p>}
+    <RecordChart result={r} />
     <StepPipeline result={r} onSource={openSources} />
     <details className="technical">
       <summary>How we checked this <span>Methods, uncertainty & full precision</span></summary>
