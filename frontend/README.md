@@ -277,3 +277,25 @@ scenarios prototype. Right of a "now" divider at `case.end_year`:
 - `scenarios: null` hides the future zone and the controls and shows one line explaining why.
 
 All scenario values also stay in **Future illustrations** with their exact precision.
+
+## Globe performance (issue #41, section 2)
+
+Target: first frame under 1 s offline, 55+ FPS while rotating. Measured on 2026-11-15, before the local Earth
+texture below is used by the globe.
+
+| Scenario | First frame, 5 runs (ms) | Median | FPS while rotating, median of 5 |
+|---|---|---|---|
+| Browser already running, page opened with an empty cache | 1542, 681, 743, 733, 719 | 733 ms | 59.7 |
+| A new browser process for every run (cold start) | 1543, 1482, 1516, 1471, 1529 | 1516 ms | 59.7 |
+
+The cold start misses the 1 s target. The extra time comes with starting a new browser process (including its
+GPU process), not with the page: the same build in an already running browser meets the target. 59.7 FPS is the 60 Hz display limit.
+
+How it was measured:
+
+- Production build (`pnpm build`, served by `vite preview`), viewport 1440 × 900.
+- Offline: every request outside the local server was aborted (imagery tiles and web fonts).
+- Chromium headless with the hardware GPU (ANGLE / Direct3D 11, AMD Radeon RX 580); no other test run in parallel.
+- First frame: time from navigation start to the first WebGL draw call on the page.
+- FPS: the globe was dragged sideways with the mouse for 3 s; FPS = animation frames that drew ÷ elapsed time.
+  The pointer sent about 50–60 move events per second.
