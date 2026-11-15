@@ -192,11 +192,14 @@ class _Busy(Exception):
     """Gemini quota or rate limit (HTTP 429)."""
 
 
-def _call_gemini(key: str, model: str, prompt: str) -> str:
+def _call_gemini(key: str, model: str, prompt: str, system: str = SYSTEM, json_out: bool = False) -> str:
+    config = {"temperature": 0.0 if json_out else 0.2, "maxOutputTokens": MAX_OUTPUT_TOKENS}
+    if json_out:
+        config["responseMimeType"] = "application/json"
     body = json.dumps({
-        "systemInstruction": {"parts": [{"text": SYSTEM}]},
+        "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": MAX_OUTPUT_TOKENS},
+        "generationConfig": config,
     }).encode()
     req = urllib.request.Request(API_URL.format(model=model), data=body,
                                  headers={"x-goog-api-key": key, "Content-Type": "application/json"})

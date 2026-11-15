@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { demoCases } from './data';
-import { ErrorResponseSchema, PlaceSchema, VariableSchema, parseCheckResult } from './schema';
+import { CaseSpecSchema, ErrorResponseSchema, PlaceSchema, VariableSchema, parseCheckResult } from './schema';
 import { matchesPlace } from './places';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
 
@@ -74,7 +74,22 @@ export async function runCheck(spec: CaseSpec, _demoId: string, signal?: AbortSi
   return structuredClone(fixture.result);
 }
 
-const CaseListSchema = z.array(z.object({ id: z.string().min(1), claim_text: z.string(), place: z.string(), variable_id: z.string(), verdict: z.string() }));
+const ParsedClaimSchema = z.object({
+  spec: CaseSpecSchema, place_found: z.boolean(), place_query: z.string().nullable().optional(), notes: z.array(z.string()), model: z.string(),
+}).strict();
+export type ParsedClaim = z.infer<typeof ParsedClaimSchema>;
+
+/** Free text -> check parameters (POST /api/parse-claim). Nothing is checked; the user confirms the fields first. */
+export async function parseClaim(text: string, signal?: AbortSignal): Promise<ParsedClaim> {
+  if (!isLive) throw new ApiError('Reading a claim needs the backend. Open a saved case instead.', 'offline');
+  const parsed = ParsedClaimSchema.safeParse(await request('/parse-claim', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }),
+  }, signal, 30_000));
+  if (!parsed.success) throw new Error('Invalid claim reading returned by the backend.');
+  return parsed.data;
+}
+
+const CaseListSchema =z.array(z.object({ id: z.string().min(1), claim_text: z.string(), place: z.string(), variable_id: z.string(), verdict: z.string() }));
 export type CaseItem = { id: string; claim_text: string };
 
 // The case grid: GET /api/cases in live mode, the saved responses otherwise.

@@ -339,7 +339,7 @@ class CheckResult(Strict):
 
 class ErrorBody(Strict):
     code: Literal["unknown_variable", "place_not_found", "short_series", "source_unavailable",
-                  "llm_unavailable", "bad_request", "no_data", "internal", "busy", "rate_limited"]
+                  "llm_unavailable", "cannot_parse", "bad_request", "no_data", "internal", "busy", "rate_limited"]
     message: str
 
 
@@ -526,6 +526,19 @@ class ChatRequest(Strict):
     result: dict
     question: Optional[str] = Field(default=None, max_length=300)
     lang: Literal["en", "uk"] = "en"
+
+
+class ParseRequest(Strict):
+    text: str = Field(min_length=3, max_length=300)
+
+
+class ParsedClaim(Strict):
+    """A free-text claim turned into check parameters. The user confirms them before the check."""
+    spec: CaseSpec                  # place is a placeholder when place_found is False
+    place_found: bool
+    place_query: Optional[str] = None
+    notes: list[str]                # what the parser assumed, in plain English
+    model: str
 
 
 class ChatResponse(Strict):
