@@ -20,9 +20,23 @@ export function chanceInWords(p: number, alpha: number) {
     : `If nothing were really changing, a pattern this steady would turn up by chance less often than the ${alpha} threshold allows.`;
 }
 export const period = (r: CheckResult) => `${r.case.start_year}–${r.case.end_year} · ${r.case.season}`;
+const GIOVANNI_HOME = 'https://giovanni.gsfc.nasa.gov/giovanni/';
+
 export function safeUrl(value: string) {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : undefined; }
   catch { return undefined; }
+}
+
+export function provenanceLink(value: string): { href: string; label: string } | undefined {
+  const href = safeUrl(value);
+  if (!href) return undefined;
+  try {
+    const url = new URL(href);
+    if (url.hostname === 'api.giovanni.earthdata.nasa.gov' && url.pathname.startsWith('/timeseries')) {
+      return { href: GIOVANNI_HOME, label: 'Giovanni (sign-in needed for the raw request)' };
+    }
+  } catch { /* fall through */ }
+  return { href, label: 'Open source' };
 }
 
 export function numericFields(value: unknown, prefix = ''): [string, number | null][] {
@@ -89,16 +103,34 @@ export function sourceMethod(path: string): MethodKind | undefined {
   return undefined;
 }
 
+function parseUrl(value: string): URL | undefined {
+  try { return new URL(value); } catch { return undefined; }
+}
+
+function isWitnessProvenance(source: CheckResult['provenance'][number]): boolean {
+  const url = parseUrl(source.url);
+  return url?.hostname === 'www.ncei.noaa.gov' && !url.pathname.includes('climate-at-a-glance');
+}
+
+function isScenarioProvenance(source: CheckResult['provenance'][number]): boolean {
+  return parseUrl(source.url)?.hostname === 'ds.nccs.nasa.gov' || source.source === 'NASA NCCS';
+}
+
 export function sourceIndex(path: string, r: CheckResult): number | undefined {
   // Only measured series/station metadata link to a provider. Derived quantities link
   // to a method record, never to the first provider or free-text `what` heuristics.
   if (sourceMethod(path)) return undefined;
   const [root, field] = path.split('.');
   if (root === 'provenance' && Number.isInteger(Number(field)) && r.provenance[Number(field)]) return Number(field);
-  const host = root === 'witness' ? 'www.ncei.noaa.gov' : root === 'series' ? 'power.larc.nasa.gov' : undefined;
-  if (!host) return undefined;
+  if (root !== 'witness' && root !== 'series') return undefined;
   const matches = r.provenance.flatMap((source, index) => {
-    try { return new URL(source.url).hostname === host ? [index] : []; } catch { return []; }
+    const matched = root === 'witness' ? isWitnessProvenance(source) : !isWitnessProvenance(source) && !isScenarioProvenance(source);
+    return matched ? [index] : [];
   });
   return matches.length === 1 ? matches[0] : undefined;
+}
+
+export function seriesSourceName(r: CheckResult): string {
+  const index = sourceIndex('series', r);
+  return index !== undefined ? r.provenance[index].source : 'Primary data';
 }

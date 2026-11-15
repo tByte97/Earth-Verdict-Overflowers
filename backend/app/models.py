@@ -48,6 +48,8 @@ class Variable(Strict):
     units: str
     definition: str
     caveat: Optional[str] = None
+    first_year: Optional[int] = None
+    last_year: Optional[int] = None
 
 
 class YearValue(Strict):
@@ -368,6 +370,7 @@ class Compound(Strict):
     local_signal: bool
     kind: Literal["satellite", "reanalysis"]
     event_bounds: list[EventBounds]     # empty when local_signal is false (CO2)
+    valid_windows: Optional[list[int]] = None
 
 
 class MonthValue(Strict):

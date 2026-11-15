@@ -129,6 +129,13 @@ test('#case links round-trip and editing parameters drops the case from the URL'
   await page.evaluate(() => { window.location.hash = '#case=lviv-drier'; });
   await expect(page.locator('[data-case="lviv-drier"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.case-parameters > summary').click();
+  await expect(page.getByLabel('Claim', { exact: true })).toBeDisabled();
+  await page.route('**/api/variables', route => route.fulfill({ json: [cases['lviv-drier'].variable] }));
+  await page.route('**/api/cases', route => route.fulfill({ json: [{ id: 'lviv-drier', claim_text: cases['lviv-drier'].case.claim_text, place: cases['lviv-drier'].case.place.name, variable_id: cases['lviv-drier'].case.variable_id, verdict: cases['lviv-drier'].verdict }] }));
+  await page.route('**/api/cases/lviv-drier', route => route.fulfill({ json: cases['lviv-drier'] }));
+  await page.goto('/?source=live#case=lviv-drier');
+  await expect(page.locator('[data-case="lviv-drier"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.case-parameters > summary').click();
   await page.getByLabel('Claim', { exact: true }).fill('My own claim');
   await expect(page.locator('.case[aria-pressed="true"]')).toHaveCount(0);
   expect(new URL(page.url()).hash).toBe('');

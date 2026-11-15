@@ -69,9 +69,18 @@ test('the layer legend and caption repeat the values sent by the API', async () 
     await expect(legend.locator('.trend-legend-ends')).toHaveText(`−${lim}0+${lim}`);
     await expect(legend).toContainText(`dots = significant after FDR (q = ${layer.q})`);
     await expect(legend).toContainText('cooler ◂ ▸ warmer');
-    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells show a significant trend after FDR · chance alone would give ~5%`);
-    await page.getByLabel('Fade trends that could be chance').uncheck();
-    await expect(legend).not.toContainText('faded = could be chance');
+    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~5%`);
+    const fade = page.getByLabel('Fade trends that could be chance');
+    await expect(fade).toBeDisabled();
+    await expect(page.locator('#fade-reason')).toHaveText('Every cell is significant after FDR.');
+    await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Winter' }).click();
+    await expect(fade).toBeEnabled();
+    await fade.uncheck();
+    await expect(page.getByTestId('trend-legend')).not.toContainText('faded = could be chance');
+    await page.getByRole('group', { name: 'Trend map variable' }).getByRole('button', { name: 'Precipitation' }).click();
+    await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Year' }).click();
+    await expect(fade).toBeDisabled();
+    await expect(page.locator('#fade-reason')).toHaveText('No cells are significant after FDR.');
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
@@ -187,17 +196,19 @@ test('without a layer index only the checked case layer is shown, without invent
   } finally { await page.close(); }
 });
 
-test('saved mode reads the saved layers; a map click asks for the backend', async () => {
+test('saved mode reads the saved layers; map picking is hidden and clicking leaves the case intact', async () => {
   const { page, errors } = await open();
   try {
     await expect(page.getByTestId('trend-legend')).toContainText('Summer air temperature trend');
     await expect(page.getByRole('group', { name: 'Trend map variable' }).getByRole('button')).toHaveText(['Air temperature', 'Precipitation']);
+    await expect(page.getByRole('button', { name: 'Use map centre' })).toHaveCount(0);
+    await expect(page.locator('.globe-hint')).toHaveCount(0);
     // The saved files carry the cell counts, so the share is printed.
     const saved = layers['air_temp/JJA'];
-    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(saved.n_significant_fdr / saved.n_cells * 100)}% of cells show a significant trend after FDR · chance alone would give ~5%`);
+    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(saved.n_significant_fdr / saved.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~5%`);
     const [x, y] = await mapCentre(page);
     await page.mouse.click(x + 80, y);
-    await expect(page.locator('.trend-note')).toContainText('needs the backend');
+    await expect(page.locator('.trend-note')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Confirmed', exact: true })).toBeVisible();
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

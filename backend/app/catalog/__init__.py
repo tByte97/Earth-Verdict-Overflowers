@@ -9,6 +9,7 @@ from typing import Literal, Optional
 import yaml
 
 from ..models import Compound, EventBounds, Variable
+from ..stats.event import window_has_enough_placebos
 
 CATALOG_FILE = Path(__file__).with_name("variables.yaml")
 COMPOUNDS_FILE = Path(__file__).with_name("compounds.yaml")
@@ -33,7 +34,8 @@ class VariableDef:
 
     def public(self) -> Variable:
         return Variable(id=self.id, label=self.label, units=self.units,
-                        definition=self.definition, caveat=self.caveat)
+                        definition=self.definition, caveat=self.caveat,
+                        first_year=self.first_year, last_year=self.last_year)
 
 
 @lru_cache(maxsize=1)
@@ -76,6 +78,19 @@ class CompoundDef:
     kind: str = "satellite"
 
     def public(self) -> Compound:
+        bounds = (
+            [EventBounds(window_years=w, earliest=a, latest=b)
+             for w, (a, b) in ((w, self.event_month_bounds(w)) for w in range(1, 6))
+             if a <= b]
+            if self.local_signal
+            else []
+        )
+        valid_windows = (
+            [b.window_years for b in bounds
+             if window_has_enough_placebos(self.first_year, self.last_year, b.window_years, b.earliest, b.latest)]
+            if self.local_signal
+            else []
+        )
         return Compound(
             id=self.id,
             label=self.label,
@@ -87,9 +102,8 @@ class CompoundDef:
             last_year=self.last_year,
             local_signal=self.local_signal,
             kind=self.kind,
-            event_bounds=[EventBounds(window_years=w, earliest=a, latest=b)
-                          for w, (a, b) in ((w, self.event_month_bounds(w)) for w in range(1, 6))
-                          if a <= b] if self.local_signal else [],
+            event_bounds=bounds,
+            valid_windows=valid_windows,
         )
 
     def event_month_bounds(self, window_years: int) -> tuple[str, str]:

@@ -117,7 +117,9 @@ test('without scenarios the future zone is hidden and one line says why', async 
   await saved(page, 'lviv-drier');
   await expect(page.getByTestId('scenarios-layer')).toHaveCount(0);
   await expect(page.getByTestId('scenarios')).toHaveCount(0);
-  await expect(page.getByTestId('scenarios-none')).toHaveText('No future scenarios here: there is no CMIP6 climate-model data near this place.');
+  await expect(page.getByTestId('scenarios-none')).toHaveText('No future scenarios here: there is no CMIP6 tile near this place.');
+  await saved(page, 'kyiv-winter-snow');
+  await expect(page.getByTestId('scenarios-none')).toHaveText('No future scenarios here: CMIP6 covers only air temperature and precipitation for the year, summer and winter.');
 });
 
 test('scenarios fit desktop and phone widths; screenshots', async ({ page }) => {

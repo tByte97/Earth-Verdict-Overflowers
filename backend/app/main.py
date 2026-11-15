@@ -231,24 +231,34 @@ async def variables():
     return [v.public() for v in load_variables().values()]
 
 
+@app.get("/api/regions", response_model=list[Place])
+async def regions():
+    return [Place(place_id=f"region:{k}", name=name, lat=lat, lon=lon) for k, (name, lat, lon) in REGIONS.items()]
+
+
 @app.get("/api/places", response_model=list[Place], responses={503: {"model": ErrorResponse}})
-async def places(q: str = Query("", max_length=100)):
+async def places(q: str = Query("", max_length=100), include_regions: bool = True):
     if len(q.strip()) < 2:
         return []
     from .sources import SourceUnavailable, geocode
 
-    regions = [Place(place_id=f"region:{k}", name=name, lat=lat, lon=lon)
-               for k, (name, lat, lon) in REGIONS.items()
-               if name.lower().startswith(q.strip().lower()) or k.startswith(q.strip().lower().replace(" ", ""))
-               or (k == "globe" and q.strip().lower() in ("world", "planet", "earth", "globe"))]
+    term = q.strip().lower()
+    region_hits = (
+        [Place(place_id=f"region:{k}", name=name, lat=lat, lon=lon)
+         for k, (name, lat, lon) in REGIONS.items()
+         if name.lower().startswith(term) or k.startswith(term.replace(" ", ""))
+         or (k == "globe" and term in ("global", "world", "planet", "earth", "globe"))]
+        if include_regions
+        else []
+    )
 
     try:
         found = await anyio.to_thread.run_sync(geocode.search_places, q.strip())
     except SourceUnavailable as e:
-        if regions:
-            return regions
+        if region_hits:
+            return region_hits
         return error("source_unavailable", f"Place search did not respond: {e.message}")
-    return regions + [Place(place_id=p["place_id"], name=p["name"], lat=p["lat"], lon=p["lon"]) for p in found]
+    return region_hits + [Place(place_id=p["place_id"], name=p["name"], lat=p["lat"], lon=p["lon"]) for p in found]
 
 
 @app.post("/api/check", response_model=CheckResult,

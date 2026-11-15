@@ -28,7 +28,7 @@ export function TrendLegend({ view, fade, variableLabel }: { view: TrendView; fa
 // The share is printed only when the backend sends the counts; the browser never counts cells itself.
 export function TrendCaption({ layer }: { layer: TrendLayer }) {
   if (layer.n_cells === undefined || layer.n_significant_fdr === undefined || !layer.n_cells) return null;
-  return <p className="trend-caption">{Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells show a significant trend after FDR · chance alone would give ~{layer.q * 100}%</p>;
+  return <p className="trend-caption">{Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~{layer.q * 100}%</p>;
 }
 
 export function CellTip({ view, cell, x, y }: { view: TrendView; cell: TrendCell; x: number; y: number }) {
@@ -42,12 +42,24 @@ export function CellTip({ view, cell, x, y }: { view: TrendView; cell: TrendCell
 
 export interface LayerKey { variable_id: string; season: string }
 
+function fadeDisableReason(layer: TrendLayer | null): string | null {
+  if (!layer) return 'No trend map is loaded.';
+  const total = layer.n_cells ?? layer.features.length;
+  const sig = layer.n_significant_fdr ?? layer.features.filter(f => f.properties.significant_fdr).length;
+  if (sig === 0) return 'No cells are significant after FDR.';
+  if (total > 0 && sig >= total) return 'Every cell is significant after FDR.';
+  return null;
+}
+
 // Variable and season choices come from the layer index; without an index only the fade switch is offered.
-export function LayerControls({ index, value, onChange, fade, onFade, labelOf }: {
-  index: LayerEntry[] | null; value: LayerKey | null; onChange: (key: LayerKey) => void; fade: boolean; onFade: (fade: boolean) => void; labelOf: (variableId: string) => string;
+export function LayerControls({ index, value, layer, onChange, fade, onFade, labelOf }: {
+  index: LayerEntry[] | null | undefined; value: LayerKey | null; layer: TrendLayer | null;
+  onChange: (key: LayerKey) => void; fade: boolean; onFade: (fade: boolean) => void; labelOf: (variableId: string) => string;
 }) {
   const variables = index ? [...new Set(index.map(entry => entry.variable_id))] : [];
-  const seasons = index && value ? index.filter(entry => entry.variable_id === value.variable_id).map(entry => entry.season).sort(bySeason) : [];
+  const activeVar = value && variables.includes(value.variable_id) ? value.variable_id : variables[0];
+  const seasons = index && activeVar ? index.filter(entry => entry.variable_id === activeVar).map(entry => entry.season).sort(bySeason) : [];
+  const fadeReason = fadeDisableReason(layer);
   const choose = (variable_id: string, season: string) => {
     const available = index!.filter(entry => entry.variable_id === variable_id);
     onChange({ variable_id, season: available.some(entry => entry.season === season) ? season : available[0].season });
@@ -60,10 +72,14 @@ export function LayerControls({ index, value, onChange, fade, onFade, labelOf }:
       {seasons.length > 0 && <>
         <div className="trend-eyebrow">Season</div>
         <div className="trend-seg" role="group" aria-label="Trend map season">{seasons.map(season =>
-          <button key={season} type="button" aria-pressed={value?.season === season} onClick={() => choose(value!.variable_id, season)}>{seasonName(season)}</button>)}</div>
+          <button key={season} type="button" aria-pressed={value?.variable_id === activeVar && value?.season === season} onClick={() => choose(activeVar, season)}>{seasonName(season)}</button>)}</div>
       </>}
     </>}
-    <label className="trend-check"><input type="checkbox" checked={fade} onChange={event => onFade(event.target.checked)} /> Fade trends that could be chance</label>
+    <label className="trend-check" title={fadeReason ?? undefined}>
+      <input type="checkbox" checked={fade} disabled={!!fadeReason} aria-describedby={fadeReason ? 'fade-reason' : undefined} onChange={event => onFade(event.target.checked)} />
+      Fade trends that could be chance
+    </label>
+    {fadeReason && <p className="field-help" id="fade-reason">{fadeReason}</p>}
   </div>;
 }
 
