@@ -1,0 +1,8 @@
+.case-file { margin: 0 28px 24px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.case-file h3 { margin: 0 0 6px; font: 600 22px/1.2 var(--serif); color: var(--ink); }
+.case-file p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--ink-3); }
+.case-file-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+.case-file-button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--ink); font: 12px var(--mono); cursor: pointer; }
+.case-file-button:hover, .case-file-button:focus-visible { background: var(--cream); color: var(--accent-ink); }
+.case-file .case-file-status { min-height: 1.6em; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .case-file { margin: 0 14px 18px; } }

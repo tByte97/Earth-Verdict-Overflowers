@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -89,4 +89,29 @@ test('text with commas, quotes and formula characters is quoted and defused', as
   const { text } = await csvOf(page, r);
   const { fields } = split(text);
   assert.equal(fields['case.claim_text'][0], `'=HYPERLINK("x"), "hotter", yes`);
+});
+
+test('the Download CSV button saves the case file built from the shown result', async ({ page }) => {
+  await page.goto('/?source=saved#case=kyiv-summer-heat');
+  const file = page.getByTestId('case-file');
+  await expect(file).toBeVisible();
+  const [download] = await Promise.all([page.waitForEvent('download'), file.getByRole('button', { name: 'Download CSV' }).click()]);
+  assert.equal(download.suggestedFilename(), 'earth-verdict-city-kyiv-air_temp-JJA-1981-2025.csv');
+  const saved = await readFile(await download.path(), 'utf8');
+  assert.equal(saved, (await csvOf(page, heat)).text);
+});
+
+test('"Copy link to this case" copies a link that reopens the same case', async ({ page, context, baseURL }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseURL });
+  await page.goto('/?source=saved');
+  await page.locator('[data-case="lviv-drier"]').click();
+  await page.getByRole('button', { name: 'Copy link to this case' }).click();
+  await expect(page.getByTestId('case-file').getByRole('status')).toHaveText('Link copied.');
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(link, /#case=lviv-drier$/);
+  const other = await context.newPage();
+  await other.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
+  await other.goto(link);
+  await expect(other.locator('[data-case="lviv-drier"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(other.locator('.claim')).toHaveText(dry.case.claim_text);
 });

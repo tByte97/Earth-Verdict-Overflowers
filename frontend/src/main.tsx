@@ -14,6 +14,7 @@ import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type 
 import { seasonName as layerSeason } from './globe/presentation';
 import './styles.css';
 import { Explain } from './events/Explain';
+import { CaseFile } from './CaseFile';
 
 const EventsWorkspace = lazy(() => import('./events/EventsWorkspace').then(m => ({ default: m.EventsWorkspace })));
 const Co2Calculator = lazy(() => import('./events/Co2Calculator').then(m => ({ default: m.Co2Calculator })));
@@ -278,7 +279,7 @@ function App() {
         <section className="result-panel" aria-label="Check result" aria-busy={busy}>
           <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>
           <div id="result-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{phase === 'loading' ? 'Check in progress.' : phase === 'error' ? `Check unavailable. ${error}` : phase === 'success' && result ? `Result: ${result.verdict.replace('_', ' ')}.` : phase === 'edited' ? 'Parameters changed. Run a check to see the result.' : catalogueLoading ? 'Loading available variables.' : 'Ready to configure a check.'}</div>
-          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /><Explain kind="check" result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
+          {result ? <ErrorBoundary key={JSON.stringify(result.case) + result.verdict}><VerdictCard result={result} saved={!isLive} /><Explain kind="check" result={result} /><CaseFile result={result} /></ErrorBoundary> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Checking the evidence…' : 'Ready when you are.'}</h2><p>{busy ? 'Waiting for a response from the backend.' : 'Set your parameters and select “Check claim”. Your result will appear here.'}</p></div>}
         </section>
         </div> : <p className="panel-note">Choose “Climate claims” to return to the globe.</p>}
       </main>
