@@ -401,15 +401,42 @@ input,select {
 select {
   padding-right:22px;
 }
-.demo-select {
-  margin-bottom:0;
-  padding:9px;
-  border-radius:9px;
-  background:var(--tint);
+.cases {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:6px;
 }
-.demo-select select {
-  background:var(--paper);
-  font-size:12px;
+.case {
+  padding:10px 12px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  text-align:left;
+  line-height:1.35;
+}
+.case:hover {
+  border-color:rgba(236,235,230,.4);
+}
+.case b {
+  display:block;
+  font-size:13px;
+  font-weight:500;
+}
+.case span {
+  display:block;
+  margin-top:4px;
+  color:var(--ink-3);
+  font:10px var(--mono);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.case[aria-pressed="true"] {
+  border-color:var(--cream);
+  background:var(--cream);
+  color:#0b0b0b;
+}
+.case[aria-pressed="true"] span {
+  color:#4a463e;
 }
 fieldset {
   min-width:0;
@@ -505,6 +532,83 @@ legend {
   height:27px;
 }
 
+/* ---------- Verdict hero: number, pill, sentence, facts ---------- */
+.hero {
+  margin:16px 22px 0;
+}
+.hero .where {
+  margin:0 0 10px;
+  color:var(--ink-3);
+  font:11px var(--mono);
+}
+.hero .verdict {
+  display:block;
+  margin:10px 0 0;
+  padding:0;
+  background:none;
+  color:inherit;
+}
+.hero .verdict h3 {
+  display:inline-block;
+  margin:0;
+  padding:4px 10px;
+  border:1px solid var(--cream);
+  border-radius:999px;
+  color:var(--cream);
+  font:500 11px var(--mono);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.hero .verdict-confirmed h3 {
+  background:var(--cream);
+  color:#0b0b0b;
+}
+.hero .verdict-not_proven h3 {
+  border-color:var(--ink-3);
+  color:var(--ink-2);
+}
+.hero .verdict p,.hero-text {
+  margin:10px 0 0;
+  color:var(--ink-2);
+  font-size:13px;
+  line-height:1.6;
+}
+.hero-text b {
+  color:var(--ink);
+  font-weight:500;
+}
+.facts {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin:12px 0 0;
+}
+.fact {
+  display:flex;
+  flex-direction:column-reverse;
+  justify-content:flex-end;
+  padding:8px 10px;
+  border:1px solid var(--rule);
+  border-radius:8px;
+  background:var(--tint);
+}
+.fact dd {
+  margin:0;
+  font:500 14px var(--mono);
+  overflow-wrap:anywhere;
+}
+.fact dt {
+  font-size:11px;
+  color:var(--ink-3);
+}
+.warn {
+  margin:10px 0 0;
+  padding-left:10px;
+  border-left:2px solid var(--warn-line);
+  color:var(--ink-2);
+  font-size:12px;
+}
+
 /* ---------- Verdict card ---------- */
 .verdict-card {
   overflow:hidden;
@@ -585,6 +689,9 @@ legend {
   position:relative;
   margin:20px 22px 17px;
 }
+.card-links {
+  margin:8px 22px 6px;
+}
 .metric-value {
   margin-top:8px;
   font:500 40px/1.2 var(--mono);
@@ -592,6 +699,7 @@ legend {
   letter-spacing:-.02em;
 }
 .metric-value>span {
+  margin-left:8px;
   font:14px var(--sans);
   letter-spacing:0;
   color:var(--muted);
@@ -927,7 +1035,7 @@ pre {
     padding-left:16px;
     padding-right:16px;
   }
-  .claim,.context,.verdict,.headline-metric,.witness,.data-note,.caution {
+  .claim,.context,.verdict,.headline-metric,.card-links,.witness,.data-note,.caution {
     margin-left:16px;
     margin-right:16px;
   }
@@ -936,6 +1044,13 @@ pre {
   }
   .metric-value {
     font-size:34px;
+  }
+  .hero {
+    margin-left:16px;
+    margin-right:16px;
+  }
+  .facts {
+    grid-template-columns:1fr;
   }
   .mode-banner {
     flex-direction:column;

@@ -13,8 +13,10 @@ async function open(id, viewport = { width: 1440, height: 1100 }) {
   const page = await browser.newPage({ viewport });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  // Live mode lists /api/cases; an empty list keeps these tests on the form path.
+  await page.route('**/api/cases', route => route.fulfill({ json: [] }));
   await page.goto(baseURL);
-  await page.locator('.demo-select select').selectOption(id);
+  await page.locator(`[data-case="${id}"]`).click();
   return { page, errors, steps: page.locator('.step-pipeline') };
 }
 

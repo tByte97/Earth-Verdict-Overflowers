@@ -24,6 +24,8 @@ async function open(path = '/', { blockImagery = false } = {}) {
   if (blockImagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  // Live mode lists /api/cases; an empty list keeps these tests on the form path.
+  await page.route('**/api/cases', route => route.fulfill({ json: [] }));
   await page.goto(baseURL + path);
   if (await page.locator('.case-parameters').count()) await page.locator('.case-parameters').evaluate(element => { element.open = true; });
   return { page, errors };
@@ -33,7 +35,7 @@ test('first view is concise; every supplied number survives in the exact-value d
   const { page, errors } = await open();
   try {
     assert.equal(await page.getByRole('heading', { name: 'Confirmed', exact: true }).count(), 1);
-    assert.match(await page.locator('.metric-value').innerText(), /\+0.6512.*°C \/ decade/);
+    assert.match(await page.locator('.metric-value').innerText(), /\+0.6512.*°C per decade/);
     assert.match(await page.locator('.witness').innerText(), /Sources agree/);
     assert.equal(await page.locator('.technical .numeric-table').isVisible(), false);
     await page.locator('.technical > summary').click();
@@ -59,7 +61,7 @@ test('all verdicts, reasons and witness states render from saved JSON without co
   const { page, errors } = await open();
   try {
     for (const fixture of fixtures) {
-      await page.getByLabel('Saved case').selectOption(fixture.id);
+      await page.locator(`[data-case="${fixture.id}"]`).click();
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
       assert.equal(await page.locator(`.witness-${fixture.result.witness?.agreement ?? 'no_station'}`).count(), 1);
       if (fixture.result.verdict === 'not_proven') assert.equal(await page.getByText('Not enough evidence does not mean no change.', { exact: true }).isVisible(), true);
@@ -68,7 +70,7 @@ test('all verdicts, reasons and witness states render from saved JSON without co
       await page.locator('.verdict').waitFor();
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
     }
-    await page.getByLabel('Saved case').selectOption('kyiv-summer-heat');
+    await page.locator('[data-case="kyiv-summer-heat"]').click();
     await page.locator('.technical > summary').click();
     assert.match(await page.locator('.technical').innerText(), /1.11E-6/);
     assert.deepEqual(errors, []);
@@ -167,7 +169,7 @@ test('desktop and mobile layouts have no page overflow and produce review screen
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: 'test-results/verdict-mobile.png', fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await page.getByLabel('Saved case').selectOption('kyiv-winter-snow');
+    await page.locator('[data-case="kyiv-winter-snow"]').click();
     await page.locator('.technical > summary').click();
     await page.screenshot({ path: 'test-results/verdict-not-proven-details.png', fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -235,7 +237,7 @@ test('detection shows total duration and additional wait from the same updated b
   const { page, errors } = await open();
   try {
     for (const fixture of fixtures) {
-      await page.getByLabel('Saved case').selectOption(fixture.id);
+      await page.locator(`[data-case="${fixture.id}"]`).click();
       await page.locator('.detection-simulator > summary').click();
       const detection = page.getByRole('region', { name: 'Detection duration' });
       const index = fixture.result.detection.multipliers.indexOf(1);
@@ -250,7 +252,7 @@ test('detection shows total duration and additional wait from the same updated b
 test('rate control uses exact nodes, log interpolation, and never changes the verdict or backend wait', async () => {
   const { page, errors } = await open();
   try {
-    await page.getByLabel('Saved case').selectOption('lviv-drier');
+    await page.locator('[data-case="lviv-drier"]').click();
     await page.locator('.detection-simulator > summary').click();
     const detection = page.getByRole('region', { name: 'Detection duration' });
     const originalVerdict = await page.locator('.verdict').innerText();
@@ -533,7 +535,7 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.locator('.globe-vignette')).toHaveCount(1);
     await expect(page.locator('.globe-proj')).toHaveText('3D globe');
     for (const name of ['NASA POWER', 'NOAA NCEI', 'Climate at a Glance', 'NEX-GDDP-CMIP6', 'GIBS', 'MapLibre GL JS']) await expect(page.locator('.credits').getByRole('link', { name, exact: true })).toHaveCount(1);
-    await page.getByLabel('Saved case').selectOption('lviv-drier');
+    await page.locator('[data-case="lviv-drier"]').click();
     await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing?`);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

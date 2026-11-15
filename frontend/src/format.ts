@@ -8,6 +8,17 @@ export function number(value: number | null | undefined, signed = false) {
   }).format(value);
   return signed && value > 0 ? `+${formatted}` : formatted;
 }
+export const seasons = [['year', 'Whole year'], ['DJF', 'Winter · Dec–Feb'], ['MAM', 'Spring · Mar–May'], ['JJA', 'Summer · Jun–Aug'], ['SON', 'Autumn · Sep–Nov'], ...Array.from({ length: 12 }, (_, i) => [String(i + 1), new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1))])];
+export const seasonName = (season: CheckResult['case']['season']) => seasons.find(([value]) => value === String(season))?.[1].split(' · ')[0] ?? String(season);
+export const coords = (lat: number, lon: number) => `${Math.abs(lat)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon)}° ${lon >= 0 ? 'E' : 'W'}`;
+
+// p in words, using only "less than" steps; the exact p stays in its own tile.
+export function chanceInWords(p: number, alpha: number) {
+  if (p >= alpha) return 'A pattern like this can come from natural ups and downs alone, so on its own it does not show a real trend.';
+  const step = p < 0.001 ? '1 in 1,000' : p < 0.01 ? '1 in 100' : p < 0.05 ? '1 in 20' : undefined;
+  return step ? `If nothing were really changing, a pattern this steady would turn up by chance less than ${step} times.`
+    : `If nothing were really changing, a pattern this steady would turn up by chance less often than the ${alpha} threshold allows.`;
+}
 export const period = (r: CheckResult) => `${r.case.start_year}–${r.case.end_year} · ${r.case.season}`;
 export function safeUrl(value: string) {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : undefined; }

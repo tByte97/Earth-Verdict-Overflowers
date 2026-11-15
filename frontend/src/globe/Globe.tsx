@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CheckResult, Place } from '../types';
 import { roundCoord, type PickedPoint } from './place';
+import { GLOBE_VIEW, flyToView, reducedMotion, type Destination } from './camera';
 import './globe.css';
 
 export type Station = NonNullable<CheckResult['witness']>['station'];
@@ -43,27 +44,7 @@ const style: maplibregl.StyleSpecification = {
   ],
 };
 
-const ORBIT_ZOOM = 2, LOCAL_ZOOM = 4.75;
-const easeIn = (t: number) => t ** 3;
-const easeOut = (t: number) => 1 - (1 - t) ** 3;
-const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (2 - 2 * t) ** 3 / 2);
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// Camera path to a new case: rise to orbit, turn the planet under it, then descend to the local view.
-// `stillWanted` turns false when a newer flight, a view button or the user takes over the camera.
-async function flyToCase(map: maplibregl.Map, center: [number, number], stillWanted: () => boolean) {
-  if (reducedMotion()) { map.jumpTo({ center, zoom: LOCAL_ZOOM }); return; }
-  // Listen after starting: easeTo stops the previous animation, whose moveend fires synchronously.
-  const leg = (options: maplibregl.EaseToOptions) => new Promise<void>(resolve => {
-    map.easeTo({ ...options, essential: true });
-    map.once('moveend', () => resolve());
-  });
-  if (map.getZoom() > ORBIT_ZOOM + 0.4) await leg({ zoom: ORBIT_ZOOM, pitch: 0, bearing: 0, duration: 1100, easing: easeIn });
-  if (!stillWanted()) return;
-  await leg({ center, zoom: ORBIT_ZOOM, duration: 1000, easing: easeInOut });
-  if (!stillWanted()) return;
-  await leg({ center, zoom: LOCAL_ZOOM, duration: 1600, easing: easeOut });
-}
+const LOCAL_ZOOM = 4.75;
 
 // Seeded procedural stars behind the globe: same sky on every load, no image file to fetch.
 function starField(seed: number) {
@@ -100,27 +81,23 @@ function markerElement(kind: 'place' | 'station', lines: string[]) {
   return element;
 }
 
-export function Globe({ place, station, onPick }: { place: Place | null; station: Station | null; onPick?: (point: PickedPoint) => void }) {
+export function Globe({ place, station, destination, onPick }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [flying, setFlying] = useState(false);
   const [proj, setProj] = useState(projection(1.4));
-  const activePlace = useRef(place);
-  activePlace.current = place;
   const pick = useRef(onPick);
   pick.current = onPick;
   const flight = useRef(0);
-  // The place shown on first load is centred by the load handler, not flown to.
-  const shownPlace = useRef(place?.place_id);
   // A view button or the user's own gesture takes the camera over from a running flight.
   const takeOver = () => { flight.current++; setFlying(false); };
 
   useEffect(() => {
     let instance: maplibregl.Map;
     try {
-      instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
+      instance = new maplibregl.Map({ container: container.current!, style, ...GLOBE_VIEW, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
         // On touch screens one finger scrolls the page; two fingers move the globe.
         cooperativeGestures: window.matchMedia('(pointer: coarse)').matches });
     } catch {
@@ -135,7 +112,6 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
       const attribution = container.current?.querySelector('.maplibregl-compact');
       attribution?.classList.remove('maplibregl-compact-show');
       attribution?.removeAttribute('open');
-      if (activePlace.current) instance.setCenter([activePlace.current.lon, activePlace.current.lat]);
     });
     instance.once('idle', () => setReady(true));
     instance.on('movestart', event => { if (event.originalEvent) takeOver(); });
@@ -155,15 +131,16 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     const lines = place.place_id.startsWith('pt:') ? [place.name] : [place.name, coords(place.lat, place.lon)];
     const marker = new maplibregl.Marker({ element: markerElement('place', lines) })
       .setLngLat([place.lon, place.lat]).addTo(map.current);
-    // A picked point keeps the camera where the user clicked; a new case flies there.
-    if (place.place_id !== shownPlace.current && !place.place_id.startsWith('pt:')) {
-      const id = ++flight.current;
-      setFlying(!reducedMotion());
-      void flyToCase(map.current, [place.lon, place.lat], () => flight.current === id).finally(() => { if (flight.current === id) setFlying(false); });
-    }
-    shownPlace.current = place.place_id;
     return () => { marker.remove(); };
   }, [place]);
+
+  // The app asks for a flight with a new destination; a picked point sends none and keeps the camera.
+  useEffect(() => {
+    if (!destination || !map.current) return;
+    const id = ++flight.current;
+    setFlying(!reducedMotion());
+    void flyToView(map.current, destination.view, () => flight.current === id).finally(() => { if (flight.current === id) setFlying(false); });
+  }, [destination]);
 
   useEffect(() => {
     if (!station || !map.current) return;
@@ -176,10 +153,11 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     {unavailable && <div className="map-loading" role="status">The interactive globe is unavailable in this browser. You can still choose a place and inspect every result in the panel.</div>}
     <div ref={container} className="globe-map" />
     <div className="globe-vignette" aria-hidden="true" />
+    <div className="flight-title" aria-hidden="true"><small>Case</small><span>{destination?.title}</span></div>
     {!unavailable && <div className="globe-controls">
       <span className="globe-proj" data-mode={proj.mode} aria-live="polite">{proj.label}</span>
       <div className="globe-view-controls" role="group" aria-label="Map view">
-        <button type="button" onClick={() => { takeOver(); map.current?.flyTo({ zoom: 1.4, duration: 600 }); }}>Globe view</button>
+        <button type="button" onClick={() => { takeOver(); map.current?.flyTo({ zoom: GLOBE_VIEW.zoom, duration: 600 }); }}>Globe view</button>
         {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
         <button type="button" disabled={!place} onClick={() => { takeOver(); if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
       </div>

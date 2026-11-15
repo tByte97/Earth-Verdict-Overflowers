@@ -25,13 +25,16 @@ Open the Local URL printed by Vite, normally http://127.0.0.1:5173.
 | `data/cases/kyiv-summer-heat.json` | Summers in Kyiv are getting hotter | confirmed |
 | `data/cases/lviv-drier.json` | Lviv is getting drier | not_proven |
 | `data/cases/kyiv-winter-snow.json` | Kyiv winters have more snow | not_proven |
+| `data/cases/kyiv-colder.json` | Kyiv is actually getting colder | refuted |
+| `data/cases/kyiv-summer-rain.json` | Kyiv summers are getting rainier | refuted |
+| `data/cases/global-warming-stopped.json` | Global warming stopped after 1998 | refuted |
 
 The observations are real according to the team's data README. The statistics are
 provisional (`meta.stub: true`), and future curves are stylised when `scenarios.synthetic`
 is true. These distinctions are visible in the UI; the application does not call all
 shared data synthetic or present provisional statistics as final findings.
 
-The case selector fills the editable parameters. **Check claim** retrieves the exact matching
+The case grid opens a saved response; **Check your own claim** holds the editable parameters. **Check claim** retrieves the exact matching
 saved response without chat. Unsupported combinations produce a clear message; no new
 statistical calculation or verdict is made in the browser. Old results disappear when
 parameters change. The previous synthetic fixtures are now test-only and excluded from
@@ -187,10 +190,31 @@ the page scrolls; there is no horizontal scroll at 390 px.
   stays mounted (only hidden), so returning to Climate claims does not reload the map. They
   keep the previous light styling through `.legacy-light` until they get the dark theme.
 
+## Cases and verdict (issue #41, PR 3)
+
+- **Open a case:** a two-column grid of case buttons. Live mode lists `GET /api/cases` and loads every
+  `GET /api/cases/{id}` in parallel; each button shows its claim at once and gets its
+  "{variable} · {season}" line when its response arrives. A case that fails to load stays clickable
+  and is requested again on click. Saved mode lists the six snapshots above.
+- **First load:** the case named in the link, otherwise the first case, opens with its flight.
+- **Flights:** the camera code lives in `src/globe/camera.ts`. The contract has no case box, so a
+  `region:` place flies to the whole-planet view, and any other place gets a box around the place and
+  its ground station, at least `MIN_HALF_BOX` degrees around the place (a display constant, not data),
+  fitted with `boxCamera` (zoom ≤ 7, padding for the legend and the stage title). The claim is the
+  flight title. Reduced motion jumps without a flight or title.
+- **Verdict hero** (`src/VerdictHero.tsx`): where line, Sen slope per decade, verdict pill, the
+  "went from about … to …" sentence from `sen.band`, the p sentence in words ("less than 1 in 1,000"
+  steps only; a separate wording when `p ≥ detection_history.alpha`), the not-proven caveat with
+  `years_to_wait` when supplied, three facts (`mk.p`, `sen.ci_low … ci_high`,
+  `detection_history.emerged_year` or "—") and warnings from `reason` / `witness.agreement` only.
+- **Links:** `src/url.ts` reads and writes `#case={id}` and
+  `#v={variable}&s={season}&p={start}-{end}&pt={lon},{lat}`. Opening a case writes `#case=`;
+  editing the parameters removes it. The picked-spot format is not yet connected to globe clicks.
+
 ### Globe notes
 
 - Picking a point (map click or the keyboard-accessible "Use map centre" button) rounds coordinates to two decimals and builds the place in `src/globe/place.ts`: id `pt:{lat},{lon}` (for example `pt:50.45,30.52`) and name `50.45° N, 30.52° E`. The backend normalises the point to its POWER grid cell. Picking fills the form; the check runs only on **Check claim**.
-- Camera: choosing a saved case or a searched place flies there in about 3.7 s (rise to orbit, turn, descend to the local view at zoom 4.75). Dragging the map or a view button interrupts the flight. A picked point leaves the camera where it is. With reduced motion the map jumps without animation. The globe unrolls into a flat map between zoom 3.2 and 4.8.
+- Camera: choosing a saved case or a searched place flies there in about 3.7 s (rise to orbit, turn, settle on the case box). Dragging the map or a view button interrupts the flight. A picked point leaves the camera where it is. With reduced motion the map jumps without animation. The globe unrolls into a flat map between zoom 3.2 and 4.8.
 - Blue Marble tiles are fetched from NASA GIBS at runtime. If they are unreachable the globe falls back to a plain background and markers still work. For a fully offline demo, self-host the tiles and change `BLUE_MARBLE` in `src/globe/Globe.tsx`.
 
 
