@@ -534,7 +534,12 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.locator('.stage-title .src')).toHaveText(r.case.place.name);
     await expect(page.locator('.globe')).toHaveAttribute('style', /background-image: url\("data:image\/png/);
     await expect(page.locator('.globe-vignette')).toHaveCount(1);
+    // The badge follows the camera zoom, and the first case's flight may already have zoomed in, so
+    // take the camera to the globe view before checking it.
+    await page.locator('.globe[data-state="ready"]').waitFor();
+    await page.getByRole('button', { name: 'Globe view' }).click();
     await expect(page.locator('.globe-proj')).toHaveText('3D globe');
+    await expect(page.locator('.globe-proj')).toHaveAttribute('data-mode', 'globe');
     for (const name of ['NASA POWER', 'NOAA NCEI', 'Climate at a Glance', 'NEX-GDDP-CMIP6', 'GIBS', 'MapLibre GL JS']) await expect(page.locator('.credits').getByRole('link', { name, exact: true })).toHaveCount(1);
     await page.locator('[data-case="lviv-drier"]').click();
     await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing?`);

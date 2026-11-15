@@ -302,3 +302,36 @@ scenarios prototype. Right of a "now" divider at `case.end_year`:
 - `scenarios: null` hides the future zone and the controls and shows one line explaining why.
 
 All scenario values also stay in **Future illustrations** with their exact precision.
+
+## Globe performance (issue #41, section 2)
+
+Target: first frame under 1 s offline, 55+ FPS while rotating. Measured on 2026-11-15 with the local Earth texture.
+
+| Scenario | First frame, 5 runs (ms) | Median | Local Earth on screen, 5 runs (ms) | Median | FPS while rotating, median of 5 |
+|---|---|---|---|---|---|
+| Browser already running, page opened with an empty cache | 1633, 753, 750, 733, 750 | 750 ms | 2289, 1048, 1064, 1073, 1056 | 1064 ms | 59.7 |
+| A new browser process for every run (cold start) | 1513, 1644, 1616, 1625, 1639 | 1625 ms | 2053, 2203, 2169, 2188, 2205 | 2188 ms | 59.4 |
+
+- With the browser already open, the first frame meets the 1 s target; the local Earth follows about 0.3 s later.
+- The cold start misses the target. The extra time comes with starting a new browser process (including its GPU
+  process), not with the page: the same build in an already running browser is about twice as fast.
+- The first run in an already running browser is slow too (1633 ms): it is the first page that browser opened.
+- About 60 FPS is the 60 Hz display limit.
+
+How it was measured:
+
+- Production build (`pnpm build`, served by `vite preview`), viewport 1440 × 900.
+- Offline: every request outside the local server was aborted (imagery tiles and web fonts).
+- Chromium headless with the hardware GPU (ANGLE / Direct3D 11, AMD Radeon RX 580); no other test run in parallel.
+- First frame: time from navigation start to the first WebGL draw call on the page.
+- Local Earth on screen: time from navigation start to the upload of the 1024 × 1024 Earth texture to the GPU
+  (imagery tiles are 256 × 256).
+- FPS: the globe was dragged sideways with the mouse for 3 s; FPS = animation frames that drew ÷ elapsed time.
+  The pointer sent about 50–60 move events per second.
+
+### Local Earth texture
+
+`public/blue-marble-1024x512.jpg` (1024 × 512 JPEG, 87 KB) is a low-resolution Blue Marble, so the Earth shows
+offline and before the imagery tiles arrive. Source: NASA GIBS WMS GetMap, layer
+`BlueMarble_ShadedRelief_Bathymetry`, EPSG:4326 (equirectangular), whole globe. At start-up it is re-laid in
+Web Mercator rows (`mercatorWorld` in `src/globe/paint.ts`) so it lines up with the tiles drawn on top.

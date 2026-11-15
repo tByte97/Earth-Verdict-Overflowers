@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CheckResult, Place } from '../types';
 import { roundCoord, type PickedPoint } from './place';
 import { GLOBE_VIEW, flyToView, reducedMotion, type Destination } from './camera';
-import { paintGrid, cellAt } from './paint';
+import { paintGrid, cellAt, mercatorWorld, MERCATOR_LAT } from './paint';
 import { CellTip, type TrendView } from './TrendMap';
 import type { TrendCell } from './trends';
 import './globe.css';
@@ -16,6 +16,9 @@ const pickPoint = (lat: number, lon: number): PickedPoint => ({ lat: roundCoord(
 const BLUE_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
 // City lights seen from orbit; a fixed composite date keeps the layer stable.
 const BLACK_MARBLE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png';
+// Low-resolution Blue Marble shipped with the app (NASA GIBS WMS, EPSG:4326): the Earth shows in the first
+// frame and offline; GIBS tiles draw on top as they arrive.
+const LOCAL_EARTH = `${import.meta.env.BASE_URL}blue-marble-1024x512.jpg`;
 // Coastlines only: the GIBS borders layer cuts Crimea off from Ukraine, and its labels use outdated names.
 const COASTLINES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Coastlines/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png';
 
@@ -40,6 +43,7 @@ const style: maplibregl.StyleSpecification = {
     },
     blackmarble: { type: 'raster', tiles: [BLACK_MARBLE], tileSize: 256, maxzoom: 8 },
     coastlines: { type: 'raster', tiles: [COASTLINES], tileSize: 256, maxzoom: 9 },
+    earth: { type: 'image', url: BLANK, coordinates: [[-180, MERCATOR_LAT], [180, MERCATOR_LAT], [180, -MERCATOR_LAT], [-180, -MERCATOR_LAT]] },
     // The trend layer is one painted image; dots mark the cells that stay significant after FDR.
     trend: { type: 'image', url: BLANK, coordinates: [[0, 1], [1, 1], [1, 0], [0, 0]] },
     sig: { type: 'geojson', data: EMPTY },
@@ -49,6 +53,7 @@ const style: maplibregl.StyleSpecification = {
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#1c3a4a' } },
     // Muted daytime imagery keeps markers and future data layers in front.
+    { id: 'earth', type: 'raster', source: 'earth', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.7, 'raster-fade-duration': 0 } },
     { id: 'bluemarble', type: 'raster', source: 'bluemarble', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.7 } },
     // Night lights only from far away; they fade out before the map flattens.
     { id: 'blackmarble', type: 'raster', source: 'blackmarble', paint: { 'raster-opacity': byZoom(2.4, 0.8, 3.8, 0) } },
@@ -144,6 +149,9 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
 
   useEffect(() => {
     let instance: maplibregl.Map;
+    // Start fetching the local Earth before the map exists; it is laid on once the style is ready.
+    const earth = new Image();
+    earth.src = LOCAL_EARTH;
     try {
       instance = new maplibregl.Map({ container: container.current!, style, ...GLOBE_VIEW, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
         // On touch screens one finger scrolls the page; two fingers move the globe.
@@ -159,6 +167,8 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     instance.once('style.load', () => {
       instance.resize();
       setStyleReady(true);
+      // The map may be gone by the time the image arrives; a failed load leaves the plain background.
+      earth.decode().then(() => { if (map.current === instance) (instance.getSource('earth') as maplibregl.ImageSource).updateImage({ url: mercatorWorld(earth) }); }, () => {});
     });
     // MapLibre expands compact attribution when its text first arrives with the source data;
     // collapse it at that moment so it stays one icon on phones and never covers the stage title.

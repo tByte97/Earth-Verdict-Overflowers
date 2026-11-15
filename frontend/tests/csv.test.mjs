@@ -1,0 +1,122 @@
+import { expect, test } from '@playwright/test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const load = async id => JSON.parse(await readFile(new URL(`../../data/cases/${id}.json`, import.meta.url), 'utf8'));
+const heat = await load('kyiv-summer-heat');
+const dry = await load('lviv-drier');
+const u = heat.variable.units;
+// Expected file name, from the case's own fields.
+const heatName = `earth-verdict-${heat.case.place.place_id}-${heat.variable.id}-${heat.case.season}-${heat.case.start_year}-${heat.case.end_year}.csv`.replace(/[^\w.-]+/g, '-');
+
+test.beforeEach(async ({ page }) => {
+  await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
+  await page.goto('/');
+});
+
+// Builds the CSV with the app's own module, served by the dev server.
+const csvOf = (page, result) => page.evaluate(async r => {
+  const m = await import('/src/csv.ts');
+  return { text: m.caseCsv(r), name: m.caseCsvName(r) };
+}, result);
+
+// Minimal RFC 4180 reader for the assertions.
+function parse(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r' && text[i + 1] === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; }
+    else field += c;
+  }
+  return rows;
+}
+const show = value => value === null || value === undefined ? '' : String(value);
+
+function split(text) {
+  const rows = parse(text);
+  const gap = rows.findIndex(r => r.length === 1 && r[0] === '');
+  return { fields: Object.fromEntries(rows.slice(1, gap).map(([k, v, u]) => [k, [v, u]])), table: rows.slice(gap + 1) };
+}
+
+test('CSV header rows copy slope, interval, p, correction and sources from the result', async ({ page }) => {
+  const { text, name } = await csvOf(page, heat);
+  assert.equal(name, heatName);
+  const { fields } = split(text);
+  assert.deepEqual(fields['sen.slope_per_decade'], [String(heat.sen.slope_per_decade), `${u} / decade`]);
+  assert.deepEqual(fields['sen.ci_low'], [String(heat.sen.ci_low), `${u} / decade`]);
+  assert.deepEqual(fields['sen.ci_high'], [String(heat.sen.ci_high), `${u} / decade`]);
+  assert.deepEqual(fields['mk.p'], [String(heat.mk.p), 'dimensionless']);
+  assert.equal(fields['mk.correction'][0], heat.mk.correction);
+  assert.equal(fields['verdict'][0], heat.verdict);
+  assert.equal(fields['baseline.mean'][0], String(heat.baseline.mean));
+  assert.equal(fields['witness.station.name'][0], heat.witness.station.name);
+  heat.provenance.forEach((source, i) => {
+    assert.equal(fields[`provenance.${i}.source`][0], source.source);
+    assert.equal(fields[`provenance.${i}.url`][0], source.url);
+  });
+});
+
+test('CSV table: series, trend line from sen.band and station, with gaps as empty cells', async ({ page }) => {
+  const { text } = await csvOf(page, heat);
+  const { table } = split(text);
+  assert.deepEqual(table[0], ['year', ...['series.value', 'sen.band.mid', 'sen.band.low', 'sen.band.high', 'witness.series.value'].map(c => `${c} (${u})`)]);
+  const band = new Map(heat.sen.band.map(p => [p.year, p]));
+  const station = new Map(heat.witness.series.map(p => [p.year, p.value]));
+  assert.deepEqual(table.slice(1), heat.series.map(p => {
+    const b = band.get(p.year);
+    return [String(p.year), show(p.value), show(b?.mid), show(b?.low), show(b?.high), show(station.get(p.year))];
+  }));
+  // Station gaps are empty, never zero.
+  const gap = heat.witness.series.find(p => p.value === null && heat.series.some(s => s.year === p.year));
+  assert.ok(gap, 'the fixture has a station gap inside the record');
+  assert.equal(table.find(r => r[0] === String(gap.year))[5], '');
+});
+
+test('no station: empty station cells and fields, not zero', async ({ page }) => {
+  const { text } = await csvOf(page, dry);
+  const { fields, table } = split(text);
+  assert.equal(fields['witness.station.name'][0], '');
+  assert.equal(fields['witness.station.distance_km'][0], '');
+  assert.ok(table.slice(1).every(r => r[5] === ''));
+});
+
+test('text with commas, quotes and formula characters is quoted and defused', async ({ page }) => {
+  // Test-only variant; never shared case data.
+  const r = structuredClone(heat);
+  r.case.claim_text = '=HYPERLINK("x"), "hotter", yes';
+  const { text } = await csvOf(page, r);
+  const { fields } = split(text);
+  assert.equal(fields['case.claim_text'][0], `'=HYPERLINK("x"), "hotter", yes`);
+});
+
+test('the Download CSV button saves the case file built from the shown result', async ({ page }) => {
+  await page.goto('/?source=saved#case=kyiv-summer-heat');
+  const file = page.getByTestId('case-file');
+  await expect(file).toBeVisible();
+  const [download] = await Promise.all([page.waitForEvent('download'), file.getByRole('button', { name: 'Download CSV' }).click()]);
+  assert.equal(download.suggestedFilename(), heatName);
+  const saved = await readFile(await download.path(), 'utf8');
+  assert.equal(saved, (await csvOf(page, heat)).text);
+});
+
+test('"Copy link to this case" copies a link that reopens the same case', async ({ page, context, baseURL }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseURL });
+  await page.goto('/?source=saved');
+  await page.locator('[data-case="lviv-drier"]').click();
+  await page.getByRole('button', { name: 'Copy link to this case' }).click();
+  await expect(page.getByTestId('case-file').getByRole('status')).toHaveText('Link copied.');
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(link, /#case=lviv-drier$/);
+  const other = await context.newPage();
+  await other.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
+  await other.goto(link);
+  await expect(other.locator('[data-case="lviv-drier"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(other.locator('.claim')).toHaveText(dry.case.claim_text);
+});

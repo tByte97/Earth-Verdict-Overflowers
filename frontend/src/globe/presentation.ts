@@ -1,24 +1,24 @@
-import { ramp, type Ramp } from './paint';
+import { coloursOf, type Ramp } from '../colour';
 import type { TrendCell } from './trends';
 
 // How a trend layer reads on screen, by variable_id. Only words and colours live here; every number
 // (period, units, slopes, p) comes from the layer itself.
 export interface Presentation { palette: Ramp; up: string; down: string; upVerb: string; downVerb: string; driver?: string }
 
+// The ramp and the end words come from the shared colour scale, so the map and the chart agree.
+const fromColours = (variableId: string) => { const { ramp, up, down } = coloursOf(variableId); return { palette: ramp, up, down }; };
 const presentations: Record<string, Presentation> = {
   air_temp: {
-    palette: ramp(['#72a9ee', '#36629e', '#3b3a37', '#b1483d', '#f28466']),
-    up: 'warmer', down: 'cooler', upVerb: 'gets warmer', downVerb: 'gets cooler',
+    ...fromColours('air_temp'), upVerb: 'gets warmer', downVerb: 'gets cooler',
     driver: 'Opposite temperature trends are rare at this scale. Look for local causes: irrigation cools summers, losing snow cover warms springs.',
   },
   precip: {
-    palette: ramp(['#c9914f', '#7d5b31', '#3b3a37', '#2c7b73', '#63c7b8']),
-    up: 'wetter', down: 'drier', upVerb: 'gets wetter', downVerb: 'gets drier',
+    ...fromColours('precip'), upVerb: 'gets wetter', downVerb: 'gets drier',
     driver: 'One shift can do both: when Atlantic storms change their usual track, the regions they now reach get more rain and the ones they skip get less.',
   },
 };
 // A layer the frontend has no words for still renders, with a neutral ramp and no driver sentence.
-const neutral: Presentation = { palette: ramp(['#7c8aa0', '#4a5262', '#3b3a37', '#6a6250', '#b3a789']), up: 'higher', down: 'lower', upVerb: 'goes up', downVerb: 'goes down' };
+const neutral: Presentation = { ...fromColours(''), upVerb: 'goes up', downVerb: 'goes down' };
 export const presentationOf = (variableId: string) => presentations[variableId] ?? neutral;
 
 const seasonNames: Record<string, string> = { year: 'Year', DJF: 'Winter', MAM: 'Spring', JJA: 'Summer', SON: 'Autumn' };

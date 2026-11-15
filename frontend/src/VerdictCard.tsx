@@ -7,6 +7,7 @@ import { waitingExplanation } from './detection';
 import { StepPipeline } from './steps/StepPipeline';
 import { VerdictHero } from './VerdictHero';
 import { RecordChart } from './chart/RecordChart';
+import { HowItDecides } from './method/HowItDecides';
 
 const agreements = {
   agree: ['Sources agree', 'The ground station supports the result.'],
@@ -53,6 +54,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     {r.meta?.stub && <p className="data-note"><strong>Provisional statistics.</strong> Supplied by the team’s backend snapshot; results may change when the final statistics engine is ready.</p>}
     <RecordChart result={r} />
     <StepPipeline result={r} onSource={openSources} />
+    <HowItDecides />
     <details className="technical">
       <summary>How we checked this <span>Methods, uncertainty & full precision</span></summary>
       <div className="detail-body">

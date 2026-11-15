@@ -1,4 +1,5 @@
-import { colourLimit, gradient, gridOf, type Grid } from './paint';
+import { colourLimit, gridOf, type Grid } from './paint';
+import { gradient } from '../colour';
 import { bySeason, commonDirection, coords, formatLimit, formatP, presentationOf, seasonName, signed, type Presentation } from './presentation';
 import type { LayerEntry, PairEnd, TrendCell, TrendLayer } from './trends';
 import './trend-map.css';
