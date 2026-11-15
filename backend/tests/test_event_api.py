@@ -442,6 +442,8 @@ def test_event_profile_matches_single_event_verdicts(fake_event_sources, monkeyp
 
 
 def test_event_sites_and_compound_bounds():
+    from app.stats.event import MIN_PLACEBOS, placebo_event_indices
+
     sites = client.get("/api/event-sites").json()
     ids = {s["id"] for s in sites}
     assert {"mundra-so2", "navajo-no2", "burshtyn-aod"} <= ids
@@ -449,7 +451,14 @@ def test_event_sites_and_compound_bounds():
     comps = {c["id"]: c for c in client.get("/api/compounds").json()}
     b = {e["window_years"]: (e["earliest"], e["latest"]) for e in comps["no2"]["event_bounds"]}
     assert b[1] == ("2006-01", "2025-01") and b[3] == ("2008-01", "2023-01") and len(b) == 5
-    assert comps["co2"]["event_bounds"] == []
+    assert comps["no2"]["valid_windows"] == [1, 2, 3]
+    assert comps["so2"]["valid_windows"] == [1, 2, 3]
+    assert comps["aod"]["valid_windows"] == [1, 2, 3, 4]
+    assert comps["co2"]["event_bounds"] == [] and comps["co2"]["valid_windows"] == []
+    # Check an edge month for an excluded window fails MIN_PLACEBOS while valid windows pass.
+    n_no2_months = (2025 - 2005 + 1) * 12
+    assert len(placebo_event_indices(n_no2_months, (2014 - 2005) * 12 + 1, 4)) < MIN_PLACEBOS
     for s in sites:
+        assert s["window_years"] in comps[s["compound_id"]]["valid_windows"]
         lo, hi = {e["window_years"]: (e["earliest"], e["latest"]) for e in comps[s["compound_id"]]["event_bounds"]}[s["window_years"]]
         assert lo <= s["event_month"] <= hi

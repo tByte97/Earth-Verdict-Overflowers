@@ -65,10 +65,6 @@ test('all verdicts, reasons and witness states render from saved JSON without co
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
       assert.equal(await page.locator(`.witness-${fixture.result.witness?.agreement ?? 'no_station'}`).count(), 1);
       if (fixture.result.verdict === 'not_proven') assert.equal(await page.getByText('Not enough evidence does not mean no change.', { exact: true }).isVisible(), true);
-      await page.locator('.case-parameters').evaluate(element => { element.open = true; });
-    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
-      await page.locator('.verdict').waitFor();
-      assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
     }
     await page.locator('[data-case="kyiv-summer-heat"]').click();
     await page.locator('.technical > summary').click();
@@ -77,20 +73,21 @@ test('all verdicts, reasons and witness states render from saved JSON without co
   } finally { await page.close(); }
 });
 
-test('edited parameters clear stale results and unsupported demo requests fail honestly', async () => {
+test('saved mode disables custom editing; live mode clears stale results and rejects reversed years', async () => {
   const { page } = await open();
   try {
+    await expect(page.getByLabel('Claim', { exact: true })).toBeDisabled();
+    await expect(page.getByLabel('From', { exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Check claim', exact: true })).toBeDisabled();
+    await expect(page.locator('.case-parameters')).toContainText('Custom checks need the live service.');
+    await page.route('**/api/variables', route => route.fulfill({ json: [fixtures[0].result.variable] }));
+    await page.goto(baseURL + '/?source=live');
+    await configureLive(page);
     await page.getByLabel('From', { exact: true }).fill('1990');
     assert.equal(await page.locator('.verdict').count(), 0);
-    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
-    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
-    assert.match(await page.getByRole('alert').innerText(), /No saved backend response matches/);
     await page.getByLabel('From', { exact: true }).fill('2026');
-    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     assert.match(await page.getByRole('alert').innerText(), /start must not be after/);
-    await page.getByLabel('Place', { exact: true }).fill('Ky');
-    await page.getByRole('button', { name: fixtures[0].result.case.place.name, exact: true }).click();
     await page.getByRole('button', { name: 'How to use' }).click();
     assert.equal(await page.getByRole('heading', { name: 'Your first check' }).isVisible(), true);
   } finally { await page.close(); }
@@ -112,8 +109,8 @@ test('live mode posts edited CaseSpec, renders backend verdict and reports serve
     });
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
-    await page.getByLabel('Claim direction').selectOption('decrease');
     await page.getByLabel('Claim', { exact: true }).fill('Summers are cooler');
+    await page.getByLabel('Claim direction').selectOption('decrease');
     await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.getByRole('heading', { name: 'Refuted', exact: true }).waitFor();
@@ -478,7 +475,7 @@ test('rendering failures recover through the error boundary instead of a blank p
   const { page } = await open('/tests/error-boundary.html');
   try {
     await expect(page.getByRole('alert')).toContainText('We could not display this result.');
-    await expect(page.getByRole('link', { name: 'Open saved cases' })).toHaveAttribute('href', '/');
+    await expect(page.getByRole('link', { name: 'Open saved cases' })).toHaveAttribute('href', '?source=saved');
   } finally { await page.close(); }
 });
 
@@ -530,7 +527,7 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.locator('.mark [role=tab]')).toHaveText(['Climate claims', 'Pollution events', 'CO₂ calculator']);
     // The case has a trend layer, so the title describes that layer; the layer names no data source.
     await expect(page.locator('.stage-title .eyebrow')).toHaveText(`Summer · ${r.case.start_year}–${r.case.end_year}`);
-    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${r.variable.label.toLowerCase()} changing?`);
+    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${r.variable.label.toLowerCase()} changing over Ukraine?`);
     await expect(page.locator('.stage-title .src')).toHaveText(r.case.place.name);
     await expect(page.locator('.globe')).toHaveAttribute('style', /background-image: url\("data:image\/png/);
     await expect(page.locator('.globe-vignette')).toHaveCount(1);
@@ -542,7 +539,7 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.locator('.globe-proj')).toHaveAttribute('data-mode', 'globe');
     for (const name of ['NASA POWER', 'NOAA NCEI', 'Climate at a Glance', 'NEX-GDDP-CMIP6', 'GIBS', 'MapLibre GL JS']) await expect(page.locator('.credits').getByRole('link', { name, exact: true })).toHaveCount(1);
     await page.locator('[data-case="lviv-drier"]').click();
-    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing?`);
+    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing over Ukraine?`);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

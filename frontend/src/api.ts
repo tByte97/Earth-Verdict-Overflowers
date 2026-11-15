@@ -47,13 +47,34 @@ export async function getVariables(signal?: AbortSignal): Promise<Variable[]> {
   }
   return [...new Map(demoCases.map(item => [item.result.variable.id, item.result.variable])).values()];
 }
-export async function findPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
+export const FALLBACK_REGIONS: Place[] = [
+  { place_id: 'region:globe', name: 'The whole planet', lat: 0, lon: 0 },
+  { place_id: 'region:europe', name: 'Europe', lat: 50, lon: 15 },
+  { place_id: 'region:asia', name: 'Asia', lat: 45, lon: 90 },
+  { place_id: 'region:africa', name: 'Africa', lat: 5, lon: 20 },
+  { place_id: 'region:northamerica', name: 'North America', lat: 45, lon: -100 },
+  { place_id: 'region:southamerica', name: 'South America', lat: -15, lon: -60 },
+  { place_id: 'region:oceania', name: 'Oceania', lat: -25, lon: 135 },
+  { place_id: 'region:arctic', name: 'The Arctic', lat: 80, lon: 0 },
+];
+
+export async function getRegions(signal?: AbortSignal): Promise<Place[]> {
+  if (!isLive) return FALLBACK_REGIONS;
+  const parsed = z.array(PlaceSchema).min(1).safeParse(await request('/regions', undefined, signal));
+  if (!parsed.success) throw new Error('Invalid region list returned by the backend.');
+  return parsed.data;
+}
+
+export async function findPlaces(query: string, signal?: AbortSignal, options?: { includeRegions?: boolean }): Promise<Place[]> {
+  const includeRegions = options?.includeRegions ?? false;
   if (isLive) {
-    const parsed = z.array(PlaceSchema).safeParse(await request(`/places?q=${encodeURIComponent(query)}`, undefined, signal));
+    const suffix = includeRegions ? '' : '&include_regions=false';
+    const parsed = z.array(PlaceSchema).safeParse(await request(`/places?q=${encodeURIComponent(query)}${suffix}`, undefined, signal));
     if (!parsed.success) throw new Error('Invalid place search response returned by the backend.');
     return parsed.data;
   }
-  const places = [...new Map(demoCases.map(item => [item.result.case.place.place_id, item.result.case.place])).values()];
+  const places = [...new Map(demoCases.map(item => [item.result.case.place.place_id, item.result.case.place])).values()]
+    .filter(place => includeRegions || !place.place_id.startsWith('region:'));
   return places.filter(place => matchesPlace(place, query));
 }
 export async function runCheck(spec: CaseSpec, _demoId: string, signal?: AbortSignal): Promise<CheckResult> {

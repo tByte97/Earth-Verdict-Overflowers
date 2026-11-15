@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { number, safeUrl } from '../format';
+import { number, provenanceLink } from '../format';
 import type { EventResult } from './schema';
 import { Explain } from './Explain';
 
@@ -50,7 +50,10 @@ export function EventCard({ result: r, saved }: { result: EventResult; saved: bo
           <div><dt>After window</dt><dd>{r.after.start} – {r.after.end} · {r.after.n} months with data · mean {number(r.after.mean)} {u}</dd></div>
           <div><dt>Block bootstrap 95% interval</dt><dd>{r.bootstrap_ci_low === null ? 'Not computed' : `${number(r.bootstrap_ci_low, true)} to ${number(r.bootstrap_ci_high, true)} ${u}`}</dd></div>
         </dl>
-        {r.provenance.map((s, i) => <section className="source-record" key={i}><h4>{s.what}</h4><p><strong>{s.source}</strong> · {s.product} · retrieved {s.retrieved_at}</p>{safeUrl(s.url) && <a href={safeUrl(s.url)} target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span></a>}</section>)}
+        {r.provenance.map((s, i) => {
+          const link = provenanceLink(s.url);
+          return <section className="source-record" key={i}><h4>{s.what}</h4><p><strong>{s.source}</strong> · {s.product} · retrieved {s.retrieved_at}</p>{link && <a href={link.href} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a>}</section>;
+        })}
       </div>
     </details>
     <Explain kind="event" result={r} />

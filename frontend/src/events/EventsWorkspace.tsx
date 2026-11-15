@@ -61,11 +61,22 @@ export function EventsWorkspace() {
   useEffect(() => {
     if (!isLive || query.trim().length < 2 || setup?.place.name === query) { setPlaces([]); return; }
     const c = new AbortController();
-    const t = window.setTimeout(() => findPlaces(query, c.signal).then(p => { if (!c.signal.aborted) setPlaces(p.filter(x => !x.place_id.startsWith('region:'))); }).catch(() => {}), 250);
+    const t = window.setTimeout(() => {
+      setError('');
+      findPlaces(query, c.signal)
+        .then(p => { if (!c.signal.aborted) setPlaces(p); })
+        .catch(e => {
+          if (!c.signal.aborted) {
+            setPlaces([]);
+            setError(`Place search failed: ${e instanceof Error ? e.message : 'request failed'}`);
+          }
+        });
+    }, 250);
     return () => { window.clearTimeout(t); c.abort(); };
   }, [query, setup?.place.name]);
 
   function choosePreset(site: EventSite) {
+    window.clearTimeout(timer.current);
     setSiteId(site.id); setError(''); setQuery(site.place.name);
     const next = { compound_id: site.compound_id, place: site.place, window_years: site.window_years, use_control: true, event_month: site.event_month, label: site.label };
     setSetup(next);
@@ -80,6 +91,10 @@ export function EventsWorkspace() {
     if (!setup) return;
     const merged = { ...setup, ...next };
     const comp = compounds.find(c => c.id === merged.compound_id);
+    const allowedWindows = comp?.valid_windows ?? comp?.event_bounds.map(b => b.window_years);
+    if (allowedWindows?.length && !allowedWindows.includes(merged.window_years)) {
+      merged.window_years = allowedWindows.at(-1)!;
+    }
     const b = comp?.event_bounds.find(x => x.window_years === merged.window_years);
     if (b) merged.event_month = merged.event_month < b.earliest ? b.earliest : merged.event_month > b.latest ? b.latest : merged.event_month;
     if (next.place || next.compound_id) { setSiteId(''); merged.label = `Event at ${merged.place.name}`; }
@@ -106,7 +121,8 @@ export function EventsWorkspace() {
   }, [profile]);
   const sliderMin = bounds ? ymIndex(bounds.earliest) : 0, sliderMax = bounds ? ymIndex(bounds.latest) : 0;
   const series = profile ?? result;
-  const stale = result && setup && (result.spec.event_month !== setup.event_month || result.spec.window_years !== setup.window_years || result.spec.compound_id !== setup.compound_id || result.spec.use_control !== setup.use_control || result.spec.place.lat !== setup.place.lat);
+  const validWindows = compound?.valid_windows ?? compound?.event_bounds.map(b => b.window_years) ?? [1, 2, 3, 4, 5];
+  const stale = result && setup && (result.spec.event_month !== setup.event_month || result.spec.window_years !== setup.window_years || result.spec.compound_id !== setup.compound_id || result.spec.use_control !== setup.use_control || result.spec.place.lat !== setup.place.lat || result.spec.place.lon !== setup.place.lon);
 
   return <div className="ev-workspace">
     <aside className="case-panel ev-controls" aria-labelledby="ev-heading">
@@ -125,7 +141,7 @@ export function EventsWorkspace() {
         </select></label>
         {compound && <p className="field-help">{compound.definition}</p>}
         <fieldset><legend>Compare … years before and after</legend><div className="ev-segment" role="radiogroup">
-          {[1, 2, 3, 4, 5].map(w => <button key={w} type="button" role="radio" aria-checked={setup.window_years === w} className={setup.window_years === w ? 'on' : ''} disabled={!isLive} onClick={() => update({ window_years: w }, { immediate: true })}>{w}</button>)}
+          {validWindows.map(w => <button key={w} type="button" role="radio" aria-checked={setup.window_years === w} className={setup.window_years === w ? 'on' : ''} disabled={!isLive} onClick={() => update({ window_years: w }, { immediate: true })}>{w}</button>)}
         </div></fieldset>
         <label className="ev-toggle"><input type="checkbox" checked={setup.use_control} disabled={!isLive} onChange={e => update({ use_control: e.target.checked }, { immediate: true })} /> Subtract the surrounding ring (recommended)</label>
         {!isLive && <p className="field-help">Saved mode shows the ready-made events. Connect the backend to move the date or choose your own place.</p>}

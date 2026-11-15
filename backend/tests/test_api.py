@@ -65,9 +65,12 @@ def test_health():
 def test_variables_whitelist():
     r = client.get("/api/variables")
     assert r.status_code == 200
-    ids = {v["id"] for v in r.json()}
-    assert {"air_temp", "precip", "snow_depth", "precip_gpm"} <= ids
-    assert all(v["units"] and v["definition"] for v in r.json())
+    by_id = {v["id"]: v for v in r.json()}
+    assert {"air_temp", "precip", "snow_depth", "precip_gpm"} <= set(by_id)
+    assert all(v["units"] and v["definition"] for v in by_id.values())
+    assert (by_id["air_temp"]["first_year"], by_id["air_temp"]["last_year"]) == (1981, 2025)
+    assert (by_id["precip_gpm"]["first_year"], by_id["precip_gpm"]["last_year"]) == (1998, 2024)
+    assert (by_id["global_temp"]["first_year"], by_id["global_temp"]["last_year"]) == (1850, 2025)
 
 
 def test_check_happy_path(fake_sources):
@@ -244,6 +247,12 @@ def test_places_offers_regions(monkeypatch):
     names = [p["place_id"] for p in client.get("/api/places", params={"q": "Euro"}).json()]
     assert names[0] == "region:europe"
     assert client.get("/api/places", params={"q": "world"}).json()[0]["place_id"] == "region:globe"
+    assert client.get("/api/places", params={"q": "global"}).json()[0]["place_id"] == "region:globe"
+    assert client.get("/api/places", params={"q": "Euro", "include_regions": "false"}).json() == []
+    regions = client.get("/api/regions").json()
+    assert [r["place_id"] for r in regions] == [f"region:{k}" for k in (
+        "globe", "europe", "asia", "africa", "northamerica", "southamerica", "oceania", "arctic"
+    )]
 
 
 def test_region_file_gives_scenarios_for_any_cell(fake_sources, monkeypatch, tmp_path):

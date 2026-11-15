@@ -257,9 +257,9 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     {!unavailable && <div className="globe-controls">
       <span className="globe-proj" data-mode={proj.mode} aria-live="polite">{proj.label}</span>
       <div className="globe-view-controls" role="group" aria-label="Map view">
-        <button type="button" onClick={() => { takeOver(); map.current?.flyTo({ zoom: GLOBE_VIEW.zoom, duration: 600 }); }}>Globe view</button>
+        <button type="button" onClick={() => { takeOver(); map.current?.flyTo({ center: GLOBE_VIEW.center, zoom: GLOBE_VIEW.zoom, duration: 600 }); }}>Globe view</button>
         {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
-        <button type="button" disabled={!place} onClick={() => { takeOver(); if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
+        <button type="button" disabled={!place} title={place ? undefined : 'Pick a city or a point to zoom in; regions have no local view'} aria-description={place ? undefined : 'Pick a city or a point to zoom in; regions have no local view'} onClick={() => { takeOver(); if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
       </div>
       {onPick && <p className="globe-hint">{ready ? 'Click the map to check a spot' : 'Loading imagery…'}</p>}
     </div>}

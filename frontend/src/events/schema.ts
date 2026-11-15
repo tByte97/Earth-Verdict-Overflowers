@@ -13,6 +13,7 @@ export const CompoundSchema = z.object({
   id: z.string(), label: z.string(), units: z.string(), definition: z.string(), caveat: z.string().nullable().optional(),
   product: z.string(), first_year: integer, last_year: integer, local_signal: z.boolean(), kind: z.enum(['satellite', 'reanalysis']),
   event_bounds: z.array(z.object({ window_years: integer, earliest: month, latest: month })),
+  valid_windows: z.array(integer).optional(),
 });
 
 export const EventSiteSchema = z.object({

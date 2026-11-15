@@ -1,6 +1,6 @@
 import { useId, useRef } from 'react';
 import type { CheckResult } from './types';
-import { fieldContext, number, numericFields, period, safeUrl, sourceIndex, sourceMethod, type MethodKind } from './format';
+import { fieldContext, number, numericFields, period, provenanceLink, sourceIndex, sourceMethod, type MethodKind } from './format';
 import { DetectionSimulator } from './DetectionSimulator';
 import { UncertaintyPanel } from './UncertaintyPanel';
 import { waitingExplanation } from './detection';
@@ -109,11 +109,14 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
         <section className="source-record" id={`${sourceId}-extrapolation`}><h4>Trend extrapolation</h4><p>Backend-generated what-if values derived from the observed trend and its uncertainty; not provider observations or a forecast.</p></section>
         <section className="source-record" id={`${sourceId}-scenario`}><h4>{methodLabels.scenario}</h4><p>{r.scenarios?.synthetic ? 'Stylised placeholder values, not measured data or CMIP6 output.' : r.scenarios?.source ?? 'No scenario data supplied.'}</p></section>
         {!r.provenance.length && <p>No provenance supplied by the backend. These values cannot yet be independently traced.</p>}
-        {r.provenance.map((source, i) => <section className="source-record" key={i} id={`${sourceId}-${i}`}>
-          <h4>{source.what}</h4><p><strong>{source.source}</strong> · {source.product}</p>
-          <dl className="statistics"><div><dt>Version</dt><dd>{source.version ?? 'Not supplied'}</dd></div><div><dt>Retrieved / fixture created</dt><dd>{source.retrieved_at}</dd></div><div><dt>License</dt><dd>{source.license}</dd></div></dl>
-          {safeUrl(source.url) ? <a href={safeUrl(source.url)} target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span></a> : <p>Source URL unavailable or unsafe.</p>}
-        </section>)}
+        {r.provenance.map((source, i) => {
+          const link = provenanceLink(source.url);
+          return <section className="source-record" key={i} id={`${sourceId}-${i}`}>
+            <h4>{source.what}</h4><p><strong>{source.source}</strong> · {source.product}</p>
+            <dl className="statistics"><div><dt>Version</dt><dd>{source.version ?? 'Not supplied'}</dd></div><div><dt>Retrieved / fixture created</dt><dd>{source.retrieved_at}</dd></div><div><dt>License</dt><dd>{source.license}</dd></div></dl>
+            {link ? <a href={link.href} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a> : <p>Source URL unavailable or unsafe.</p>}
+          </section>;
+        })}
         <p className="help-text">Observation rows link to unambiguous recognised provider URLs. Derived statistics, detection simulations, extrapolations and scenario values link to their own method records above. Unknown or ambiguous provider mappings are explicitly left unmapped; they are never guessed from descriptions.</p>
       </div>
     </details>
