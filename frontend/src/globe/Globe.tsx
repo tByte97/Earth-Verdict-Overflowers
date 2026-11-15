@@ -65,6 +65,25 @@ async function flyToCase(map: maplibregl.Map, center: [number, number], stillWan
   await leg({ center, zoom: LOCAL_ZOOM, duration: 1600, easing: easeOut });
 }
 
+// Seeded procedural stars behind the globe: same sky on every load, no image file to fetch.
+function starField(seed: number) {
+  const size = 1024, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d');
+  if (!g) return '';
+  let s = seed;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 420; i++) {
+    const m = rnd() ** 5, t = rnd();
+    g.fillStyle = `rgba(${t < 0.12 ? '205,218,255' : t > 0.92 ? '255,226,190' : '245,245,250'},${0.18 + m * 0.82})`;
+    g.beginPath(); g.arc(rnd() * size, rnd() * size, 0.5 + m * 1.4, 0, Math.PI * 2); g.fill();
+  }
+  return canvas.toDataURL('image/png');
+}
+let stars: string | undefined;
+
+const projection = (zoom: number) => zoom <= GLOBE_UNTIL ? { mode: 'globe', label: '3D globe' } : zoom >= FLAT_FROM ? { mode: 'flat', label: '2D map · Web Mercator' } : { mode: 'mid', label: 'globe → 2D' };
+
 const coords = (lat: number, lon: number) => `${Math.abs(lat)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon)}° ${lon >= 0 ? 'E' : 'W'}`;
 
 // Tooltip text is set via textContent: names come from data, never as HTML.
@@ -86,6 +105,8 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  const [flying, setFlying] = useState(false);
+  const [proj, setProj] = useState(projection(1.4));
   const activePlace = useRef(place);
   activePlace.current = place;
   const pick = useRef(onPick);
@@ -93,6 +114,8 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
   const flight = useRef(0);
   // The place shown on first load is centred by the load handler, not flown to.
   const shownPlace = useRef(place?.place_id);
+  // A view button or the user's own gesture takes the camera over from a running flight.
+  const takeOver = () => { flight.current++; setFlying(false); };
 
   useEffect(() => {
     let instance: maplibregl.Map;
@@ -115,7 +138,8 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
       if (activePlace.current) instance.setCenter([activePlace.current.lon, activePlace.current.lat]);
     });
     instance.once('idle', () => setReady(true));
-    instance.on('movestart', event => { if (event.originalEvent) flight.current++; });
+    instance.on('movestart', event => { if (event.originalEvent) takeOver(); });
+    instance.on('zoom', () => setProj(current => { const next = projection(instance.getZoom()); return next.mode === current.mode ? current : next; }));
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
     instance.on('click', event => {
       if (event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker')) return;
@@ -134,7 +158,8 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     // A picked point keeps the camera where the user clicked; a new case flies there.
     if (place.place_id !== shownPlace.current && !place.place_id.startsWith('pt:')) {
       const id = ++flight.current;
-      void flyToCase(map.current, [place.lon, place.lat], () => flight.current === id);
+      setFlying(!reducedMotion());
+      void flyToCase(map.current, [place.lon, place.lat], () => flight.current === id).finally(() => { if (flight.current === id) setFlying(false); });
     }
     shownPlace.current = place.place_id;
     return () => { marker.remove(); };
@@ -147,14 +172,18 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     return () => { marker.remove(); };
   }, [station]);
 
-  return <div className="globe" data-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'} aria-busy={!ready && !unavailable}>
+  return <div className="globe" style={{ backgroundImage: `url(${stars ??= starField(11)})` }} data-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'} data-flight={flying || undefined} aria-busy={!ready && !unavailable}>
     {unavailable && <div className="map-loading" role="status">The interactive globe is unavailable in this browser. You can still choose a place and inspect every result in the panel.</div>}
-    {!unavailable && <div className="globe-view-controls" aria-label="Map view">
-      <button type="button" onClick={() => { flight.current++; map.current?.flyTo({ zoom: 1.4, duration: 600 }); }}>Globe view</button>
-      {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
-      <button type="button" disabled={!place} onClick={() => { flight.current++; if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
-    </div>}
     <div ref={container} className="globe-map" />
-    {onPick && !unavailable && <p className="globe-hint">{ready ? 'Click the globe to pick coordinates' : 'Loading imagery…'}</p>}
+    <div className="globe-vignette" aria-hidden="true" />
+    {!unavailable && <div className="globe-controls">
+      <span className="globe-proj" data-mode={proj.mode} aria-live="polite">{proj.label}</span>
+      <div className="globe-view-controls" role="group" aria-label="Map view">
+        <button type="button" onClick={() => { takeOver(); map.current?.flyTo({ zoom: 1.4, duration: 600 }); }}>Globe view</button>
+        {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
+        <button type="button" disabled={!place} onClick={() => { takeOver(); if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
+      </div>
+      {onPick && <p className="globe-hint">{ready ? 'Click the globe to pick coordinates' : 'Loading imagery…'}</p>}
+    </div>}
   </div>;
 }
