@@ -44,6 +44,8 @@ Each point uses only the primary annual observations available through its end y
 
 Before 15 valid observations, `p` and `correction` are null and the status is `short_series`. Counts exclude missing observations; calendar years are retained. No new claim verdict is attached to a prefix. p-values can rise or fall, and a threshold crossing alone does not satisfy the full robustness/station decision.
 
+`emerged_year` (issue #41, optional) is the first end year from which every later prefix, through the full record, has `p < alpha` and a Sen slope with the same sign as the full record. It is `null` when the full record is not significant, so a refuted or not-proven case can still carry a year when its significant trend runs opposite to the claim. Older responses without the field remain valid; the backend computes it, the client only displays it.
+
 The slider selects supplied points locally. It cannot change `case`, the historical verdict, the original waiting estimate or the separate rate experiment. If history is absent, show an unavailable explanation instead of manufacturing values.
 
 This is a coordinated schema addition: the updated client accepts older responses, but older clients with strict unknown-field validation must be updated before consuming the new payload. Update the Python model and frontend schema together.

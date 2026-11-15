@@ -42,6 +42,7 @@ export const DetectionHistorySchema = z.object({
     end_year: integer, n_observations: integer.min(0), p: finite.min(0).max(1).nullable(),
     correction: z.enum(['hamed_rao', 'none']).nullable(), status: z.enum(['ok', 'short_series']),
   }).strict()).min(1),
+  emerged_year: integer.nullable().optional(),
 }).strict().superRefine((history, ctx) => {
   let count = 0;
   history.points.forEach((point, i) => {

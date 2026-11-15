@@ -29,6 +29,9 @@ def test_all_case_files_validate_against_check_result():
         assert history.points[-1].end_year == model.case.end_year
         assert history.points[-1].n_observations == model.detection.n_years
         assert sig3(history.points[-1].p) == model.mk.p
+        # Emergence exists exactly when the full record is significant (saved cases carry the field).
+        assert "emerged_year" in payload["detection_history"]
+        assert (history.emerged_year is not None) == (history.points[-1].p < history.alpha and model.sen.slope_per_year != 0)
         assert model.meta.stats_engine == "backend.app.stats v2"
         if model.verdict == "not_proven":
             assert model.years_to_wait is None or model.years_to_wait >= 1
