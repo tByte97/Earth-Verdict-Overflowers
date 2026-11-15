@@ -241,7 +241,7 @@ function App() {
       <main className="panel-body">
         {help && <section className="tutorial" aria-label="Quick tutorial"><h2>Your first check</h2><ol><li><strong>Choose your case.</strong> Set a place, variable, season, years and direction.</li><li><strong>Run the check.</strong> Read the verdict, rate of change and station status.</li><li><strong>Explore the evidence.</strong> Open “How we checked this” for every number, or “Data sources” for provenance.</li></ol><p>“Not proven” means evidence is insufficient; it does not mean there is no change.</p><button type="button" className="text-button" onClick={() => setHelp(false)}>Got it · close guide</button></section>}
         {mode === 'claims' ? <div className="investigation-panel">
-        <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real observations · provisional statistics. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
+        <div className={`mode-banner ${isLive ? 'live' : ''}`}><div><span className="eyebrow">{isLive ? 'Connected mode' : 'Shared backend snapshots'}</span><p>{isLive ? 'Checks are sent to your backend. No synthetic fallback.' : 'Real NASA and NOAA observations. Choose a case to explore the team’s JSON response.'}</p></div><a href={isLive ? './' : 'https://github.com/tByte97/Earth-Verdict-Overflowers/tree/main/data/cases'}>{isLive ? 'Open saved cases' : 'View shared JSON'} <span aria-hidden="true">↗</span></a></div>
         <section className="trend-panel" aria-labelledby="trend-heading">
           <h2 id="trend-heading">Trend map</h2>
           <LayerControls index={layerIndex} value={layerKey} onChange={chooseLayer} fade={fade} onFade={setFade} labelOf={labelOf} />
@@ -259,7 +259,7 @@ function App() {
           {casesError && <p className="field-help" role="status">{casesError}</p>}
           <details className="case-parameters" open={!result}><summary>Check your own claim</summary>
           <form onSubmit={submit}>
-            <label>Claim<input required value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} /></label>
+            <label>Claim<input required maxLength={300} value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} /></label>
             <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
             <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>

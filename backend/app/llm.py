@@ -58,6 +58,7 @@ _CHECK_REASON = {
     "short_series": "the record is too short to tell",
     "sources_disagree": "two data sources disagree on the direction",
     "not_robust": "the trend depends on which years are chosen",
+    "no_variation": "the value never changes here in this season, so there is no trend to test",
 }
 _EVENT_REASON = {
     "clear_change": "a clear change at that time, not matched by fake event dates",

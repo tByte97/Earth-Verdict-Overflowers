@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -50,10 +51,66 @@ EVENTS_DIR = DATA_DIR / "events"
 LAYERS_DIR = DATA_DIR / "layers"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 
-STATUS = {"bad_request": 400, "short_series": 400, "unknown_variable": 400,
-          "place_not_found": 404, "source_unavailable": 503, "llm_unavailable": 503}
+STATUS = {"bad_request": 400, "short_series": 400, "unknown_variable": 400, "no_data": 400,
+          "place_not_found": 404, "rate_limited": 429, "internal": 500,
+          "source_unavailable": 503, "llm_unavailable": 503, "busy": 503}
+
+MAX_BODY_BYTES = 256 * 1024
+
+logger = logging.getLogger("ev")
+
+
+class BodyLimit:
+    """Reject request bodies over `max_bytes` with 413, counting the bytes actually received.
+
+    Content-Length alone is not enough: a chunked request has none. Bodies here are small JSON
+    specs, so the body is buffered once and replayed to the app.
+    """
+
+    def __init__(self, app, max_bytes: int = MAX_BODY_BYTES):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] not in ("POST", "PUT", "PATCH"):
+            await self.app(scope, receive, send)
+            return
+        length = dict(scope["headers"]).get(b"content-length", b"")
+        if length.isdigit() and int(length) > self.max_bytes:
+            await self._too_large(scope, receive, send)
+            return
+        chunks, size, more = [], 0, True
+        while more:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            size += len(chunk)
+            if size > self.max_bytes:
+                await self._too_large(scope, receive, send)
+                return
+            chunks.append(chunk)
+            more = message.get("more_body", False)
+
+        replayed = False
+
+        async def replay():
+            nonlocal replayed
+            if replayed:
+                return await receive()
+            replayed = True
+            return {"type": "http.request", "body": b"".join(chunks), "more_body": False}
+
+        await self.app(scope, replay, send)
+
+    async def _too_large(self, scope, receive, send):
+        body = ErrorResponse(error={"code": "bad_request",
+                                    "message": f"Request body is larger than {self.max_bytes // 1024} KB."})
+        await JSONResponse(body.model_dump(), status_code=413)(scope, receive, send)
+
 
 app = FastAPI(title="Earth Verdict API", version="0.1.0")
+app.add_middleware(BodyLimit)   # added first, so CORS wraps it and a 413 still carries CORS headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o for o in os.environ.get("EV_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if o],
@@ -70,6 +127,13 @@ def error(code: str, message: str) -> JSONResponse:
 @app.exception_handler(CheckError)
 async def _check_error(_: Request, exc: CheckError):
     return error(exc.code, exc.message)
+
+
+@app.exception_handler(Exception)
+async def _internal_error(request: Request, exc: Exception):
+    # Log the stack on the server; the client gets JSON without internals.
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return error("internal", "Something went wrong on our side. Try again or open a saved case.")
 
 
 @app.exception_handler(RequestValidationError)

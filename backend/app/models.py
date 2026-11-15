@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from typing import Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
-Season = Union[Literal["year", "DJF", "MAM", "JJA", "SON"], int]  # int: місяць 1–12
+# StrictInt: `true` or "7" is rejected instead of being read as month 1 or 7.
+Season = Union[Literal["year", "DJF", "MAM", "JJA", "SON"], StrictInt]  # int: місяць 1–12
 
 
 class Strict(BaseModel):
@@ -23,19 +24,19 @@ class Strict(BaseModel):
 # ---------- CaseSpec ----------
 
 class Place(Strict):
-    place_id: str
-    name: str
+    place_id: str = Field(max_length=100)
+    name: str = Field(max_length=200)
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
 
 
 class CaseSpec(Strict):
-    claim_text: str
-    variable_id: str
+    claim_text: str = Field(max_length=300)
+    variable_id: str = Field(max_length=64)
     place: Place
     season: Season
-    start_year: int
-    end_year: int
+    start_year: StrictInt
+    end_year: StrictInt
     claim_direction: Literal["increase", "decrease", "change"]
 
 
@@ -204,6 +205,7 @@ class Scenarios(Strict):
     source: str
     baseline_period: str    # напр. "1995-2014"
     baseline_value: float   # значення змінної в базовому періоді (за спостереженнями)
+    baseline_n_years: Optional[int] = None  # observed years that went into baseline_value
     note: str               # «Це сценарії моделей, а не прогноз»
     paths: list[ScenarioPath]
 
@@ -310,7 +312,7 @@ class CheckResult(Strict):
     witness: Optional[Witness]          # None = станції-свідка немає (no_station)
     verdict: Literal["confirmed", "refuted", "not_proven"]
     reason: Literal["significant_trend", "opposite_trend", "not_significant", "short_series",
-                    "sources_disagree", "not_robust"]
+                    "sources_disagree", "not_robust", "no_variation"]
     years_to_wait: Optional[int]        # лише для not_proven
     steps: list[Step]
     detection: Detection                # A: повзунок «швидкість ×0.5…×2 → скільки років треба»
@@ -337,7 +339,7 @@ class CheckResult(Strict):
 
 class ErrorBody(Strict):
     code: Literal["unknown_variable", "place_not_found", "short_series", "source_unavailable",
-                  "llm_unavailable", "bad_request"]
+                  "llm_unavailable", "bad_request", "no_data", "internal", "busy", "rate_limited"]
     message: str
 
 
@@ -377,7 +379,7 @@ class EventSpec(Strict):
     compound_id: str
     place: Place
     event_month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
-    event_label: str
+    event_label: str = Field(max_length=120)
     window_years: int = Field(default=3, ge=1, le=5)
     use_control: bool = True
 

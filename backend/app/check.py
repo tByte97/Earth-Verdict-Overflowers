@@ -18,6 +18,7 @@ from .stats import build_extrapolation, months_for_season, seasonal_series
 from .stats.band import baseline_mean, sen_band
 from .stats.witness import compare_rates
 from .stats.history import detection_history
+from .stats.robustness import required_windows
 from .verdict import ALPHA, MIN_YEARS, evaluate_verdict, sig3
 
 STATS_ENGINE = "backend.app.stats v2"
@@ -26,7 +27,16 @@ SEASON_LABEL = {"year": "the whole year", "DJF": "winter (Dec–Feb)", "MAM": "s
                 "JJA": "summer (Jun–Aug)", "SON": "autumn (Sep–Nov)"}
 
 # NOAA keeps old Russian transliterations; show current Ukrainian ones.
-STATION_RENAMES = {"Kiev": "Kyiv", "Kharkov": "Kharkiv", "Odessa": "Odesa", "Lvov": "Lviv"}
+STATION_RENAMES = {"Kiev": "Kyiv", "Kharkov": "Kharkiv", "Odessa": "Odesa", "Lvov": "Lviv",
+                   "Dnipropetrovsk": "Dnipro", "Dnepropetrovsk": "Dnipro",
+                   "Zaporozhye": "Zaporizhzhia", "Zaporizhzhya": "Zaporizhzhia",
+                   "Nikolaev": "Mykolaiv", "Mykolayiv": "Mykolaiv",
+                   "Kirovograd": "Kropyvnytskyi", "Kirovohrad": "Kropyvnytskyi"}
+
+# Fewer valid years than this share of the period gets a warning in the "yearly" step.
+LOW_COVERAGE = 0.6
+# Fewer valid years than this: the product has no data here at all (ocean, ice, outside coverage).
+MIN_VALID_YEARS = 3
 
 METHOD_NOTES = {
     "gsom": None,
@@ -54,7 +64,7 @@ def region_name(place) -> str:
 
 
 class CheckError(Exception):
-    """Maps to ErrorResponse codes: unknown_variable, short_series, bad_request, source_unavailable."""
+    """Maps to ErrorResponse codes: unknown_variable, short_series, no_data, bad_request, source_unavailable."""
 
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -177,6 +187,11 @@ def assemble_result(
         years, vals = seasonal_series(main_series.monthly, season, var.agg, start, end,
                                       per_day=var.per_day, data_start_year=y0, data_start_month=m0)
 
+    n_valid = sum(v is not None for v in vals)
+    if n_valid < MIN_VALID_YEARS:
+        raise CheckError("no_data", f"No {var.label.lower()} data here "
+                                    "(open ocean, ice or outside the product's coverage).")
+
     wy = wv = None
     if station is not None:
         sy, sm = _ym(station.start)
@@ -192,6 +207,18 @@ def assemble_result(
                 slope_per_decade=round(w.slope_per_decade, 4), significant=w.significant)
            for w in ev.robustness.windows]
     n_sig = ev.robustness.significant
+    n_win = ev.robustness.total
+    if n_win == 0:
+        rob_value, rob_detail = "Not tested", "Too few years with data to repeat the check on shifted periods."
+    elif n_win == 1:
+        rob_value = "Not tested"
+        rob_detail = ("A 15–17-year period cannot be shifted by ±3 years without dropping below 15 years."
+                      if end - start + 1 <= 17 else
+                      "Too many years are missing to repeat the check on shifted periods.")
+    else:
+        rob_value = f"{n_sig} of {n_win} periods agree"
+        rob_detail = (f"We repeat the check with the start and end shifted by a few years; "
+                      f"at least {required_windows(n_win)} of {n_win} must agree.")
 
     witness = None
     if ev.witness_trend and station is not None and wy is not None and wv is not None:
@@ -243,6 +270,10 @@ def assemble_result(
         methods_reason = "significance_differs"
     else:
         methods_reason = None
+    n_period = end - start + 1
+    yearly_detail = f"The months of each year are {'added up' if var.agg == 'sum' else 'averaged'} into one number."
+    if n_valid >= MIN_YEARS and n_valid < LOW_COVERAGE * n_period:
+        yearly_detail += f" Data cover only {n_valid} of {n_period} years."
     witness_fields = ([] if not witness else ["witness.agreement", "witness.sen.slope_per_decade", "witness.mk.p"]
                       + (["witness.rates.difference_per_decade", "witness.rates.p"] if witness.get("rates") else []))
     steps = [
@@ -253,8 +284,7 @@ def assemble_result(
              fields=["case.season"], months=list(season_months), aggregation=var.agg,
              years_dropped=[y for y, v in zip(years, vals) if v is None]),
         dict(id="yearly", title="One value per year", value=f"{main.n} years",
-             detail=f"The months of each year are {'added up' if var.agg == 'sum' else 'averaged'} into one number.",
-             fields=["series"]),
+             detail=yearly_detail, fields=["series"]),
         dict(id="trend", title="Overall direction", value=per_decade(main.sen.slope_per_year),
              detail="The typical change over time, robust to single extreme years (Sen's slope).",
              fields=["sen.slope_per_decade", "sen.ci_low", "sen.ci_high"]),
@@ -263,8 +293,7 @@ def assemble_result(
              detail=("Very unlikely to appear by chance if nothing were changing." if sig
                      else "A slope like this easily appears by chance when weather simply varies."),
              fields=["mk.p", "ols.p"], alpha=ALPHA, methods_agree=methods_reason is None, methods_reason=methods_reason),
-        dict(id="robustness", title="Does the choice of years matter?", value=f"{n_sig} of {len(rob)} periods agree",
-             detail="We repeat the check with the start and end shifted by a few years.",
+        dict(id="robustness", title="Does the choice of years matter?", value=rob_value, detail=rob_detail,
              fields=["robustness_summary.significant", "robustness_summary.total"]),
         dict(id="witness", title="Ground station check",
              value={"agree": "Station agrees", "disagree": "Station disagrees",
@@ -277,7 +306,9 @@ def assemble_result(
                      "not_significant": "Year-to-year swings are larger than the change so far.",
                      "not_robust": "The result depends on which years you pick.",
                      "sources_disagree": "Satellite-model data and the station point in different directions.",
-                     "short_series": "Too few years to judge."}[ev.reason],
+                     "short_series": "Too few years to judge.",
+                     "no_variation": "The value never changes here in this season, so there is no trend to test.",
+                     }[ev.reason],
              fields=["verdict", "reason", "years_to_wait"]),
     ]
 

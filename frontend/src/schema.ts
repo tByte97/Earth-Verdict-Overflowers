@@ -59,7 +59,7 @@ const ExtrapolationSchema = z.object({
   paths: z.array(z.object({ id: z.enum(['stop', 'slower', 'same', 'faster']), label: z.string(), multiplier: finite, central: z.array(finite), low: z.array(finite), high: z.array(finite) }).strict()),
 }).strict().refine(value => value.paths.every(path => [path.central, path.low, path.high].every(values => values.length === value.years.length)), { message: 'Extrapolation array lengths differ' });
 const ScenariosSchema = z.object({
-  synthetic: z.boolean(), source: z.string(), baseline_period: z.string(), baseline_value: finite, note: z.string(),
+  synthetic: z.boolean(), source: z.string(), baseline_period: z.string(), baseline_value: finite, baseline_n_years: integer.nullable().optional(), note: z.string(),
   paths: z.array(z.object({
     id: z.enum(['ssp126', 'ssp245', 'ssp585']), label: z.string(), years: z.array(integer), windows: z.array(z.string()),
     median: z.array(finite), low: z.array(finite), high: z.array(finite),
@@ -73,7 +73,7 @@ export const CheckResultSchema = z.object({
   robustness: z.array(z.object({ start_year: integer, end_year: integer, p: finite, slope_per_decade: finite, significant: z.boolean() }).strict()),
   robustness_summary: z.object({ significant: integer, total: integer }).strict(),
   witness: WitnessSchema.nullable(), verdict: z.enum(['confirmed', 'refuted', 'not_proven']),
-  reason: z.enum(['significant_trend', 'opposite_trend', 'not_significant', 'short_series', 'sources_disagree', 'not_robust']),
+  reason: z.enum(['significant_trend', 'opposite_trend', 'not_significant', 'short_series', 'sources_disagree', 'not_robust', 'no_variation']),
   years_to_wait: integer.nullable(),
   steps: z.array(z.object({
     id: z.enum(['raw', 'season', 'yearly', 'trend', 'random_check', 'robustness', 'witness', 'verdict']), title: z.string(), value: z.string(), detail: z.string(),
