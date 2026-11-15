@@ -13,7 +13,9 @@ let browser;
 test.beforeAll(async ({ browser: sharedBrowser }) => { browser = sharedBrowser; });
 
 // The mocked backend adds the cell counts the real one sends with each layer.
-const withCounts = layer => ({ ...layer, n_cells: layer.features.length, n_significant_fdr: layer.features.filter(f => f.properties.significant_fdr).length, n_significant_raw: 0 });
+// Halo cells (fetched around Ukraine so the map fades out over real data) are never counted.
+const tested = layer => layer.features.filter(f => !f.properties.halo);
+const withCounts = layer => ({ ...layer, n_cells: tested(layer).length, n_significant_fdr: tested(layer).filter(f => f.properties.significant_fdr).length, n_significant_raw: 0 });
 // Counts come with the saved layer files now; a mocked old backend sends none.
 const withoutCounts = ({ n_cells, n_significant_fdr, n_significant_raw, stats_engine, ...rest }) => rest;
 // With one common test for all cells the saved precipitation layers hold no pair of opposite significant cells,
@@ -21,7 +23,7 @@ const withoutCounts = ({ n_cells, n_significant_fdr, n_significant_raw, stats_en
 const fixturePair = { a: { lat: 50, lon: 40, slope_per_decade: 3.9633, p: 0.00024 }, b: { lat: 46.5, lon: 40, slope_per_decade: -12.0948, p: 0 }, distance_km: 389, significance: 'fdr' };
 const entry = ({ variable_id, season, start_year, end_year, units_per_decade }) => ({ variable_id, season, start_year, end_year, units_per_decade });
 
-async function open({ live = false, index = true, counts = true, pair = false, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
+async function open({ echo = false, live = false, index = true, counts = true, pair = false, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
   const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
   // Assertions run offline; review screenshots load the imagery.
   if (!imagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
@@ -40,7 +42,7 @@ async function open({ live = false, index = true, counts = true, pair = false, i
       return route.fulfill({ json: counts ? withCounts(layer) : withoutCounts(layer) });
     });
     await page.route('**/api/places?*', route => route.fulfill({ json: [heat.case.place] }));
-    await page.route('**/api/check', route => { checks.push(route.request().postDataJSON()); return route.fulfill({ json: heat }); });
+    await page.route('**/api/check', route => { checks.push(route.request().postDataJSON()); return route.fulfill({ json: echo ? (({ place, variable_id, season }) => ({ ...heat, case: { ...heat.case, place, variable_id, season } }))(route.request().postDataJSON()) : heat }); });
   }
   await page.goto(baseURL + (live ? '/?source=live' : '/') + hash);
   await expect(page.locator('.globe-map canvas')).toBeVisible({ timeout: 20_000 });
@@ -49,7 +51,7 @@ async function open({ live = false, index = true, counts = true, pair = false, i
 
 // Same display scale as the app: the 95th percentile of |slope|, rounded up to a nice step.
 function niceLimit(layer) {
-  const sorted = layer.features.map(f => Math.abs(f.properties.slope_per_decade)).sort((a, b) => a - b);
+  const sorted = tested(layer).map(f => Math.abs(f.properties.slope_per_decade)).sort((a, b) => a - b);
   const x = sorted[Math.floor(0.95 * (sorted.length - 1))], e = 10 ** Math.floor(Math.log10(x)), f = x / e;
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
 }
@@ -69,9 +71,20 @@ test('the layer legend and caption repeat the values sent by the API', async () 
     await expect(legend.locator('.trend-legend-ends')).toHaveText(`−${lim}0+${lim}`);
     await expect(legend).toContainText(`dots = significant after FDR (q = ${layer.q})`);
     await expect(legend).toContainText('cooler ◂ ▸ warmer');
-    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells show a significant trend after FDR · chance alone would give ~5%`);
-    await page.getByLabel('Fade trends that could be chance').uncheck();
-    await expect(legend).not.toContainText('faded = could be chance');
+    // Temperature is an even glow; only other kinds of variable carry a texture.
+    await expect(legend).not.toContainText('streaks');
+    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~5%`);
+    const fade = page.getByLabel('Fade trends that could be chance');
+    await expect(fade).toBeDisabled();
+    await expect(page.locator('#fade-reason')).toHaveText('Every cell is significant after FDR.');
+    await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Winter' }).click();
+    await expect(fade).toBeEnabled();
+    await fade.uncheck();
+    await expect(page.getByTestId('trend-legend')).not.toContainText('white = could be chance');
+    await page.getByRole('group', { name: 'Trend map variable' }).getByRole('button', { name: 'Precipitation' }).click();
+    await page.getByRole('group', { name: 'Trend map season' }).getByRole('button', { name: 'Year' }).click();
+    await expect(fade).toBeDisabled();
+    await expect(page.locator('#fade-reason')).toHaveText('No cells are significant after FDR.');
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
@@ -95,7 +108,7 @@ test('hovering a cell shows its exact values from the layer', async () => {
     const sign = cell.slope_per_decade > 0 ? '+' : '−';
     await expect(tip).toContainText(`Trend ${sign}${Math.abs(cell.slope_per_decade)} mm/decade`);
     await expect(tip).toContainText(`p ${cell.p < 0.001 ? '<0.001' : cell.p}`);
-    await expect(tip).toContainText(cell.significant_fdr ? 'significant · click to investigate' : 'could be chance · click to investigate');
+    await expect(tip).toContainText(`${cell.significant_fdr ? 'significant' : 'could be chance'}${cell.halo ? ' · outside the Ukraine area' : ''} · click to investigate`);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
@@ -148,7 +161,8 @@ test('a map click checks that spot with the layer variable, season and period', 
 });
 
 test('a picked-spot link restores the spot and checks it in live mode', async () => {
-  const { page, errors, checks } = await open({ live: true, hash: '#v=precip&s=DJF&p=1990-2020&pt=30.52,50.45' });
+  // The backend answers for the case it was asked about, so the map of that variable and season stays on.
+  const { page, errors, checks } = await open({ live: true, echo: true, hash: '#v=precip&s=DJF&p=1990-2020&pt=30.52,50.45' });
   try {
     await expect.poll(() => checks.length).toBe(1);
     assert.deepEqual([checks[0].variable_id, checks[0].season, checks[0].start_year, checks[0].end_year, checks[0].place.place_id, checks[0].claim_direction], ['precip', 'DJF', 1990, 2020, 'pt:50.45,30.52', 'change']);
@@ -187,17 +201,21 @@ test('without a layer index only the checked case layer is shown, without invent
   } finally { await page.close(); }
 });
 
-test('saved mode reads the saved layers; a map click asks for the backend', async () => {
+test('saved mode reads the saved layers; map picking is hidden and clicking leaves the case intact', async () => {
   const { page, errors } = await open();
   try {
     await expect(page.getByTestId('trend-legend')).toContainText('Summer air temperature trend');
     await expect(page.getByRole('group', { name: 'Trend map variable' }).getByRole('button')).toHaveText(['Air temperature', 'Precipitation']);
+    await expect(page.getByRole('button', { name: 'Use map centre' })).toHaveCount(0);
+    await expect(page.locator('.globe-hint')).toHaveCount(0);
     // The saved files carry the cell counts, so the share is printed.
     const saved = layers['air_temp/JJA'];
-    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(saved.n_significant_fdr / saved.n_cells * 100)}% of cells show a significant trend after FDR · chance alone would give ~5%`);
+    const fades = saved.features.map(f => f.properties.fade);
+    assert.ok(fades.every(f => f > 0 && f <= 1) && fades.some(f => f === 1) && fades.some(f => f < 1));
+    await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(saved.n_significant_fdr / saved.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~5%`);
     const [x, y] = await mapCentre(page);
     await page.mouse.click(x + 80, y);
-    await expect(page.locator('.trend-note')).toContainText('needs the backend');
+    await expect(page.locator('.trend-note')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Confirmed', exact: true })).toBeVisible();
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

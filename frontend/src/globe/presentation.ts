@@ -6,7 +6,7 @@ import type { TrendCell } from './trends';
 export interface Presentation { palette: Ramp; up: string; down: string; upVerb: string; downVerb: string; driver?: string }
 
 // The ramp and the end words come from the shared colour scale, so the map and the chart agree.
-const fromColours = (variableId: string) => { const { ramp, up, down } = coloursOf(variableId); return { palette: ramp, up, down }; };
+const fromColours = (variableId: string) => { const { map, up, down } = coloursOf(variableId); return { palette: map, up, down }; };
 const presentations: Record<string, Presentation> = {
   air_temp: {
     ...fromColours('air_temp'), upVerb: 'gets warmer', downVerb: 'gets cooler',

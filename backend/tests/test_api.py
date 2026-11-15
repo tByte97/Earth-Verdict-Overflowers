@@ -65,9 +65,12 @@ def test_health():
 def test_variables_whitelist():
     r = client.get("/api/variables")
     assert r.status_code == 200
-    ids = {v["id"] for v in r.json()}
-    assert {"air_temp", "precip", "snow_depth", "precip_gpm"} <= ids
-    assert all(v["units"] and v["definition"] for v in r.json())
+    by_id = {v["id"]: v for v in r.json()}
+    assert {"air_temp", "precip", "snow_depth", "precip_gpm"} <= set(by_id)
+    assert all(v["units"] and v["definition"] for v in by_id.values())
+    assert (by_id["air_temp"]["first_year"], by_id["air_temp"]["last_year"]) == (1981, 2025)
+    assert (by_id["precip_gpm"]["first_year"], by_id["precip_gpm"]["last_year"]) == (1998, 2024)
+    assert (by_id["global_temp"]["first_year"], by_id["global_temp"]["last_year"]) == (1850, 2025)
 
 
 def test_check_happy_path(fake_sources):
@@ -162,11 +165,39 @@ def test_grid_layer():
 def test_grid_layer_counts_match_features():
     for season in ("year", "JJA", "DJF"):
         gj = client.get("/api/grid", params={"variable_id": "precip", "season": season}).json()
-        props = [f["properties"] for f in gj["features"]]
+        halo = [f["properties"] for f in gj["features"] if f["properties"].get("halo")]
+        props = [f["properties"] for f in gj["features"] if not f["properties"].get("halo")]
+        # The halo fades out around Ukraine and stays out of every count; fade==0 cells are not stored.
+        assert len(halo) > 100 and gj["fade_km"] > 0 and all(f["geometry"] is None for f in gj["features"] if f["properties"].get("halo"))
+        assert all(0 < p["fade"] <= 1.0 for p in props + halo)
+        assert all(p["fade"] < 1.0 for p in halo)
         assert gj["n_cells"] == sum(p["p"] is not None for p in props)
         assert gj["n_significant_fdr"] == sum(p["significant_fdr"] for p in props)
         assert gj["n_significant_raw"] == sum(p["significant_raw"] for p in props)
         assert gj["n_significant_fdr"] <= gj["n_significant_raw"] <= gj["n_cells"]
+
+
+def test_grid_years_serves_year_by_year_maps(monkeypatch, tmp_path):
+    from app import main
+    r = client.get("/api/grid/years", params={"variable_id": "air_temp", "season": "DJF"})
+    assert r.status_code == 200
+    m = r.json()
+    assert (m["variable_id"], m["season"], m["units"], m["baseline"]) == ("air_temp", "DJF", "°C", [1991, 2020])
+    assert m["years"][0] == 1982 and m["years"][-1] == 2025          # a winter is named by its January
+    n_years, n_cells = len(m["years"]), len(m["lat"])
+    assert n_cells == len(m["lon"]) == len(m["fade"]) > 100
+    assert m["fade_km"] > 0 and all(0 < f <= 1.0 for f in m["fade"])
+    for rows in (m["anomaly"], m["anomaly_smooth"]):
+        assert len(rows) == n_years and all(len(row) == n_cells for row in rows)
+    assert len(m["mean"]) == len(m["mean_smooth"]) == len(m["rank"]) == n_years
+    # The smoothed view starts once a full window of years exists.
+    assert m["mean_smooth"][: m["window"] - 1] == [None] * (m["window"] - 1) and m["mean_smooth"][m["window"] - 1] is not None
+    assert sorted(m["rank"]) == list(range(1, n_years + 1))
+    assert m["mean"][m["rank"].index(1)] == max(m["mean"])
+    assert client.get("/api/grid/years", params={"variable_id": "snow_depth"}).status_code == 400
+    monkeypatch.setattr(main, "LAYERS_DIR", tmp_path)
+    missing = client.get("/api/grid/years", params={"variable_id": "precip", "season": "JJA"})
+    assert missing.status_code == 503 and missing.json()["error"]["code"] == "source_unavailable"
 
 
 def test_grid_index_lists_built_layers(monkeypatch, tmp_path):
@@ -244,6 +275,12 @@ def test_places_offers_regions(monkeypatch):
     names = [p["place_id"] for p in client.get("/api/places", params={"q": "Euro"}).json()]
     assert names[0] == "region:europe"
     assert client.get("/api/places", params={"q": "world"}).json()[0]["place_id"] == "region:globe"
+    assert client.get("/api/places", params={"q": "global"}).json()[0]["place_id"] == "region:globe"
+    assert client.get("/api/places", params={"q": "Euro", "include_regions": "false"}).json() == []
+    regions = client.get("/api/regions").json()
+    assert [r["place_id"] for r in regions] == [f"region:{k}" for k in (
+        "globe", "europe", "asia", "africa", "northamerica", "southamerica", "oceania", "arctic"
+    )]
 
 
 def test_region_file_gives_scenarios_for_any_cell(fake_sources, monkeypatch, tmp_path):

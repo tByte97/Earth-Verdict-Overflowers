@@ -23,7 +23,7 @@ export function DetectionHistoryChart({ history, result, endYear }: { history: H
         const significant = point.status === 'ok' && point.p !== null && point.p < history.alpha;
         const selected = point.end_year === endYear;
         return <rect key={point.end_year} x={1 + i * cw} y="1" width={Math.max(1, cw - 2)} height="12" rx="2" vectorEffect="non-scaling-stroke"
-          fill={significant ? fill : '#1b1e26'} className={selected ? 'block-selected' : point.end_year > endYear ? 'block-later' : undefined}
+          fill={significant ? fill : '#dce5dc'} className={selected ? 'block-selected' : point.end_year > endYear ? 'block-later' : undefined}
           data-year={point.end_year} data-significant={significant}
           {...(selected && point.p !== null ? { 'data-testid': 'selected-p-point', 'data-value': point.p } : {})}>
           <title>Record ending {point.end_year}: {point.p === null ? `not tested, fewer than ${history.min_observations} observed years` : `p = ${point.p}`}</title>

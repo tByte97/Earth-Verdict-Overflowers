@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { CheckResult } from '../types';
-import { number, period, safeUrl, sourceIndex } from '../format';
+import { number, period, provenanceLink, seriesSourceName, sourceIndex } from '../format';
 import { niceStep, palette, seasonName, trendColor } from './ramp';
 import { ScenarioPanel, SSP } from './Scenarios';
 import './chart.css';
@@ -8,7 +8,7 @@ import './chart.css';
 const H = 210;
 const STRIPE = 14;
 const P = { l: 44, r: 12, t: 14, b: 24 };
-const STATION = '#a99be6';
+const STATION = '#3a6fc4';
 const axisNumber = (x: number) => Math.abs(x) >= 10 ? x.toFixed(0) : Math.abs(x) >= 1 ? x.toFixed(1) : Math.abs(x) >= 0.1 ? x.toFixed(2) : x.toFixed(3);
 
 // One "M…L…" path per run of supplied values: a null year breaks the line, it is never bridged or drawn as zero.
@@ -24,8 +24,8 @@ function gappedPath(points: { year: number; value: number | null }[], x: (year: 
 
 function SourceLink({ result: r, path, children }: { result: CheckResult; path: string; children: string }) {
   const index = sourceIndex(path, r);
-  const url = index === undefined ? undefined : safeUrl(r.provenance[index].url);
-  return url ? <a href={url} target="_blank" rel="noreferrer">{children} <span aria-hidden="true">↗</span></a> : <>{children}</>;
+  const link = index === undefined ? undefined : provenanceLink(r.provenance[index].url);
+  return link ? <a href={link.href} target="_blank" rel="noreferrer">{children} <span aria-hidden="true">↗</span></a> : <>{children}</>;
 }
 
 // Draws only supplied values: series, sen.band (mid/low/high), witness.series, baseline.mean and, when present,
@@ -176,11 +176,13 @@ export function RecordChart({ result: r }: { result: CheckResult }) {
     </p>
     {scen && path && node !== undefined
       ? <ScenarioPanel result={r} path={path} node={node} onPath={p => setPathId(p.id)} onNode={setNode} />
-      : <p className="scenario-none" data-testid="scenarios-none">No future scenarios here: there is no CMIP6 climate-model data near this place.</p>}
+      : <p className="scenario-none" data-testid="scenarios-none">{['air_temp', 'precip'].includes(r.case.variable_id) && ['year', 'JJA', 'DJF'].includes(String(r.case.season))
+        ? 'No future scenarios here: there is no CMIP6 tile near this place.'
+        : 'No future scenarios here: CMIP6 covers only air temperature and precipitation for the year, summer and winter.'}</p>}
     <details className="chart-values">
       <summary>Exact values for every year <span>Received precision · missing values stay missing</span></summary>
       <div className="table-scroll chart-table"><table>
-        <thead><tr><th>Year</th><th><SourceLink result={r} path="series.0.value">NASA POWER</SourceLink> · {units}</th><th>Trend line · {units}</th><th>95% range, low to high · {units}</th><th>{witness ? <><SourceLink result={r} path="witness.series.0.value">{`Station ${witness.station.name}`}</SourceLink> · {units}</> : 'Station'}</th></tr></thead>
+        <thead><tr><th>Year</th><th><SourceLink result={r} path="series.0.value">{seriesSourceName(r)}</SourceLink> · {units}</th><th>Trend line · {units}</th><th>95% range, low to high · {units}</th><th>{witness ? <><SourceLink result={r} path="witness.series.0.value">{`Station ${witness.station.name}`}</SourceLink> · {units}</> : 'Station'}</th></tr></thead>
         <tbody>{series.map(point => {
           const stationValue = station.get(point.year);
           const line = band.get(point.year);

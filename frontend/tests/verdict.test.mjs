@@ -65,10 +65,6 @@ test('all verdicts, reasons and witness states render from saved JSON without co
       assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
       assert.equal(await page.locator(`.witness-${fixture.result.witness?.agreement ?? 'no_station'}`).count(), 1);
       if (fixture.result.verdict === 'not_proven') assert.equal(await page.getByText('Not enough evidence does not mean no change.', { exact: true }).isVisible(), true);
-      await page.locator('.case-parameters').evaluate(element => { element.open = true; });
-    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
-      await page.locator('.verdict').waitFor();
-      assert.equal(await page.locator(`.verdict-${fixture.result.verdict}`).count(), 1);
     }
     await page.locator('[data-case="kyiv-summer-heat"]').click();
     await page.locator('.technical > summary').click();
@@ -77,20 +73,21 @@ test('all verdicts, reasons and witness states render from saved JSON without co
   } finally { await page.close(); }
 });
 
-test('edited parameters clear stale results and unsupported demo requests fail honestly', async () => {
+test('saved mode disables custom editing; live mode clears stale results and rejects reversed years', async () => {
   const { page } = await open();
   try {
+    await expect(page.getByLabel('Claim', { exact: true })).toBeDisabled();
+    await expect(page.getByLabel('From', { exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Check claim', exact: true })).toBeDisabled();
+    await expect(page.locator('.case-parameters')).toContainText('Custom checks need the live service.');
+    await page.route('**/api/variables', route => route.fulfill({ json: [fixtures[0].result.variable] }));
+    await page.goto(baseURL + '/?source=live');
+    await configureLive(page);
     await page.getByLabel('From', { exact: true }).fill('1990');
     assert.equal(await page.locator('.verdict').count(), 0);
-    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
-    await page.getByRole('button', { name: 'Check claim', exact: true }).click();
-    assert.match(await page.getByRole('alert').innerText(), /No saved backend response matches/);
     await page.getByLabel('From', { exact: true }).fill('2026');
-    await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     assert.match(await page.getByRole('alert').innerText(), /start must not be after/);
-    await page.getByLabel('Place', { exact: true }).fill('Ky');
-    await page.getByRole('button', { name: fixtures[0].result.case.place.name, exact: true }).click();
     await page.getByRole('button', { name: 'How to use' }).click();
     assert.equal(await page.getByRole('heading', { name: 'Your first check' }).isVisible(), true);
   } finally { await page.close(); }
@@ -112,8 +109,8 @@ test('live mode posts edited CaseSpec, renders backend verdict and reports serve
     });
     await page.goto(baseURL + '/?source=live');
     await configureLive(page);
-    await page.getByLabel('Claim direction').selectOption('decrease');
     await page.getByLabel('Claim', { exact: true }).fill('Summers are cooler');
+    await page.getByLabel('Claim direction').selectOption('decrease');
     await page.locator('.case-parameters').evaluate(element => { element.open = true; });
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.getByRole('heading', { name: 'Refuted', exact: true }).waitFor();
@@ -478,7 +475,7 @@ test('rendering failures recover through the error boundary instead of a blank p
   const { page } = await open('/tests/error-boundary.html');
   try {
     await expect(page.getByRole('alert')).toContainText('We could not display this result.');
-    await expect(page.getByRole('link', { name: 'Open saved cases' })).toHaveAttribute('href', '/');
+    await expect(page.getByRole('link', { name: 'Open saved cases' })).toHaveAttribute('href', '?source=saved');
   } finally { await page.close(); }
 });
 
@@ -503,11 +500,11 @@ test('desktop puts the panel left of the full-height stage; mobile stacks the st
     const panel = await page.locator('.panel').boundingBox();
     const stage = await page.locator('.stage').boundingBox();
     assert.equal(panel.x, 0);
-    assert.equal(Math.round(panel.width), 500);
+    assert.equal(Math.round(panel.width), 440);
     assert.ok(Math.abs(stage.x - panel.width) < 2 && stage.height === 1100 && stage.x + stage.width === 1440);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight), true);
     assert.ok(await page.locator('.panel .case-panel').count());
-    assert.ok(await page.locator('.panel .verdict-card').count());
+    assert.ok(await page.locator('.result-panel .verdict-card').count());
     assert.equal(await page.getByLabel('Claim', { exact: true }).isVisible(), false);
     await page.locator('.case-parameters > summary').click();
     await expect(page.getByLabel('Claim', { exact: true })).toBeVisible();
@@ -530,7 +527,7 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.locator('.mark [role=tab]')).toHaveText(['Climate claims', 'Pollution events', 'CO₂ calculator']);
     // The case has a trend layer, so the title describes that layer; the layer names no data source.
     await expect(page.locator('.stage-title .eyebrow')).toHaveText(`Summer · ${r.case.start_year}–${r.case.end_year}`);
-    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${r.variable.label.toLowerCase()} changing?`);
+    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${r.variable.label.toLowerCase()} changing over Ukraine?`);
     await expect(page.locator('.stage-title .src')).toHaveText(r.case.place.name);
     await expect(page.locator('.globe')).toHaveAttribute('style', /background-image: url\("data:image\/png/);
     await expect(page.locator('.globe-vignette')).toHaveCount(1);
@@ -542,27 +539,55 @@ test('header, stage title, projection badge and footer credits come from the she
     await expect(page.locator('.globe-proj')).toHaveAttribute('data-mode', 'globe');
     for (const name of ['NASA POWER', 'NOAA NCEI', 'Climate at a Glance', 'NEX-GDDP-CMIP6', 'GIBS', 'MapLibre GL JS']) await expect(page.locator('.credits').getByRole('link', { name, exact: true })).toHaveCount(1);
     await page.locator('[data-case="lviv-drier"]').click();
-    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing?`);
+    await expect(page.locator('.stage-title .big')).toHaveText(`Where is ${fixtures[1].result.variable.label.toLowerCase()} changing over Ukraine?`);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
 
-test('events and CO₂ open in the stage while the globe stays mounted for the return', async () => {
+test('events and CO₂ use the same shell: controls in the panel, the answer over the globe, the evidence under it', async () => {
   const { page, errors } = await open('/', { blockImagery: true });
   try {
     await expect(page.locator('.globe')).not.toHaveAttribute('data-state', 'loading', { timeout: 20_000 });
     await page.locator('.globe-map canvas').evaluate(canvas => { canvas.dataset.marker = 'first'; });
-    for (const [tab, mode] of [['Pollution events', 'events'], ['CO₂ calculator', 'co2']]) {
-      await page.getByRole('tab', { name: tab }).click();
-      await expect(page.locator('.stage .stage-workspace')).toBeVisible();
-      await expect(page.locator('.stage-globe')).toBeHidden();
-      await expect(page).toHaveURL(new RegExp(`mode=${mode}`));
+    const sites = JSON.parse(await readFile(new URL('../../data/events/_sites.json', import.meta.url), 'utf8'));
+    const first = JSON.parse(await readFile(new URL(`../../data/events/${sites[0].id}.json`, import.meta.url), 'utf8'));
+
+    await page.getByRole('tab', { name: 'Pollution events' }).click();
+    await expect(page).toHaveURL(/mode=events/);
+    // The globe stays on stage and now shows the event; the trend map and the timeline belong to the claims.
+    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.getByTestId('trend-legend')).toHaveCount(0);
+    await expect(page.getByTestId('timeline')).toHaveCount(0);
+    await expect(page.locator('.panel .ev-controls')).toBeVisible();
+    await expect(page.locator('.panel [data-event]')).toHaveCount(sites.length);
+    await expect(page.locator(`.panel [data-event="${sites[0].id}"]`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.stage-title .big')).toHaveText(sites[0].label);
+    await expect(page.locator('.stage-title .src')).toHaveText(sites[0].place.name);
+    await expect(page.getByTestId('stage-verdict')).toContainText(first.verdict === 'clear_change' ? 'Clear change' : 'Not proven');
+    await expect(page.locator('#results-section .ev-card')).toBeVisible();
+    // The globe draws the answer at the place and says how to read it.
+    await expect(page.getByTestId('event-legend')).toContainText('dashed ring = comparison points');
+    // Another event: the headline over the globe follows it.
+    await page.locator(`.panel [data-event="${sites[1].id}"]`).click();
+    await expect(page.locator('.stage-title .big')).toHaveText(sites[1].label);
+    await expect(page.locator('#results-section .ev-card h2.claim')).toHaveText(sites[1].label);
+
+    await page.getByRole('tab', { name: 'CO₂ calculator' }).click();
+    await expect(page).toHaveURL(/mode=co2/);
+    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.locator('.panel .ev-controls')).toContainText('What does one source add?');
+    await expect(page.locator('.stage-title .big')).toContainText('the air of the whole planet');
+    await expect(page.locator('#results-section')).toContainText('The CO₂ calculator needs the backend.');
+    await expect(page.getByTestId('event-legend')).toHaveCount(0);
+
+    for (const mode of ['events', 'co2']) {
+      await page.getByRole('tab', { name: mode === 'events' ? 'Pollution events' : 'CO₂ calculator' }).click();
       await page.setViewportSize({ width: 390, height: 844 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.setViewportSize({ width: 1440, height: 1100 });
     }
     await page.getByRole('tab', { name: 'Climate claims' }).click();
-    await expect(page.locator('.stage-globe')).toBeVisible();
+    await expect(page.getByTestId('trend-legend')).toBeVisible();
     await expect(page.locator('.globe-map canvas[data-marker="first"]')).toHaveCount(1);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

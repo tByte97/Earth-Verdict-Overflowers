@@ -4,7 +4,7 @@ import { z } from 'zod';
 const finite = z.number().finite();
 const integer = finite.int();
 export const PlaceSchema = z.object({ place_id: z.string(), name: z.string(), lat: finite.min(-90).max(90), lon: finite.min(-180).max(180) }).strict();
-export const VariableSchema = z.object({ id: z.string().min(1), label: z.string(), units: z.string(), definition: z.string(), caveat: z.string().nullable().optional() }).strict();
+export const VariableSchema = z.object({ id: z.string().min(1), label: z.string(), units: z.string(), definition: z.string(), caveat: z.string().nullable().optional(), first_year: integer.optional(), last_year: integer.optional() }).strict();
 export const CaseSpecSchema = z.object({
   claim_text: z.string(), variable_id: z.string(), place: PlaceSchema,
   season: z.union([z.enum(['year', 'DJF', 'MAM', 'JJA', 'SON']), integer.min(1).max(12)]),

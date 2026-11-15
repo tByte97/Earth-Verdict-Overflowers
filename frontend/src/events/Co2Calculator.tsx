@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { isLive } from '../api';
 import { number } from '../format';
 import { runCo2 } from './api';
 import { Explain } from './Explain';
 import type { Co2Impact } from './schema';
+import { co2Overlay, type Overlay } from '../globe/overlays';
 import './events.css';
 
 // Emissions slider is logarithmic: 0.1 to 1,000 Mt CO2 per year (a large coal plant is ~10-20).
@@ -15,7 +17,9 @@ const presets = [
   { label: 'A country like Ukraine, 10 years', mt: 180, years: 10 },
 ];
 
-export function Co2Calculator() {
+// Like the other modes: sliders in the left panel, the answer over the globe (CO₂ mixes around the whole
+// planet, so the globe shows all of it), the working under it.
+export function Co2Calculator({ panel, stage, onGlobe, onOverlay }: { panel: HTMLElement | null; stage: HTMLElement | null; onGlobe: () => void; onOverlay: (overlay: Overlay | null) => void }) {
   const [mt, setMt] = useState(15);
   const [years, setYears] = useState(40);
   const [whatIf, setWhatIf] = useState(560);
@@ -38,22 +42,51 @@ export function Co2Calculator() {
     return () => window.clearTimeout(t);
   }, [mt, years, whatIf, useWhatIf]);
   useEffect(() => () => req.current?.abort(), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => onGlobe(), []);
 
-  if (!isLive) return <div className="empty-state"><span aria-hidden="true">◎</span><h2>The CO₂ calculator needs the backend.</h2><p>Open the connected version to use it.</p></div>;
+  const intro = <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Carbon dioxide</p><h2 id="co2-heading">What does one source add?</h2></div></div>;
+  if (!isLive) return <>
+    {panel && createPortal(<aside className="case-panel ev-controls" aria-labelledby="co2-heading">{intro}<p className="field-help">The calculator runs on the live service. <a href="?source=live&mode=co2">Open the connected version</a> to use it.</p></aside>, panel)}
+    {stage && createPortal(<><div className="eyebrow">Carbon dioxide</div><div className="big">What does one source add to the air of the whole planet?</div></>, stage)}
+    <div className="empty-state"><span aria-hidden="true">◎</span><h2>The CO₂ calculator needs the backend.</h2><p>Open the connected version to use it.</p></div>
+  </>;
 
   const r = result;
-  return <div className="ev-workspace">
+  // Only the what-if atmosphere can be seen on the planet; one source cannot.
+  const overlay = r && useWhatIf ? co2Overlay(r) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { onOverlay(overlay); }, [overlay?.key]);
+  const controls = <>
     <aside className="case-panel ev-controls" aria-labelledby="co2-heading">
-      <div className="panel-heading"><span className="step">01</span><div><p className="eyebrow">Carbon dioxide</p><h2 id="co2-heading">What does one source add?</h2></div></div>
+      {intro}
       <p className="field-help">CO₂ mixes around the whole planet within weeks, so one plant cannot be seen against its neighbours. Instead we turn its emissions into what they add to the global air, with published physics.</p>
-      <div className="ev-presets">{presets.map(p => <button key={p.label} type="button" className="chip" onClick={() => { setMt(p.mt); setYears(p.years); }}>{p.label}</button>)}</div>
+      <div className="cases ev-events" role="group" aria-label="Ready-made sources">{presets.map(p =>
+        <button key={p.label} type="button" className="case" aria-pressed={mt === p.mt && years === p.years} onClick={() => { setMt(p.mt); setYears(p.years); }}>
+          <b>{p.label}</b><span>{number(p.mt)} Mt a year · {p.years} years</span>
+        </button>)}</div>
       <label><span>Emissions: <strong>{number(mt)} Mt CO₂ per year</strong></span><input type="range" min={0} max={100} value={fromMt(mt)} onChange={e => setMt(toMt(Number(e.target.value)))} /></label>
       <label><span>For <strong>{years} years</strong></span><input type="range" min={1} max={100} value={years} onChange={e => setYears(Number(e.target.value))} /></label>
       <label className="ev-toggle"><input type="checkbox" checked={useWhatIf} onChange={e => setUseWhatIf(e.target.checked)} /> Also show: what if the whole atmosphere had…</label>
       {useWhatIf && <label><span><strong>{whatIf} ppm</strong> of CO₂ (pre-industrial: 280)</span><input type="range" min={280} max={1200} step={10} value={whatIf} onChange={e => setWhatIf(Number(e.target.value))} /></label>}
       {error && <div className="error" role="alert">{error}</div>}
     </aside>
-    <section className="result-panel ev-main" aria-busy={busy}>
+    {r && <button type="button" className="see-evidence" onClick={() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })}>See how it is calculated <span aria-hidden="true">↓</span></button>}
+  </>;
+  const headline = <>
+    <div className="eyebrow">Carbon dioxide · physics estimate, not an observation</div>
+    <div className="big">{r ? <>{number(r.spec.mt_co2_per_year)} Mt CO₂ a year for {number(r.spec.years)} years adds {number(r.added_ppm.central)} ppm</> : 'What does one source add to the air of the whole planet?'}</div>
+    {r && <div className="src">to the air of the whole planet, on top of {number(r.global_co2.latest_ppm)} ppm today</div>}
+    {r && <p className="stage-verdict" data-testid="stage-verdict"><strong>{number(r.transient_warming_c.central, true)} °C</strong> of warming · likely {number(r.transient_warming_c.low)} to {number(r.transient_warming_c.high)} °C</p>}
+    {r && <p className="trend-status" data-testid="co2-veil" data-veil={overlay?.colour}>{overlay && r.what_if_warming_c
+      ? <>The veil over the planet is the what-if atmosphere: {number(r.spec.what_if_ppm)} ppm would mean {number(r.what_if_warming_c.central, true)} °C above pre-industrial.</>
+      : 'One source is far too small to see on the planet, so the globe stays as it is.'}</p>}
+  </>;
+
+  return <>
+    {panel && createPortal(controls, panel)}
+    {stage && createPortal(headline, stage)}
+    <section className="ev-main" aria-busy={busy}>
       {r ? <article className={`verdict-card ev-card ${busy ? 'ev-stale' : ''}`}>
         <div className="card-top"><span className="eyebrow">Physics estimate · not an observation</span><span className="tag">Backend response</span></div>
         <h2 className="claim">{number(r.spec.mt_co2_per_year)} Mt CO₂ a year for {number(r.spec.years)} years</h2>
@@ -72,5 +105,5 @@ export function Co2Calculator() {
         <Explain kind="co2" result={r} />
       </article> : <div className="empty-state"><span aria-hidden="true">◎</span><h2>{busy ? 'Calculating…' : 'Move a slider.'}</h2></div>}
     </section>
-  </div>;
+  </>;
 }

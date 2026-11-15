@@ -22,13 +22,18 @@ async function saved(page, id, viewport = { width: 1440, height: 1100 }) {
 
 async function live(page, result) {
   await page.route('**/api/variables', route => route.fulfill({ json: [result.variable] }));
+  await page.route('**/api/regions', route => route.fulfill({ json: [{ place_id: 'region:globe', name: 'The whole planet', lat: 0, lon: 0 }] }));
   await page.route('**/api/places?*', route => route.fulfill({ json: [result.case.place] }));
   await page.route('**/api/check', route => route.fulfill({ json: result }));
   await page.goto('/?source=live');
   await expect(page.getByRole('combobox', { name: 'Variable', exact: true })).toBeEnabled();
   await page.getByLabel('Claim', { exact: true }).fill('Test-only intercepted case');
-  await page.getByLabel('Place', { exact: true }).fill(result.case.place.name.slice(0, 2));
-  await page.getByRole('button', { name: result.case.place.name, exact: true }).click();
+  if (result.variable.id === 'global_temp') {
+    await page.getByRole('combobox', { name: 'Region', exact: true }).selectOption(result.case.place.place_id);
+  } else {
+    await page.getByLabel('Place', { exact: true }).fill(result.case.place.name.slice(0, 2));
+    await page.getByRole('button', { name: result.case.place.name, exact: true }).click();
+  }
   await page.getByRole('button', { name: 'Check claim', exact: true }).click();
   await page.getByTestId('record-chart').scrollIntoViewIfNeeded();
 }

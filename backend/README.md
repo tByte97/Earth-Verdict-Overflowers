@@ -22,6 +22,18 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 | `EV_CORS_ORIGINS` | Comma-separated origins allowed to call the API (default: Vite dev server) |
 | `EV_RATE_LIMIT_EXEMPT_LOCAL` | Set to `1` to exempt unproxied loopback requests (`127.0.0.1` / `::1` with no forwarding headers) from per-client rate limits (for local cache warm-up) |
 
+## Docker
+
+One image serves the API and the built frontend (`VITE_DEFAULT_SOURCE=live`). Put `GEMINI_API_KEY` and
+`EARTHDATA_TOKEN` in `.env` at the repo root; the disk cache lives in the `cache` volume.
+
+```bash
+docker compose up -d --build                               # http://127.0.0.1:8790
+EV_BIND=100.x.y.z EV_PORT=8790 docker compose up -d        # publish on another host address/port
+docker compose --profile test run --rm backend-tests       # pytest
+docker compose --profile test run --rm e2e                 # Playwright (Vite dev server inside)
+```
+
 ## Deploy
 
 Run with a single worker (`--workers 1`) because rate limits and in-memory event caches live in process memory:
@@ -68,8 +80,9 @@ backend/.venv/bin/python tools/warm_cache.py http://127.0.0.1:8790
 | GET | `/api/co2/global` | Latest NOAA GML global monthly CO₂, YoY growth, and 1980+ Sen slope |
 | POST | `/api/chat` | `{kind: check\|event\|co2, result, question?, lang?}` → plain-language explanation from Gemini (`GEMINI_API_KEY` or `~/.config/gemini/api_key`, model `EV_LLM_MODEL`); numbers are checked against the result |
 | POST | `/api/parse-claim` | `{text}` → `{spec, place_found, place_query, notes, model}`: Gemini picks the variable, season, region and direction from fixed lists, the code checks them against the catalog and geocodes the place; no check runs, the user confirms the fields first. `422` `cannot_parse` when no variable fits |
-| GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected); top level has `variable_id`, `start_year`, `end_year`, `pair` (nearest cells with opposite significant trends, or null) and the cell counts `n_cells`, `n_significant_fdr`, `n_significant_raw` (counted from the features when served) |
+| GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected); top level has `variable_id`, `start_year`, `end_year`, `pair` (nearest cells with opposite significant trends, or null), `fade_km` and the cell counts `n_cells`, `n_significant_fdr`, `n_significant_raw` (counted from the non-halo features when served); each feature carries `fade` (1 inside Ukraine's Natural Earth outline, smoothstep to 0 at `fade_km`) |
 | GET | `/api/grid/index` | Built trend layers: `[{variable_id, season, start_year, end_year, units_per_decade}]`, read from `data/layers/` |
+| GET | `/api/grid/years?variable_id=air_temp&season=JJA` | Year-by-year maps for the globe timeline: every cell's seasonal value minus its own 1991–2020 average (`anomaly`), aligned `fade` weights from Ukraine's outline (`fade_km`), the area-mean per year (`mean`, `rank`), and the trailing 10-year averages (`anomaly_smooth`, `mean_smooth`); built by `tools/build_grid_years.py` |
 
 Each `steps[]` item has `fields` (dot paths into the result that the step summarises) and step-specific fields: `raw` → `n_months`, `monthly`; `season` → `months`, `aggregation`, `years_dropped`; `random_check` → `alpha`, `methods_agree`, `methods_reason`. They are `null` on the other steps.
 

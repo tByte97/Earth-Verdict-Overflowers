@@ -339,6 +339,47 @@ def _window_sen_slope(site_arr: np.ndarray, start_idx: int, end_idx: int) -> Opt
     )
 
 
+def placebo_event_indices(n_months: int, event_idx: int, window_years: int) -> list[int]:
+    """Candidate placebo event indices in ``n_months`` that do not overlap the real event span."""
+    w_months = window_years * 12
+    a_end = event_idx + w_months
+    n_steps = n_months // PLACEBO_STEP_MONTHS + 1
+    out: list[int] = []
+    for k in range(-n_steps, n_steps + 1):
+        if k == 0:
+            continue
+        fe = event_idx + k * PLACEBO_STEP_MONTHS
+        fb_start = fe - w_months
+        fa_end = fe + w_months
+        if fb_start < 0 or fa_end > n_months:
+            continue
+        # Both fake windows must lie entirely before the real event or entirely after its after-window.
+        if not (fa_end <= event_idx or fb_start >= a_end):
+            continue
+        out.append(fe)
+    return out
+
+
+def window_has_enough_placebos(
+    first_year: int,
+    last_year: int,
+    window_years: int,
+    earliest: str,
+    latest: str,
+) -> bool:
+    """True when every allowed event month in ``[earliest, latest]`` has at least ``MIN_PLACEBOS`` placebos."""
+    start_month = f"{first_year}-01"
+    n_months = (last_year - first_year + 1) * 12
+    start_idx = _ym_to_index(earliest, start_month)
+    end_idx = _ym_to_index(latest, start_month)
+    if start_idx > end_idx:
+        return False
+    return all(
+        len(placebo_event_indices(n_months, idx, window_years)) >= MIN_PLACEBOS
+        for idx in range(start_idx, end_idx + 1)
+    )
+
+
 def analyze_event(
     site: Sequence[Optional[float]],
     control: Optional[Sequence[Optional[float]]],
@@ -419,18 +460,7 @@ def analyze_event(
         )
 
     placebos: list[PlaceboResult] = []
-    n_steps = len(site_arr) // PLACEBO_STEP_MONTHS + 1
-    for k in range(-n_steps, n_steps + 1):
-        if k == 0:
-            continue
-        fe = event_idx + k * PLACEBO_STEP_MONTHS
-        fb_start = fe - w_months
-        fa_end = fe + w_months
-        if fb_start < 0 or fa_end > len(site_arr):
-            continue
-        # Both fake windows must lie entirely before the real event or entirely after its after-window.
-        if not (fa_end <= event_idx or fb_start >= a_end):
-            continue
+    for fe in placebo_event_indices(len(site_arr), event_idx, window_years):
         pl_eval = _evaluate_baci_window(
             site_arr,
             ctrl_arr,

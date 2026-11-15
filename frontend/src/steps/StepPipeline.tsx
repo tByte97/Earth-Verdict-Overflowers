@@ -1,5 +1,5 @@
 import type { CheckResult } from '../types';
-import { fieldContext, number, sourceIndex, type MethodKind } from '../format';
+import { fieldContext, number, seriesSourceName, sourceIndex, type MethodKind } from '../format';
 import './steps.css';
 
 type Step = CheckResult['steps'][number];
@@ -79,7 +79,7 @@ function Mini({ step, result: r }: { step: Step | undefined; result: CheckResult
       {r.robustness.map((w, i) => <rect key={i} className={w.significant ? 'window-on' : 'window-off'} x={x(w.start_year)} y={1 + i * row} width={x(w.end_year) - x(w.start_year)} height={row - 1.5} rx={1} />)}
     </svg>;
   }
-  if (id === 'witness' && r.witness) return <Spark label={`NASA POWER and station ${r.witness.station.name} yearly values; breaks are years without a station measurement`}
+  if (id === 'witness' && r.witness) return <Spark label={`${seriesSourceName(r)} and station ${r.witness.station.name} yearly values; breaks are years without a station measurement`}
     lines={[{ points: yearPoints(r.series), className: 'spark-series' }, { points: yearPoints(r.witness.series), className: 'spark-station' }]} />;
   if (id === 'verdict') return <span className={`step-verdict step-verdict-${r.verdict}`} aria-hidden="true">{verdictMarks[r.verdict]}</span>;
   return null;

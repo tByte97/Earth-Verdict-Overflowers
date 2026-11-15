@@ -86,6 +86,7 @@ test('a step missing from the response is reported, not skipped', async () => {
   try {
     const r = structuredClone(cases['kyiv-summer-heat']);
     r.steps = r.steps.filter(step => step.id !== 'robustness');
+    await page.route('**/api/cases', route => route.fulfill({ json: [] }));
     await page.route('**/api/variables', route => route.fulfill({ json: [r.variable] }));
     await page.route('**/api/places?*', route => route.fulfill({ json: [r.case.place] }));
     await page.route('**/api/check', route => route.fulfill({ json: r }));

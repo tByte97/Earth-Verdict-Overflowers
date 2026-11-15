@@ -1,52 +1,62 @@
-/* Record chart and evidence timeline. Tokens come from the dark shell; fallbacks keep the same look without it. */
+/* Record chart and evidence timeline in the light Earth Verdict theme (DM Sans & Manrope). */
 .record, .history-timeline {
-  --chart-surface: var(--surface, #0b0e14);
-  --chart-rule: var(--rule, rgba(236,235,230,.09));
-  --chart-ink: var(--ink, #ecebe6);
-  --chart-ink-2: var(--ink-2, #b4b3ab);
-  --chart-ink-3: var(--ink-3, #7c7b74);
-  --chart-cream: var(--cream, #efe6d2);
-  --chart-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: var(--chart-surface); color: var(--chart-ink); border: 1px solid var(--chart-rule); border-radius: 10px;
-  padding: 16px; margin: 18px 0; min-width: 0;
+  --chart-surface: #f9fbf8;
+  --chart-rule: #dbe3db;
+  --chart-ink: #243b33;
+  --chart-ink-2: #3f554a;
+  --chart-ink-3: #52665c;
+  --chart-cream: #245f47;
+  --chart-mono: 'DM Sans', system-ui, sans-serif;
+  background: var(--chart-surface);
+  color: var(--chart-ink);
+  border: 1px solid var(--chart-rule);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 24px 32px;
+  min-width: 0;
 }
-.record h3 { margin: 0; font: 600 22px/1.2 'Cormorant Garamond', Georgia, serif; color: var(--chart-ink); }
-.record-context { margin: 4px 0 10px; font: 500 11px/1.4 var(--chart-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--chart-ink-3); }
+.history-timeline {
+  margin: 14px 0;
+  padding: 16px;
+  background: #ffffff;
+}
+.record h3 { margin: 0; font: 700 20px/1.25 var(--display); color: var(--chart-ink); letter-spacing: -0.4px; }
+.record-context { margin: 4px 0 12px; font: 700 10px/1.4 var(--sans); letter-spacing: 1.4px; text-transform: uppercase; color: var(--chart-ink-3); }
 .record-plot { position: relative; min-width: 0; }
 .record-plot svg { display: block; width: 100%; height: auto; touch-action: pan-y; outline: none; }
 .record-plot svg:focus-visible { outline: 2px solid var(--chart-cream); outline-offset: 2px; border-radius: 4px; }
-.record-plot text { font: 10px var(--chart-mono); fill: var(--chart-ink-3); }
-.record .grid line { stroke: rgba(236,235,230,.07); }
-.record .band { opacity: .16; }
-.record .baseline { stroke: var(--chart-ink-2); stroke-dasharray: 5 4; opacity: .7; }
+.record-plot text { font: 500 10px var(--sans); font-variant-numeric: tabular-nums; fill: var(--chart-ink-3); }
+.record .grid line { stroke: #e3ebe2; }
+.record .band { opacity: .2; }
+.record .baseline { stroke: var(--chart-ink-2); stroke-dasharray: 5 4; opacity: .75; }
 .record .baseline-label, .record .emerged text { paint-order: stroke; stroke: var(--chart-surface); stroke-width: 3px; }
 .record .baseline-label { fill: var(--chart-ink-2); }
-.record .emerged line { stroke: var(--chart-cream); stroke-dasharray: 3 3; opacity: .5; }
+.record .emerged line { stroke: var(--chart-cream); stroke-dasharray: 3 3; opacity: .65; }
 .record .emerged text { fill: var(--chart-ink-2); }
-.record .series-line { fill: none; stroke: var(--chart-ink-3); stroke-width: 1.2; }
-.record .series-dot { fill: var(--chart-ink-2); stroke: var(--bg, #05070b); stroke-width: 1; }
+.record .series-line { fill: none; stroke: #5f7d70; stroke-width: 1.3; }
+.record .series-dot { fill: #3f554a; stroke: var(--chart-surface); stroke-width: 1; }
 .record .station-line { fill: none; stroke-width: 1.4; opacity: .9; }
 .record .trend-line { fill: none; stroke-width: 2.4; stroke-linecap: round; }
-.record .crosshair { stroke: var(--chart-cream); opacity: .4; }
-.record .future-zone { fill: rgba(236,235,230,.035); }
+.record .crosshair { stroke: var(--chart-cream); opacity: .45; }
+.record .future-zone { fill: #eef3ec; }
 .record .now { stroke: var(--chart-ink-2); opacity: .6; }
 .record .now-label { fill: var(--chart-ink-2); letter-spacing: .08em; text-transform: uppercase; }
-.record .scenario-fan { opacity: .16; }
-.record .scenario polyline { fill: none; stroke-width: 1.2; stroke-dasharray: 4 3; opacity: .45; }
-.record .scenario circle { stroke: none; opacity: .45; }
+.record .scenario-fan { opacity: .2; }
+.record .scenario polyline { fill: none; stroke-width: 1.2; stroke-dasharray: 4 3; opacity: .55; }
+.record .scenario circle { stroke: none; opacity: .55; }
 .record .scenario.selected polyline { stroke-width: 2.2; opacity: 1; }
 .record .scenario.selected circle { opacity: 1; }
-.record .node-ring { fill: none; stroke: var(--chart-cream); stroke-width: 1.5; }
+.record .node-ring { fill: none; stroke: var(--chart-cream); stroke-width: 1.6; }
 .record-tip {
   position: absolute; top: 8px; z-index: 2; pointer-events: none; min-width: 160px;
-  background: rgba(11,14,20,.96); border: 1px solid rgba(236,235,230,.16); border-radius: 8px;
-  padding: 8px 10px; font-size: 12px; color: var(--chart-ink); box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  background: rgba(255, 255, 255, .97); border: 1px solid var(--chart-rule); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; color: var(--chart-ink); box-shadow: 0 6px 20px rgba(36, 59, 51, .14);
   display: flex; flex-direction: column; gap: 2px;
 }
-.record-tip strong { font-weight: 500; margin-bottom: 2px; }
+.record-tip strong { font-weight: 600; margin-bottom: 2px; }
 .record-tip span { display: flex; justify-content: space-between; gap: 14px; color: var(--chart-ink-2); }
-.record-tip b { color: var(--chart-ink); font: 500 12px var(--chart-mono); }
-.record-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--chart-ink-2); }
+.record-tip b { color: var(--chart-ink); font: 600 12px var(--sans); font-variant-numeric: tabular-nums; }
+.record-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 11.5px; color: var(--chart-ink-2); }
 .record-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .record-legend i { display: inline-block; width: 14px; height: 2px; border-radius: 1px; }
 .record-legend .key-series { height: 6px; width: 6px; border-radius: 50%; background: var(--chart-ink-2); }
@@ -56,36 +66,40 @@
 .record-legend .key-baseline { background: none; border-top: 1px dashed var(--chart-ink-2); height: 0; }
 .record-note { margin: 8px 0 0; font-size: 12px; color: var(--chart-ink-3); }
 .record .chart-values { margin-top: 12px; }
-.record .chart-values summary { cursor: pointer; color: var(--chart-ink-2); font-size: 13px; }
-.record .chart-values summary span { color: var(--chart-ink-3); font-size: 11px; margin-left: 6px; }
+.record .chart-values summary { cursor: pointer; color: var(--chart-ink-2); font-size: 13px; padding: 8px 0 0; }
+.record .chart-values summary span { display: inline; color: var(--chart-ink-3); font-size: 11px; margin-left: 6px; }
 .record .chart-table { margin-top: 8px; }
 .record .chart-table table { color: var(--chart-ink-2); font-size: 12px; }
 .record .chart-table th, .record .chart-table td { border-color: var(--chart-rule); background: transparent; }
-.record .chart-table td { font-family: var(--chart-mono); }
+.record .chart-table td { font-variant-numeric: tabular-nums; }
 .record a { color: var(--chart-cream); }
 
-.history-timeline h5 { margin: 0 0 8px; font: 500 11px/1.4 var(--chart-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--chart-ink-3); }
+.history-timeline h5 { margin: 0 0 8px; font: 700 10px/1.4 var(--sans); letter-spacing: 1.4px; text-transform: uppercase; color: var(--chart-ink-3); }
 .history-timeline svg { display: block; width: 100%; height: auto; }
-.history-timeline text { font: 9px var(--chart-mono); fill: var(--chart-ink-3); }
-.history-timeline .block-later { opacity: .3; }
-.history-timeline .block-selected { stroke: var(--chart-cream); stroke-width: 1.5; }
+.history-timeline text { font: 9px var(--sans); fill: var(--chart-ink-3); }
+.history-timeline .block-later { opacity: .35; }
+.history-timeline .block-selected { stroke: var(--chart-ink); stroke-width: 1.5; }
 .history-timeline p { margin: 8px 0 0; font-size: 12px; color: var(--chart-ink-2); }
 .history-timeline .timeline-key { color: var(--chart-ink-3); }
 
 .scenarios { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--chart-rule); }
-.scenarios h4 { margin: 0 0 8px; font: 500 11px/1.4 var(--chart-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--chart-ink-3); }
-.scenarios h4 span { text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.scenarios h4 { margin: 0 0 8px; font: 700 10px/1.4 var(--sans); letter-spacing: 1.4px; text-transform: uppercase; color: var(--chart-ink-3); }
+.scenarios h4 span { text-transform: none; letter-spacing: 0; margin-left: 6px; font-weight: 500; }
 .scenario-choice { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .scenario-choice button {
   display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 5px 10px; cursor: pointer;
-  background: transparent; color: var(--chart-ink-2); border: 1px solid var(--chart-rule); border-radius: 6px; font: inherit; font-size: 12px;
+  background: #ffffff; color: var(--chart-ink-2); border: 1px solid var(--chart-rule); border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600;
 }
-.scenario-choice button[aria-pressed=true] { background: var(--chart-cream); color: var(--bg, #05070b); border-color: var(--chart-cream); }
+.scenario-choice button[aria-pressed=true] { background: var(--chart-cream); color: #ffffff; border-color: var(--chart-cream); }
 .scenario-choice button:focus-visible { outline: 2px solid var(--chart-cream); outline-offset: 2px; }
 .scenario-choice i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.scenario-choice small, .scenario-readout small { font: 10px var(--chart-mono); opacity: .75; }
+.scenario-choice small, .scenario-readout small { font: 600 10px var(--sans); opacity: .85; }
 .scenarios p, .scenario-none { margin: 6px 0 0; font-size: 12px; color: var(--chart-ink-2); }
-.scenario-readout b { color: var(--chart-ink); font: 500 12px var(--chart-mono); }
+.scenario-readout b { color: var(--chart-ink); font: 700 12px var(--sans); font-variant-numeric: tabular-nums; }
 .scenarios .scenario-analog { color: var(--chart-ink); font-size: 13px; }
-.scenario-disclaimer strong { color: var(--chart-ink); font-weight: 500; }
+.scenario-disclaimer strong { color: var(--chart-ink); font-weight: 600; }
 .scenarios .scenario-source, .record .scenario-none { color: var(--chart-ink-3); }
+
+@media (max-width: 900px) {
+  .record { margin-left: 16px; margin-right: 16px; padding: 16px; }
+}
