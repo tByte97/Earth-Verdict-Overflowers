@@ -6,6 +6,8 @@ import { UncertaintyPanel } from './UncertaintyPanel';
 import { waitingExplanation } from './detection';
 import { StepPipeline } from './steps/StepPipeline';
 import { RecordChart } from './chart/RecordChart';
+import { TermHelp, WordGlossary } from './TermHelp';
+import { glossary, significanceCaution } from './method/glossary';
 
 const verdicts = { confirmed: ['Confirmed', '✓'], refuted: ['Refuted', '×'], not_proven: ['Not proven', '?'] };
 const reasons: Record<string, string> = {
@@ -60,35 +62,37 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     </section>
     <UncertaintyPanel result={r} onSource={() => openSources('detection')} />
     <div className="headline-metric">
-      <span className="eyebrow">Rate of change · Sen’s slope</span>
+      <span className="eyebrow">Rate of change · Sen’s slope <TermHelp term="trend" /></span>
       <div className="metric-value">{number(r.sen.slope_per_decade, true)} <span>{r.variable.units} / decade</span></div>
       <p>Estimated over {period(r)}</p>
       <button type="button" className="text-button" aria-controls={sourceId} onClick={() => openSources()}>Data sources <span aria-hidden="true">↗</span></button>
     </div>
-    <div className={`witness witness-${r.witness?.agreement ?? 'no_station'}`}><span className="witness-dot" aria-hidden="true" /><div><strong>{agreement[0]}</strong><p>{agreement[1]}{r.witness ? ` Station: ${r.witness.station.name}.` : ''}</p></div></div>
+    <div className={`witness witness-${r.witness?.agreement ?? 'no_station'}`}><span className="witness-dot" aria-hidden="true" /><div><strong>{agreement[0]}</strong><TermHelp term="witness_station" /><p>{agreement[1]}{r.witness ? ` Station: ${r.witness.station.name}.` : ''}</p></div></div>
+    <p className="data-note variable-definition">{r.variable.definition}</p>
     {r.variable.caveat && <p className="data-note">{r.variable.caveat}</p>}
     {r.meta?.stub && <p className="data-note"><strong>Provisional statistics.</strong> Supplied by the team’s backend snapshot; results may change when the final statistics engine is ready.</p>}
     <RecordChart result={r} />
+    <WordGlossary />
     <StepPipeline result={r} onSource={openSources} />
     <details className="technical">
       <summary>How we checked this <span>Methods, uncertainty & full precision</span></summary>
       <div className="detail-body">
-        <p className="section-context">{period(r)} · Absolute observations; no anomaly baseline applies to this historical trend.</p>
+        <p className="section-context">{period(r)} · Absolute observations; no anomaly baseline applies to this historical trend. <TermHelp term="anomaly" /></p>
         <h4>Methods & uncertainty</h4>
-        <div className="table-scroll"><table><thead><tr><th>Method</th><th>Change per year</th><th>p · dimensionless</th></tr></thead><tbody>
+        <div className="table-scroll"><table><thead><tr><th>Method</th><th>Change per year</th><th>p · dimensionless <TermHelp term="p_value" /></th></tr></thead><tbody>
           <tr><th>Sen / Mann–Kendall</th><td>{number(r.sen.slope_per_year)} {r.variable.units} / year</td><td>{number(r.mk.p)}</td></tr>
           <tr><th>Regression / t-test</th><td>{number(r.ols.slope_per_year)} {r.variable.units} / year</td><td>{number(r.ols.p)}</td></tr>
         </tbody></table></div>
         <dl className="statistics">
-          <div><dt>Sen 95% confidence interval</dt><dd>{number(r.sen.ci_low)} to {number(r.sen.ci_high)} · {r.variable.units} / decade</dd></div>
+          <div><dt>Sen 95% confidence interval <TermHelp term="confidence_interval" /></dt><dd>{number(r.sen.ci_low)} to {number(r.sen.ci_high)} · {r.variable.units} / decade</dd></div>
           <div><dt>Residual autocorrelation r₁ · dimensionless</dt><dd>{number(r.detection?.phi)}</dd></div>
           <div><dt>Autocorrelation correction</dt><dd>{r.mk.correction ?? 'Not supplied'}</dd></div>
-          <div><dt>Period robustness</dt><dd>{r.robustness_summary.significant} of {r.robustness_summary.total} windows significant</dd></div>
+          <div><dt>Period robustness <TermHelp term="period_robustness" /></dt><dd>{r.robustness_summary.significant} of {r.robustness_summary.total} windows significant</dd></div>
           <div><dt>Additional waiting · years</dt><dd>{r.years_to_wait === null ? r.verdict === 'not_proven' ? 'Not determined' : 'Not applicable' : number(r.years_to_wait)}</dd></div>
         </dl>
         <p className="help-text">{waitingExplanation(r)}</p>
-        <p className="help-text"><strong>p-value:</strong> under the no-trend hypothesis and test assumptions, how likely a test statistic at least this extreme would be. It is not the probability that the claim is false.</p>
-        <p className="help-text"><strong>95% confidence interval:</strong> the uncertainty range for the slope under the method’s assumptions. <strong>r₁:</strong> how strongly neighbouring residuals are related. This value comes from <code>detection.phi</code>, bounded to 0–0.9 by the backend for its detection estimate; it is not a measurement of raw-series autocorrelation.</p>
+        <p className="help-text"><strong>p-value:</strong> {glossary.p_value.definition} {significanceCaution}</p>
+        <p className="help-text"><strong>95% confidence interval:</strong> {glossary.confidence_interval.definition} <strong>r₁:</strong> how strongly neighbouring residuals are related. This value comes from <code>detection.phi</code>, bounded to 0–0.9 by the backend for its detection estimate; it is not a measurement of raw-series autocorrelation.</p>
         <h4>Stability across periods</h4>
         <div className="table-scroll"><table><thead><tr><th>Period</th><th>Sen · {r.variable.units} / decade</th><th>p · dimensionless</th><th>Significant</th></tr></thead><tbody>{r.robustness.map((row, i) => <tr key={i}><th>{row.start_year}–{row.end_year} · {r.case.season}</th><td>{number(row.slope_per_decade, true)}</td><td>{number(row.p)}</td><td>{row.significant ? 'Yes' : 'No'}</td></tr>)}</tbody></table></div>
         <h4>All numeric response fields</h4>
@@ -110,6 +114,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     <details className="sources" ref={sourceDetails} id={sourceId}>
       <summary>Data sources <span>Provenance & reproducibility</span></summary>
       <div className="detail-body">
+        <p className="help-text"><strong>About reanalysis</strong> <TermHelp term="reanalysis" /></p>
         {r.meta?.stub && <p className="caution">The observations come from the team’s shared data files. Statistical outputs are provisional (<code>meta.stub: true</code>). Stylised future curves are not observations.</p>}
         <section className="source-record" id={`${sourceId}-statistics`}><h4>Backend statistics</h4><p>Calculated by {r.meta.stats_engine}. Statistical estimates and station-rate comparisons are derived from input observations, not raw provider readings.</p></section>
         <section className="source-record" id={`${sourceId}-detection`}><h4>Detection simulation</h4><p>The backend simulates the trend test using the supplied residual variability, autocorrelation and rate. These conditional durations are not NASA POWER measurements or forecasts. Inputs remain in the exact-value table.</p></section>

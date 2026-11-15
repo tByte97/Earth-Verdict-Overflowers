@@ -1,0 +1,43 @@
+.term-help {
+  font: 400 12px/1.6 var(--sans);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink-2);
+}
+.term-help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 5px;
+  padding: 0;
+  vertical-align: middle;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 13px/1 var(--sans);
+}
+.term-help-button:hover, .term-help-button[aria-expanded=true] {
+  border-color: var(--cream);
+}
+.term-help-text {
+  display: block;
+  max-width: 100%;
+  margin: 6px 0;
+  padding: 8px 0 8px 10px;
+  border-left: 2px solid var(--cream);
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: left;
+}
+.word-glossary { margin: 14px 0; }
+.word-glossary > summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+.word-glossary > summary > span { display: block; color: var(--ink-2); font-size: 12px; font-weight: 400; }
+.glossary-body { color: var(--ink-2); font-size: 12px; line-height: 1.6; }
+.glossary-body dl { margin: 14px 0; }
+.glossary-body dl > div { margin: 12px 0; }
+.glossary-body dt { color: var(--ink); font-weight: 500; }
+.glossary-body dd { margin: 3px 0 0; }
+.glossary-body p { margin: 12px 0; }
