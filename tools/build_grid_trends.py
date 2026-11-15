@@ -36,6 +36,26 @@ PARAM_CONFIG = {
 LAYERS_DIR = DATA / "layers"
 FDR_Q = 0.05
 MIN_YEARS = 15
+# The tested area (Ukraine): shares, the opposite pair and the area mean are computed here only.
+# Cells fetched around it are the halo: drawn so the map fades out over real data, tested as their own
+# FDR family and never counted with the core.
+CORE_BBOX = (44.0, 53.0, 22.0, 41.0)   # lat_min, lat_max, lon_min, lon_max
+
+
+def in_core(cell: dict) -> bool:
+    return CORE_BBOX[0] <= cell["lat"] <= CORE_BBOX[1] and CORE_BBOX[2] <= cell["lon"] <= CORE_BBOX[3]
+
+
+def halo_rings(cells: list[dict]) -> int:
+    """How many rows/columns of halo cells surround the core on its thinnest side."""
+    lats = sorted({c["lat"] for c in cells})
+    lons = sorted({c["lon"] for c in cells})
+    core_lats = [v for v in lats if CORE_BBOX[0] <= v <= CORE_BBOX[1]]
+    core_lons = [v for v in lons if CORE_BBOX[2] <= v <= CORE_BBOX[3]]
+    if not core_lats or not core_lons:
+        return 0
+    return min(lats.index(core_lats[0]), len(lats) - 1 - lats.index(core_lats[-1]),
+               lons.index(core_lons[0]), len(lons) - 1 - lons.index(core_lons[-1]))
 
 
 def sig3(p: float):
@@ -78,7 +98,7 @@ def cell_trend(years: np.ndarray, values: np.ndarray) -> tuple[float, float]:
 
 
 def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell_size: dict, cells_out: list[dict], raw_flags: list[bool],
-                  meta: dict | None = None) -> dict:
+                  meta: dict | None = None, halo: list[dict] | None = None) -> dict:
     dlat = float(cell_size["lat"])
     dlon = float(cell_size["lon"])
     half_lat = dlat / 2.0
@@ -114,6 +134,11 @@ def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell
                 "significant_raw": bool(sig_raw),
             },
         })
+    # Halo cells carry no polygon: the map is painted from the cell centres.
+    for c in halo or []:
+        features.append({"type": "Feature", "geometry": None,
+                         "properties": {"lat": c["lat"], "lon": c["lon"], "slope_per_decade": c["slope_per_decade"], "p": c["p"],
+                                        "significant_fdr": c["significant_fdr"], "halo": True}})
     return {
         "type": "FeatureCollection",
         "param": param,
@@ -123,6 +148,30 @@ def build_geojson(param: str, season: str, units_per_decade: str, q: float, cell
         **(meta or {}),
         "features": features,
     }
+
+
+def cells_with_trends(cells: list[dict], season: str, cfg: dict):
+    """Sen slope, MK p and BH-FDR flags for one family of cells."""
+    slopes = np.empty(len(cells), dtype=float)
+    p_vals = np.empty(len(cells), dtype=float)
+    span = [math.inf, -math.inf]
+    for i, cell in enumerate(cells):
+        years, vals = aggregate_seasonal(cell["monthly"], season, cfg["agg"], cfg["per_day"])
+        if len(years):
+            span = [min(span[0], years[0]), max(span[1], years[-1])]
+        slopes[i], p_vals[i] = cell_trend(years, vals)
+    fdr_sig = benjamini_hochberg(p_vals, q=FDR_Q) if len(cells) else np.zeros(0, dtype=bool)
+    cells_out = [
+        {
+            "lat": c["lat"],
+            "lon": c["lon"],
+            "slope_per_decade": round(float(s), 4) if math.isfinite(s) else None,
+            "p": sig3(float(p)),
+            "significant_fdr": bool(sf),
+        }
+        for c, s, p, sf in zip(cells, slopes, p_vals, fdr_sig)
+    ]
+    return slopes, p_vals, fdr_sig, cells_out, span
 
 
 def pair_meta(cells_out: list[dict], p_vals: np.ndarray) -> dict | None:
@@ -164,37 +213,18 @@ def main():
         if not grid_path.exists():
             sys.exit(f"Не знайдено {grid_path}; спочатку запустіть python3 tools/fetch_grid.py")
         grid = json.loads(grid_path.read_text())
-        cells = grid["cells"]
+        rings = halo_rings(grid["cells"])
+        cells = [c for c in grid["cells"] if in_core(c)]
+        halo_cells = [c for c in grid["cells"] if not in_core(c)]
         cell_size = grid["cell_size"]
 
         for season in SEASONS:
             t0 = time.perf_counter()
-            slopes = np.empty(len(cells), dtype=float)
-            p_vals = np.empty(len(cells), dtype=float)
-
-            span = [math.inf, -math.inf]
-            for i, cell in enumerate(cells):
-                years, vals = aggregate_seasonal(
-                    cell["monthly"], season, cfg["agg"], cfg["per_day"]
-                )
-                if len(years):
-                    span = [min(span[0], years[0]), max(span[1], years[-1])]
-                slopes[i], p_vals[i] = cell_trend(years, vals)
-
+            slopes, p_vals, fdr_sig, cells_out, span = cells_with_trends(cells, season, cfg)
             with np.errstate(invalid="ignore"):
                 raw_sig = p_vals < FDR_Q          # NaN (short cell) compares False
-            fdr_sig = benjamini_hochberg(p_vals, q=FDR_Q)
-
-            cells_out = [
-                {
-                    "lat": c["lat"],
-                    "lon": c["lon"],
-                    "slope_per_decade": round(float(s), 4) if math.isfinite(s) else None,
-                    "p": sig3(float(p)),
-                    "significant_fdr": bool(sf),
-                }
-                for c, s, p, sf in zip(cells, slopes, p_vals, fdr_sig)
-            ]
+            # The halo is its own family: its flags never change a core cell's flag or the core counts.
+            halo_out = [c for c in cells_with_trends(halo_cells, season, cfg)[3] if c["slope_per_decade"] is not None]
 
             n_raw = int(np.sum(raw_sig))
             n_fdr = int(np.sum(fdr_sig))
@@ -215,9 +245,9 @@ def main():
 
             meta = {"variable_id": cfg["variable_id"], "start_year": int(span[0]), "end_year": int(span[1]),
                     "n_cells": n_tested, "n_significant_fdr": n_fdr, "n_significant_raw": n_raw,
-                    "stats_engine": STATS_ENGINE, "pair": pair_meta(cells_out, p_vals)}
+                    "stats_engine": STATS_ENGINE, "pair": pair_meta(cells_out, p_vals), "halo_cells": rings}
             geojson = build_geojson(
-                param, season, cfg["units_per_decade"], FDR_Q, cell_size, cells_out, raw_sig.tolist(), meta
+                param, season, cfg["units_per_decade"], FDR_Q, cell_size, cells_out, raw_sig.tolist(), meta, halo_out
             )
             geojson_path = GRID_DIR / f"trends_{param}_{season}.geojson"
             geojson_path.write_text(json.dumps(geojson, ensure_ascii=False, separators=(",", ":")))

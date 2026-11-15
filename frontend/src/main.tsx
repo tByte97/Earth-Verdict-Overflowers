@@ -1,4 +1,4 @@
-import { StrictMode, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { StrictMode, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { FALLBACK_REGIONS, demoCases, findPlaces, getCase, getCases, getRegions, getVariables, isLive, isTransient, nearestCase, parseClaim, runCheck, type CaseItem } from './api';
 import { VerdictCard } from './VerdictCard';
@@ -12,6 +12,8 @@ import { parseHash, writeHash } from './url';
 import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from './globe/trends';
 import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
 import { seasonName as layerSeason } from './globe/presentation';
+import { describe, firstIndex, frameOf, loadYearMap, yearView, type YearMap } from './globe/years';
+import { Timeline, YearLegend } from './globe/Timeline';
 import './styles.css';
 import { CaseFile } from './CaseFile';
 
@@ -129,6 +131,20 @@ function App() {
   const [fade, setFade] = useState(true);
   const [pickNote, setPickNote] = useState('');
   const view = useMemo(() => (layer ? trendView(layer) : null), [layer]);
+  // Timeline: the same variable and season as the trend layer, one map per year. A picked year replaces the
+  // trend map on the globe; null shows the whole-period trend again.
+  const [yearMap, setYearMap] = useState<YearMap | null>(null);
+  const [timelineYear, setTimelineYear] = useState<number | null>(null);
+  const [smooth, setSmooth] = useState(false);
+  const years = useMemo(() => (yearMap && layer && yearMap.variable_id === layer.variable_id && yearMap.season === layer.season ? yearView(yearMap) : null), [yearMap, layer]);
+  const frame = useMemo(() => {
+    if (!years || timelineYear === null) return null;
+    const index = years.map.years.indexOf(timelineYear);
+    return frameOf(years, Math.max(firstIndex(years, smooth), index < 0 ? years.map.years.length - 1 : index), smooth);
+  }, [years, timelineYear, smooth]);
+  const yearsRef = useRef(years);
+  yearsRef.current = years;
+  const pickYear = useCallback((index: number | null) => setTimelineYear(index === null ? null : yearsRef.current?.map.years[index] ?? null), []);
   const labelOf = (variableId: string) => variables.find(variable => variable.id === variableId)?.label ?? variableId;
 
   function missingLayerNote(variableId: string, season: string, variableLabel?: string) {
@@ -205,6 +221,15 @@ function App() {
       if (controller.signal.aborted) return;
       setLayer(next); setLayerStatus(next ? '' : `No trend map for ${labelOf(layerKey.variable_id).toLowerCase()} in this season yet.`);
     }).catch(e => { if (!controller.signal.aborted) setLayerStatus(`Trend map unavailable: ${e.message}`); });
+    return () => controller.abort();
+  }, [layerKey]);
+
+  useEffect(() => {
+    setYearMap(null);
+    if (!layerKey) return;
+    const controller = new AbortController();
+    // No year-by-year map for this layer is not an error: the timeline is simply not offered.
+    loadYearMap(layerKey.variable_id, layerKey.season, controller.signal).then(next => { if (!controller.signal.aborted) setYearMap(next); }).catch(() => {});
     return () => controller.abort();
   }, [layerKey]);
 
@@ -447,24 +472,28 @@ function App() {
     </div>
     <section className="stage" aria-label={mode === 'claims' ? 'Case location' : modes.find(([id]) => id === mode)![1]}>
       <div className="stage-globe" hidden={mode !== 'claims'}>
-        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={result?.witness?.station ?? null} trend={view} fade={fade} onPick={isLive ? point => checkPoint(point) : undefined} /></Suspense></ErrorBoundary>
+        <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={result?.witness?.station ?? null} trend={view} fade={fade} frame={frame} onPick={isLive ? point => checkPoint(point) : undefined} /></Suspense></ErrorBoundary>
         <div className="stage-legend">
-          {view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
+          {frame ? <YearLegend frame={frame} variableLabel={labelOf(frame.view.map.variable_id)} /> : view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
           <div className="stage-legend-markers"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </div>
         <div className="stage-title">
           {/* With a trend layer on the map, the title describes that layer. */}
-          {layer ? <>
+          {frame ? <>
+            <div className="eyebrow">{layerSeason(frame.view.map.season)} {labelOf(frame.view.map.variable_id).toLowerCase()} over Ukraine{frame.smooth ? ` · ${frame.view.map.window}-year average` : ''}</div>
+            <div className="big" data-testid="timeline-headline">{describe(frame).headline}</div>
+          </> : layer ? <>
             <div className="eyebrow">{layerSeason(layer.season)} · {layer.start_year}–{layer.end_year}</div>
             <div className="big">Where is {labelOf(layer.variable_id).toLowerCase()} changing over Ukraine?</div>
           </> : <>
             {result && <div className="eyebrow">{seasonName(result.case.season)} · {result.case.start_year}–{result.case.end_year}{source ? ` · ${source}` : ''}</div>}
             <div className="big">Where is {result ? result.variable.label.toLowerCase() : 'the climate'} changing?</div>
           </>}
-          <div className="src">{selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</div>
-          {layer && <TrendCaption layer={layer} />}
+          <div className="src">{frame ? describe(frame).detail : selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</div>
+          {layer && !frame && <TrendCaption layer={layer} />}
           {(layerNote || layerStatus) && <p className="trend-status" role="status">{layerNote || layerStatus}</p>}
         </div>
+        {years && <Timeline view={years} index={frame ? frame.index : null} smooth={smooth} onIndex={pickYear} onSmooth={setSmooth} />}
       </div>
       {mode === 'events' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><EventsWorkspace /></Suspense></ErrorBoundary></div>}
       {mode === 'co2' && <div className="stage-workspace"><ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}><Co2Calculator /></Suspense></ErrorBoundary></div>}

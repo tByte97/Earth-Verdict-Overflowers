@@ -5,10 +5,12 @@ import type { LayerEntry, PairEnd, TrendCell, TrendLayer } from './trends';
 import './trend-map.css';
 
 // Everything the globe, legend and callout need to draw one layer, prepared once per layer.
-export interface TrendView { layer: TrendLayer; grid: Grid; cells: TrendCell[]; lim: number; pres: Presentation }
+// `cells` is everything painted; `core` is the tested area, which the scale, the dots and the words are read from.
+export interface TrendView { layer: TrendLayer; grid: Grid; cells: TrendCell[]; core: TrendCell[]; lim: number; pres: Presentation }
 export function trendView(layer: TrendLayer): TrendView {
   const cells = layer.features.map(feature => feature.properties);
-  return { layer, grid: gridOf(cells), cells, lim: colourLimit(cells), pres: presentationOf(layer.variable_id) };
+  const core = cells.filter(cell => !cell.halo);
+  return { layer, grid: gridOf(cells, layer.halo_cells), cells, core, lim: colourLimit(core), pres: presentationOf(layer.variable_id) };
 }
 
 export function TrendLegend({ view, fade, variableLabel }: { view: TrendView; fade: boolean; variableLabel: string }) {
@@ -36,7 +38,7 @@ export function CellTip({ view, cell, x, y }: { view: TrendView; cell: TrendCell
     <div className="trend-tip-title">{coords(cell.lat, cell.lon)}</div>
     <div className="trend-tip-row">Trend <b>{signed(cell.slope_per_decade)} {view.layer.units_per_decade}</b></div>
     <div className="trend-tip-row">p <b>{formatP(cell.p)}</b></div>
-    <div className="trend-tip-row trend-tip-small">{cell.significant_fdr ? 'significant' : 'could be chance'} · click to investigate</div>
+    <div className="trend-tip-row trend-tip-small">{cell.significant_fdr ? 'significant' : 'could be chance'}{cell.halo ? ' · outside the Ukraine area' : ''} · click to investigate</div>
   </div>;
 }
 
@@ -44,8 +46,9 @@ export interface LayerKey { variable_id: string; season: string }
 
 function fadeDisableReason(layer: TrendLayer | null): string | null {
   if (!layer) return 'No trend map is loaded.';
-  const total = layer.n_cells ?? layer.features.length;
-  const sig = layer.n_significant_fdr ?? layer.features.filter(f => f.properties.significant_fdr).length;
+  const tested = layer.features.filter(f => !f.properties.halo);
+  const total = layer.n_cells ?? tested.length;
+  const sig = layer.n_significant_fdr ?? tested.filter(f => f.properties.significant_fdr).length;
   if (sig === 0) return 'No cells are significant after FDR.';
   if (total > 0 && sig >= total) return 'Every cell is significant after FDR.';
   return null;
@@ -87,7 +90,7 @@ const pairLine = (end: PairEnd, word: string, units: string) =>
   <><b>{word}</b> around {coords(end.lat, end.lon)} ({signed(end.slope_per_decade)} {units}, p {end.p < 0.001 ? '<0.001' : `= ${end.p}`})</>;
 
 export function PairCallout({ view, variableLabel }: { view: TrendView; variableLabel: string }) {
-  const { layer, pres, cells } = view;
+  const { layer, pres, core: cells } = view;
   const subject = `${layer.season === 'year' ? 'Year-round' : seasonName(layer.season)} ${variableLabel.toLowerCase()}`;
   if (!layer.pair) {
     const direction = commonDirection(cells);

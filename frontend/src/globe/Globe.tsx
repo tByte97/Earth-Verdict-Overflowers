@@ -6,6 +6,8 @@ import { roundCoord, type PickedPoint } from './place';
 import { GLOBE_VIEW, flyToView, reducedMotion, type Destination } from './camera';
 import { paintGrid, cellAt, mercatorWorld, MERCATOR_LAT } from './paint';
 import { CellTip, type TrendView } from './TrendMap';
+import { YearTip } from './Timeline';
+import type { Frame, YearCell } from './years';
 import type { TrendCell } from './trends';
 import './globe.css';
 
@@ -140,7 +142,7 @@ function queueImage(map: maplibregl.Map, id: string, image: maplibregl.UpdateIma
 // Draws the layer: painted colour, FDR stipple and, when the backend found one, the opposite pair.
 function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): maplibregl.Marker[] {
   map.setLayoutProperty('trend', 'visibility', view ? 'visible' : 'none');
-  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(view ? { type: 'FeatureCollection', features: view.cells.filter(cell => cell.significant_fdr).map(cell => point(cell.lon, cell.lat)) } : EMPTY);
+  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(view ? { type: 'FeatureCollection', features: view.core.filter(cell => cell.significant_fdr).map(cell => point(cell.lon, cell.lat)) } : EMPTY);
   const pair = view?.layer.pair;
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(pair ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[pair.a.lon, pair.a.lat], [pair.b.lon, pair.b.lat]] } } : EMPTY);
   if (!view) return [];
@@ -151,7 +153,17 @@ function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): 
     .setLngLat([end.lon, end.lat]).addTo(map)) : [];
 }
 
-export function Globe({ place, station, destination, onPick, trend = null, fade = true }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; trend?: TrendView | null; fade?: boolean }) {
+// One step of the timeline: the same image source, painted with that year's values; no stipple, no pair.
+function showFrame(map: maplibregl.Map, frame: Frame) {
+  map.setLayoutProperty('trend', 'visibility', 'visible');
+  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(EMPTY);
+  (map.getSource('pair') as maplibregl.GeoJSONSource).setData(EMPTY);
+  const { view: { grid, lim, pres }, cells } = frame;
+  queueImage(map, 'trend', paintGrid(grid,
+    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? 0 : 0.88), t => pres.palette((t + 1) / 2)));
+}
+
+export function Globe({ place, station, destination, onPick, trend = null, fade = true, frame = null }: { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
@@ -160,9 +172,11 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
   const [proj, setProj] = useState(projection(1.4));
   // True once sources can be updated; `ready` also waits for the imagery.
   const [styleReady, setStyleReady] = useState(false);
-  const [tip, setTip] = useState<{ cell: TrendCell; x: number; y: number } | null>(null);
+  const [tip, setTip] = useState<{ cell?: TrendCell; yearCell?: YearCell; x: number; y: number } | null>(null);
   const trendView = useRef(trend);
   trendView.current = trend;
+  const yearFrame = useRef(frame);
+  yearFrame.current = frame;
   const pick = useRef(onPick);
   pick.current = onPick;
   const flight = useRef(0);
@@ -203,14 +217,20 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     };
     instance.on('sourcedata', collapseAttribution);
     instance.once('idle', () => setReady(true));
+    // A failed tile asks for no repaint, and 'idle' fires only from a render: without this the globe stays
+    // "loading" for good once the last imagery request has failed (offline, or imagery blocked).
+    instance.on('error', () => instance.triggerRepaint());
     instance.on('movestart', event => { if (event.originalEvent) takeOver(); setTip(null); });
     instance.on('zoom', () => setProj(current => { const next = projection(instance.getZoom()); return next.mode === current.mode ? current : next; }));
     // Hover shows the exact values of the cell under the pointer, never the blended colour.
     instance.on('mousemove', event => {
-      const view = trendView.current;
+      const view = trendView.current, year = yearFrame.current;
       const overMarker = event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker');
-      const cell = view && !overMarker ? cellAt(view.grid, event.lngLat.wrap().lng, event.lngLat.lat) : undefined;
-      setTip(cell ? { cell, x: event.originalEvent.clientX, y: event.originalEvent.clientY } : null);
+      const { lng, lat } = event.lngLat.wrap(), at = { x: event.originalEvent.clientX, y: event.originalEvent.clientY };
+      // With a year on the map the tooltip reads that year's cell; otherwise the trend cell.
+      const yearCell = year && !overMarker ? cellAt(year.view.grid, lng, lat) : undefined;
+      const cell = !year && view && !overMarker ? cellAt(view.grid, lng, lat) : undefined;
+      setTip(yearCell ? { yearCell, ...at } : cell ? { cell, ...at } : null);
     });
     instance.getCanvas().addEventListener('mouseleave', () => setTip(null));
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
@@ -238,9 +258,10 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
   useEffect(() => {
     if (!styleReady) return;
     setTip(null);
+    if (frame) { showFrame(map.current!, frame); return; }
     const chips = showTrend(map.current!, trend, fade);
     return () => { for (const marker of chips) marker.remove(); };
-  }, [styleReady, trend, fade]);
+  }, [styleReady, trend, fade, frame]);
 
   useEffect(() => {
     if (!station || !map.current) return;
@@ -263,6 +284,7 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
       </div>
       {onPick && <p className="globe-hint">{ready ? 'Click the map to check a spot' : 'Loading imagery…'}</p>}
     </div>}
-    {tip && trend && <CellTip view={trend} {...tip} />}
+    {tip?.yearCell && frame && <YearTip frame={frame} cell={tip.yearCell} x={tip.x} y={tip.y} />}
+    {tip?.cell && trend && !frame && <CellTip view={trend} cell={tip.cell} x={tip.x} y={tip.y} />}
   </div>;
 }

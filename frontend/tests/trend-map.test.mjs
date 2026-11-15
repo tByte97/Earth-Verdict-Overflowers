@@ -13,7 +13,9 @@ let browser;
 test.beforeAll(async ({ browser: sharedBrowser }) => { browser = sharedBrowser; });
 
 // The mocked backend adds the cell counts the real one sends with each layer.
-const withCounts = layer => ({ ...layer, n_cells: layer.features.length, n_significant_fdr: layer.features.filter(f => f.properties.significant_fdr).length, n_significant_raw: 0 });
+// Halo cells (fetched around Ukraine so the map fades out over real data) are never counted.
+const tested = layer => layer.features.filter(f => !f.properties.halo);
+const withCounts = layer => ({ ...layer, n_cells: tested(layer).length, n_significant_fdr: tested(layer).filter(f => f.properties.significant_fdr).length, n_significant_raw: 0 });
 // Counts come with the saved layer files now; a mocked old backend sends none.
 const withoutCounts = ({ n_cells, n_significant_fdr, n_significant_raw, stats_engine, ...rest }) => rest;
 // With one common test for all cells the saved precipitation layers hold no pair of opposite significant cells,
@@ -49,7 +51,7 @@ async function open({ live = false, index = true, counts = true, pair = false, i
 
 // Same display scale as the app: the 95th percentile of |slope|, rounded up to a nice step.
 function niceLimit(layer) {
-  const sorted = layer.features.map(f => Math.abs(f.properties.slope_per_decade)).sort((a, b) => a - b);
+  const sorted = tested(layer).map(f => Math.abs(f.properties.slope_per_decade)).sort((a, b) => a - b);
   const x = sorted[Math.floor(0.95 * (sorted.length - 1))], e = 10 ** Math.floor(Math.log10(x)), f = x / e;
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
 }
@@ -104,7 +106,7 @@ test('hovering a cell shows its exact values from the layer', async () => {
     const sign = cell.slope_per_decade > 0 ? '+' : '−';
     await expect(tip).toContainText(`Trend ${sign}${Math.abs(cell.slope_per_decade)} mm/decade`);
     await expect(tip).toContainText(`p ${cell.p < 0.001 ? '<0.001' : cell.p}`);
-    await expect(tip).toContainText(cell.significant_fdr ? 'significant · click to investigate' : 'could be chance · click to investigate');
+    await expect(tip).toContainText(`${cell.significant_fdr ? 'significant' : 'could be chance'}${cell.halo ? ' · outside the Ukraine area' : ''} · click to investigate`);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

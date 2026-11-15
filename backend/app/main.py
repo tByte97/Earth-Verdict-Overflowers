@@ -18,7 +18,7 @@ import anyio
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -398,7 +398,8 @@ LAYER_INDEX_KEYS = ("variable_id", "season", "start_year", "end_year", "units_pe
 def _read_layer(path: Path, mtime_ns: int) -> dict:
     """Layer file plus cell counts taken from its features (the files predate the counts)."""
     layer = json.loads(path.read_text(encoding="utf-8"))
-    props = [f["properties"] for f in layer["features"]]
+    # Halo cells only fade the map out around the tested area; they are never counted.
+    props = [f["properties"] for f in layer["features"] if not f["properties"].get("halo")]
     head = {k: v for k, v in layer.items() if k != "features"}
     # n_cells counts tested cells only (a cell too short for the test has p = null and is not in the FDR).
     return {**head, "n_cells": sum(p.get("p") is not None for p in props),
@@ -428,6 +429,18 @@ async def grid(variable_id: Literal["air_temp", "precip"] = "air_temp",
                                                  "message": "This trend layer has not been built yet."}).model_dump(),
                             status_code=503)
     return JSONResponse(load_layer(path), media_type="application/geo+json")
+
+
+@app.get("/api/grid/years")
+async def grid_years(variable_id: Literal["air_temp", "precip"] = "air_temp",
+                     season: Literal["year", "JJA", "DJF"] = "JJA"):
+    """Year-by-year anomaly maps for the globe timeline (tools/build_grid_years.py)."""
+    path = LAYERS_DIR / f"years_{variable_id}_{season}.json"
+    if not path.exists():
+        return JSONResponse(ErrorResponse(error={"code": "source_unavailable",
+                                                 "message": "This year-by-year map has not been built yet."}).model_dump(),
+                            status_code=503)
+    return FileResponse(path, media_type="application/json")
 
 
 # ---------- built frontend (single-service deploy) ----------

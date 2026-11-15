@@ -223,6 +223,10 @@ the page scrolls; there is no horizontal scroll at 390 px.
 
 The globe shows the precomputed, FDR-corrected trend layer from `GET /api/grid` (code in `src/globe/`).
 
+The timeline under the globe (`src/globe/Timeline.tsx`, data from `GET /api/grid/years` or the saved
+`data/layers/years_*.json`) puts one year on the map instead of the trend: play, drag or use the arrow keys.
+Every number it shows is in the file; the browser only draws.
+
 - **Data.** Period, units, `q`, the opposite pair and the variable all come from the layer. Variable and season
   buttons come from `GET /api/grid/index`; when the index is missing (404) only the current case's layer is shown.
   Saved mode reads the same precomputed files from `data/layers/`, so the deployed app shows the map without a backend.
