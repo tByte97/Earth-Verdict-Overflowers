@@ -71,6 +71,8 @@ test('the layer legend and caption repeat the values sent by the API', async () 
     await expect(legend.locator('.trend-legend-ends')).toHaveText(`−${lim}0+${lim}`);
     await expect(legend).toContainText(`dots = significant after FDR (q = ${layer.q})`);
     await expect(legend).toContainText('cooler ◂ ▸ warmer');
+    // Temperature is an even glow; only other kinds of variable carry a texture.
+    await expect(legend).not.toContainText('streaks');
     await expect(page.locator('.trend-caption')).toHaveText(`${Math.round(layer.n_significant_fdr / layer.n_cells * 100)}% of cells over Ukraine show a significant trend after FDR · chance alone would give ~5%`);
     const fade = page.getByLabel('Fade trends that could be chance');
     await expect(fade).toBeDisabled();

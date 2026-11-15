@@ -5,6 +5,7 @@ import { number } from '../format';
 import { runCo2 } from './api';
 import { Explain } from './Explain';
 import type { Co2Impact } from './schema';
+import { co2Overlay, type Overlay } from '../globe/overlays';
 import './events.css';
 
 // Emissions slider is logarithmic: 0.1 to 1,000 Mt CO2 per year (a large coal plant is ~10-20).
@@ -18,7 +19,7 @@ const presets = [
 
 // Like the other modes: sliders in the left panel, the answer over the globe (CO₂ mixes around the whole
 // planet, so the globe shows all of it), the working under it.
-export function Co2Calculator({ panel, stage, onGlobe }: { panel: HTMLElement | null; stage: HTMLElement | null; onGlobe: () => void }) {
+export function Co2Calculator({ panel, stage, onGlobe, onOverlay }: { panel: HTMLElement | null; stage: HTMLElement | null; onGlobe: () => void; onOverlay: (overlay: Overlay | null) => void }) {
   const [mt, setMt] = useState(15);
   const [years, setYears] = useState(40);
   const [whatIf, setWhatIf] = useState(560);
@@ -52,6 +53,10 @@ export function Co2Calculator({ panel, stage, onGlobe }: { panel: HTMLElement | 
   </>;
 
   const r = result;
+  // Only the what-if atmosphere can be seen on the planet; one source cannot.
+  const overlay = r && useWhatIf ? co2Overlay(r) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { onOverlay(overlay); }, [overlay?.key]);
   const controls = <>
     <aside className="case-panel ev-controls" aria-labelledby="co2-heading">
       {intro}
@@ -73,6 +78,9 @@ export function Co2Calculator({ panel, stage, onGlobe }: { panel: HTMLElement | 
     <div className="big">{r ? <>{number(r.spec.mt_co2_per_year)} Mt CO₂ a year for {number(r.spec.years)} years adds {number(r.added_ppm.central)} ppm</> : 'What does one source add to the air of the whole planet?'}</div>
     {r && <div className="src">to the air of the whole planet, on top of {number(r.global_co2.latest_ppm)} ppm today</div>}
     {r && <p className="stage-verdict" data-testid="stage-verdict"><strong>{number(r.transient_warming_c.central, true)} °C</strong> of warming · likely {number(r.transient_warming_c.low)} to {number(r.transient_warming_c.high)} °C</p>}
+    {r && <p className="trend-status" data-testid="co2-veil" data-veil={overlay?.colour}>{overlay && r.what_if_warming_c
+      ? <>The veil over the planet is the what-if atmosphere: {number(r.spec.what_if_ppm)} ppm would mean {number(r.what_if_warming_c.central, true)} °C above pre-industrial.</>
+      : 'One source is far too small to see on the planet, so the globe stays as it is.'}</p>}
   </>;
 
   return <>

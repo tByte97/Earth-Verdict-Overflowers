@@ -8,7 +8,8 @@ import { paintGrid, cellAt, mercatorWorld, MERCATOR_LAT } from './paint';
 import { CellTip, type TrendView } from './TrendMap';
 import { YearTip } from './Timeline';
 import type { Frame, YearCell } from './years';
-import { paintMark, type CaseMark } from './caseMark';
+import type { Overlay } from './overlays';
+import { textureOf } from './texture';
 import type { TrendCell } from './trends';
 import './globe.css';
 
@@ -155,7 +156,7 @@ function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): 
   queueImage(map, 'trend', paintGrid(grid,
     // A trend that could be chance is drawn white, like a place with no data: only a clear trend gets colour.
     cell => (!fade || cell.significant_fdr ? Math.max(-1, Math.min(1, cell.slope_per_decade / lim)) : 0),
-    cell => (!fade || cell.significant_fdr ? 0.88 : NOISE_ALPHA) * (cell.fade ?? 1), t => pres.palette((t + 1) / 2)));
+    cell => (!fade || cell.significant_fdr ? 0.88 : NOISE_ALPHA) * (cell.fade ?? 1), t => pres.palette((t + 1) / 2), textureOf(view.layer.variable_id)));
   return pair ? [pair.a, pair.b].map(end => new maplibregl.Marker({ element: chip(end.slope_per_decade > 0 ? `▲ ${pres.up}` : `▼ ${pres.down}`, end.slope_per_decade <= 0) })
     .setLngLat([end.lon, end.lat]).addTo(map)) : [];
 }
@@ -167,18 +168,18 @@ function showFrame(map: maplibregl.Map, frame: Frame) {
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(EMPTY);
   const { view: { grid, lim, pres }, cells } = frame;
   queueImage(map, 'trend', paintGrid(grid,
-    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88) * cell.fade, t => pres.palette((t + 1) / 2)));
+    cell => Math.max(-1, Math.min(1, (cells[cell.i] ?? 0) / lim)), cell => (cells[cell.i] === null ? NOISE_ALPHA : 0.88) * cell.fade, t => pres.palette((t + 1) / 2), textureOf(frame.view.map.variable_id)));
 }
 
-// A case with no map of its own: one disc at its place, in the same image source.
-function showMark(map: maplibregl.Map, mark: CaseMark) {
+// A result with no map of its own (a case elsewhere, an event, CO₂): one light drawing in the same image source.
+function showMark(map: maplibregl.Map, mark: Overlay) {
   map.setLayoutProperty('trend', 'visibility', 'visible');
   (map.getSource('sig') as maplibregl.GeoJSONSource).setData(EMPTY);
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(EMPTY);
-  queueImage(map, 'trend', paintMark(mark));
+  queueImage(map, 'trend', mark.paint());
 }
 
-export function Globe({ place, station, destination, onPick, pickHint = 'Click the map to check a spot', trend = null, fade = true, frame = null, mark = null }: { mark?: CaseMark | null } & { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; pickHint?: string; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
+export function Globe({ place, station, destination, onPick, pickHint = 'Click the map to check a spot', trend = null, fade = true, frame = null, mark = null }: { mark?: Overlay | null } & { place: Place | null; station: Station | null; destination?: Destination | null; onPick?: (point: PickedPoint) => void; pickHint?: string; trend?: TrendView | null; fade?: boolean; frame?: Frame | null }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);

@@ -1,5 +1,6 @@
 import type { TrendCell } from './trends';
 import { niceStep, type Ramp } from '../colour';
+import { applyTexture, type Texture } from './texture';
 
 // Display scale only: the 95th percentile of |slope| rounded up to a nice step, so one extreme cell does not wash out the map.
 export function colourLimit(cells: TrendCell[]) {
@@ -46,12 +47,13 @@ export function mercatorWorld(image: HTMLImageElement) {
   return canvas.toDataURL('image/jpeg', 0.9);
 }
 
+const TEXTURE_SCALE = 3;
 export type ImageCoordinates = [[number, number], [number, number], [number, number], [number, number]];
 
 // Pure rendering: per-cell value in [-1, 1] and opacity → a smooth image. The bilinear blend is for
 // colour only; tooltips always read the exact cell. Colour fades next to missing cells; the outer
 // shape and soft border come from the per-cell `fade` weight in `alpha`.
-export function paintGrid<T>(grid: Grid<T>, value: (cell: T) => number, alpha: (cell: T) => number, colour: Ramp) {
+export function paintGrid<T>(grid: Grid<T>, value: (cell: T) => number, alpha: (cell: T) => number, colour: Ramp, texture: Texture | null = null) {
   const { lat0, lon0, dlat, dlon, nlat, nlon, cells } = grid;
   // Pad by one cell on every side so outermost cells fade next to empty space like interior edges.
   const west = lon0 - dlon, east = lon0 + nlon * dlon;
@@ -85,5 +87,12 @@ export function paintGrid<T>(grid: Grid<T>, value: (cell: T) => number, alpha: (
   }
   ctx.putImageData(img, 0, 0);
   const coordinates: ImageCoordinates = [[west, north], [east, north], [east, south], [west, south]];
-  return { url: canvas.toDataURL('image/png'), coordinates };
+  if (!texture) return { url: canvas.toDataURL('image/png'), coordinates };
+  // The texture is drawn on an enlarged copy, so its marks stay fine when the map is zoomed in.
+  const fine = document.createElement('canvas');
+  fine.width = W * TEXTURE_SCALE; fine.height = H * TEXTURE_SCALE;
+  const fctx = fine.getContext('2d')!;
+  fctx.drawImage(canvas, 0, 0, fine.width, fine.height);
+  applyTexture(fctx, fine.width, fine.height, texture);
+  return { url: fine.toDataURL('image/png'), coordinates };
 }

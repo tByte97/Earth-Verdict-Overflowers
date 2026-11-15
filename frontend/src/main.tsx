@@ -13,9 +13,9 @@ import { loadLayerIndex, loadTrendLayer, type LayerEntry, type TrendLayer } from
 import { LayerControls, PairCallout, TrendCaption, TrendLegend, trendView, type LayerKey } from './globe/TrendMap';
 import { seasonName as layerSeason } from './globe/presentation';
 import { describe, firstIndex, frameOf, loadYearMap, yearView, type YearMap } from './globe/years';
-import { caseMark, caseOnMap, markColour } from './globe/caseMark';
-import { css, gradient } from './colour';
-import { presentationOf } from './globe/presentation';
+import { caseOnMap, caseOverlay, type Overlay } from './globe/overlays';
+import { textureOf, textureWords } from './globe/texture';
+import { coloursOf, gradient } from './colour';
 import { Timeline, YearLegend } from './globe/Timeline';
 import './styles.css';
 import { CaseFile } from './CaseFile';
@@ -68,6 +68,7 @@ function App() {
   const [mode, setModeState] = useState<Mode>(initialMode);
   function setMode(m: Mode) {
     setModeState(m);
+    setModeOverlay(null);
     // Back to the claims: the globe returns to the open case.
     if (m === 'claims' && mode !== 'claims' && result) flyTo(result.case.claim_text, caseView(result));
     const url = new URL(window.location.href); if (m === 'claims') url.searchParams.delete('mode'); else url.searchParams.set('mode', m);
@@ -92,6 +93,8 @@ function App() {
   const [stageSlot, setStageSlot] = useState<HTMLElement | null>(null);
   const [modePlace, setModePlace] = useState<Place | null>(null);
   const [eventPick, setEventPick] = useState<{ point: PickedPoint; key: number } | null>(null);
+  // The light drawing an event or the CO₂ estimate puts on the globe.
+  const [modeOverlay, setModeOverlay] = useState<Overlay | null>(null);
   const showOnGlobe = useCallback((place: Place, title: string) => { setModePlace(place); setDestination({ key: ++flightKey.current, title, view: placeView(place) }); }, []);
   const showPlanet = useCallback(() => { setModePlace(null); setDestination({ key: ++flightKey.current, title: 'The whole planet', view: { kind: 'globe' } }); }, []);
   function openCase(id: string, next: CheckResult) {
@@ -167,7 +170,7 @@ function App() {
   const exploring = !!result && explored === result && !onMap;
   const covered = !result || onMap || exploring;
   const layerLoading = !!layerKey && !layer && layerStatus.startsWith('Loading');
-  const mark = useMemo(() => (result && !covered && !layerLoading ? caseMark(result) : null), [result, covered, layerLoading]);
+  const mark = useMemo(() => (result && !covered && !layerLoading ? caseOverlay(result) : null), [result, covered, layerLoading]);
   const slopeText = (slope: number) => `${slope > 0 ? '+' : slope < 0 ? '−' : ''}${Math.abs(slope) >= 10 ? Math.abs(slope).toFixed(0) : Math.abs(slope).toFixed(2)}`;
   const pickYear = useCallback((index: number | null) => setTimelineYear(index === null ? null : yearsRef.current?.map.years[index] ?? null), []);
   const labelOf = (variableId: string) => variables.find(variable => variable.id === variableId)?.label ?? variableId;
@@ -500,14 +503,15 @@ function App() {
     <section className="stage" aria-label={mode === 'claims' ? 'Case location' : modes.find(([id]) => id === mode)![1]}>
       <div className="stage-globe">
         <ErrorBoundary><Suspense fallback={<div className="map-loading" role="status">Loading globe…</div>}><Globe place={mode !== 'claims' ? modePlace : selectedPlace && !spec.place.place_id.startsWith('region:') ? spec.place : null} destination={destination} station={mode === 'claims' ? result?.witness?.station ?? null : null}
-          trend={mode === 'claims' && covered ? view : null} fade={fade} frame={mode === 'claims' && covered ? frame : null} mark={mode === 'claims' ? mark : null}
+          trend={mode === 'claims' && covered ? view : null} fade={fade} frame={mode === 'claims' && covered ? frame : null} mark={mode === 'claims' ? mark : modeOverlay}
           pickHint={mode === 'events' ? 'Click the map to move the event there' : undefined}
           onPick={!isLive || mode === 'co2' ? undefined : mode === 'events' ? point => setEventPick(pick => ({ point, key: (pick?.key ?? 0) + 1 })) : point => checkPoint(point)} /></Suspense></ErrorBoundary>
         {mode === 'claims' ? <><div className="stage-legend">
           {!covered ? mark && result && <div className="trend-legend" data-testid="mark-legend">
             <span className="trend-legend-title">This case at {result.case.place.name}</span>
-            <div className="trend-legend-bar" style={{ background: gradient(presentationOf(result.case.variable_id).palette) }} />
-            <div className="trend-legend-note"><div>{presentationOf(result.case.variable_id).down} ◂ ▸ {presentationOf(result.case.variable_id).up}</div><div>white = could be chance (noise)</div></div>
+            <div className="trend-legend-bar" style={{ background: gradient(coloursOf(result.case.variable_id).map) }} />
+            <div className="trend-legend-note"><div>{coloursOf(result.case.variable_id).down} ◂ ▸ {coloursOf(result.case.variable_id).up}</div><div>white = could be chance (noise)</div>
+              {textureOf(result.case.variable_id) && <div>{textureWords[textureOf(result.case.variable_id)!]}</div>}</div>
           </div> : frame ? <YearLegend frame={frame} variableLabel={labelOf(frame.view.map.variable_id)} /> : view && <TrendLegend view={view} fade={fade} variableLabel={labelOf(view.layer.variable_id)} />}
           <div className="stage-legend-markers"><span><i className="legend-place" />Case point</span><span><i className="legend-station" />Ground station</span></div>
         </div>
@@ -528,7 +532,7 @@ function App() {
             <div className="big">Where is {result ? result.variable.label.toLowerCase() : 'the climate'} changing?</div>
           </>}
           <div className="src">{frame ? describe(frame).detail : exploring ? 'The map you picked; it is not about the open case' : selectedPlace ? spec.place.name : 'Choose a place or pick a point'}</div>
-          {result && !exploring && !(covered && frame) && <p className={`stage-verdict ${result.verdict}`} data-testid="stage-verdict" data-mark={mark ? css(markColour(mark)) : undefined}>
+          {result && !exploring && !(covered && frame) && <p className={`stage-verdict ${result.verdict}`} data-testid="stage-verdict" data-mark={mark?.colour}>
             <strong>{{ confirmed: 'Confirmed', refuted: 'Refuted', not_proven: 'Not proven' }[result.verdict]}</strong> · {slopeText(result.sen.slope_per_decade)} {result.variable.units} per decade · {result.case.place.name}</p>}
           {covered && layer && !frame && <TrendCaption layer={layer} />}
           {covered ? (layerNote || layerStatus) && <p className="trend-status" role="status">{layerNote || layerStatus}</p>
@@ -537,7 +541,10 @@ function App() {
         {years && covered && <Timeline view={years} index={frame ? frame.index : null} smooth={smooth} onIndex={pickYear} onSmooth={setSmooth} />}
         </> : <>
           {/* Events and CO₂ write their own headline here; the globe shows where (or, for CO₂, the whole planet). */}
-          {mode === 'events' && <div className="stage-legend"><div className="stage-legend-markers"><span><i className="legend-place" />Event place</span></div></div>}
+          {mode === 'events' && <div className="stage-legend"><div className="trend-legend" data-testid="event-legend">
+            <span className="trend-legend-title">The air at this place after the event</span>
+            <div className="trend-legend-note"><div><i className="swatch" style={{ background: '#c4702f' }} />more of the gas · <i className="swatch" style={{ background: '#4f9fd0' }} />less of it</div><div>white = change not proven · dashed ring = comparison points</div></div>
+          </div><div className="stage-legend-markers"><span><i className="legend-place" />Event place</span></div></div>}
           <div className="stage-title stage-mode-title" ref={setStageSlot} />
         </>}
       </div>
@@ -546,7 +553,7 @@ function App() {
       {mode !== 'claims' ? <div className="result-container">
         <div className="result-heading"><span className="step">02</span><p className="eyebrow">{mode === 'events' ? 'The evidence, in focus' : 'How it is calculated'}</p></div>
         <ErrorBoundary><Suspense fallback={<div className="empty-state" role="status">Loading…</div>}>
-          {mode === 'events' ? <EventsWorkspace panel={panelSlot} stage={stageSlot} onPlace={showOnGlobe} pick={eventPick} /> : <Co2Calculator panel={panelSlot} stage={stageSlot} onGlobe={showPlanet} />}
+          {mode === 'events' ? <EventsWorkspace panel={panelSlot} stage={stageSlot} onPlace={showOnGlobe} onOverlay={setModeOverlay} pick={eventPick} /> : <Co2Calculator panel={panelSlot} stage={stageSlot} onGlobe={showPlanet} onOverlay={setModeOverlay} />}
         </Suspense></ErrorBoundary>
       </div> : <div className="result-container">
         <div className="result-heading"><span className="step">02</span><p className="eyebrow">The evidence, in focus</p></div>

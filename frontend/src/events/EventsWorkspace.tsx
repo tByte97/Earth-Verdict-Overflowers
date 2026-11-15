@@ -4,6 +4,7 @@ import { findPlaces, isLive } from '../api';
 import { number } from '../format';
 import type { Place } from '../types';
 import { pointPlace, type PickedPoint } from '../globe/place';
+import { eventOverlay, type Overlay } from '../globe/overlays';
 import { getCompounds, getEventSites, getProfile, runEvent, savedEvent } from './api';
 import { EventCard } from './EventCard';
 import { EventChart, indexYm, ymIndex } from './EventChart';
@@ -20,8 +21,8 @@ const monthName = (ym: string) => new Intl.DateTimeFormat('en', { month: 'short'
 
 // The parts live in three places of the shell, like a climate claim does: the controls in the left panel,
 // the verdict over the globe, the evidence under it. `pick` is a point the user clicked on the globe.
-export function EventsWorkspace({ panel, stage, onPlace, pick }: {
-  panel: HTMLElement | null; stage: HTMLElement | null; onPlace: (place: Place, title: string) => void; pick: { point: PickedPoint; key: number } | null;
+export function EventsWorkspace({ panel, stage, onPlace, onOverlay, pick }: {
+  panel: HTMLElement | null; stage: HTMLElement | null; onPlace: (place: Place, title: string) => void; onOverlay: (overlay: Overlay | null) => void; pick: { point: PickedPoint; key: number } | null;
 }) {
   const [sites, setSites] = useState<EventSite[]>([]);
   const [compounds, setCompounds] = useState<Compound[]>([]);
@@ -173,6 +174,10 @@ export function EventsWorkspace({ panel, stage, onPlace, pick }: {
 
   // Over the globe: what was checked and the answer, in the words the card below uses.
   const shown = result && !stale ? result : null;
+  // The globe draws the answer at the place: a haze in the answer's colour and the ring of comparison points.
+  const overlay = useMemo(() => (shown ? eventOverlay(shown) : null), [shown]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { onOverlay(overlay); }, [overlay?.key]);
   const headline = setup && <>
     <div className="eyebrow">Pollution event{compound ? ` · ${compound.label}` : ''} · {monthName(setup.event_month)}</div>
     <div className="big">{setup.label}</div>

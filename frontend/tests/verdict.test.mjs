@@ -565,6 +565,8 @@ test('events and CO₂ use the same shell: controls in the panel, the answer ove
     await expect(page.locator('.stage-title .src')).toHaveText(sites[0].place.name);
     await expect(page.getByTestId('stage-verdict')).toContainText(first.verdict === 'clear_change' ? 'Clear change' : 'Not proven');
     await expect(page.locator('#results-section .ev-card')).toBeVisible();
+    // The globe draws the answer at the place and says how to read it.
+    await expect(page.getByTestId('event-legend')).toContainText('dashed ring = comparison points');
     // Another event: the headline over the globe follows it.
     await page.locator(`.panel [data-event="${sites[1].id}"]`).click();
     await expect(page.locator('.stage-title .big')).toHaveText(sites[1].label);
@@ -576,6 +578,7 @@ test('events and CO₂ use the same shell: controls in the panel, the answer ove
     await expect(page.locator('.panel .ev-controls')).toContainText('What does one source add?');
     await expect(page.locator('.stage-title .big')).toContainText('the air of the whole planet');
     await expect(page.locator('#results-section')).toContainText('The CO₂ calculator needs the backend.');
+    await expect(page.getByTestId('event-legend')).toHaveCount(0);
 
     for (const mode of ['events', 'co2']) {
       await page.getByRole('tab', { name: mode === 'events' ? 'Pollution events' : 'CO₂ calculator' }).click();

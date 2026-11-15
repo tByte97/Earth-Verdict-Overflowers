@@ -226,6 +226,14 @@ a {
 }
 
 /* ---------- Stage chrome over the globe ---------- */
+.trend-legend-note .swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin: 0 4px 0 0;
+  border-radius: 50%;
+  box-shadow: none;
+}
 .stage-verdict {
   display: table;
   margin: 10px 0 0;

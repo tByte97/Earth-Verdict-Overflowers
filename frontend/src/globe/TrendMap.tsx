@@ -2,6 +2,7 @@ import { colourLimit, gridOf, type Grid } from './paint';
 import { gradient } from '../colour';
 import { bySeason, commonDirection, coords, formatLimit, formatP, presentationOf, seasonName, signed, type Presentation } from './presentation';
 import type { LayerEntry, PairEnd, TrendCell, TrendLayer } from './trends';
+import { textureOf, textureWords } from './texture';
 import './trend-map.css';
 
 // Everything the globe, legend and callout need to draw one layer, prepared once per layer.
@@ -23,6 +24,7 @@ export function TrendLegend({ view, fade, variableLabel }: { view: TrendView; fa
       <div><i aria-hidden="true" />dots = significant after FDR (q = {layer.q})</div>
       {fade && <div>white = could be chance (noise)</div>}
       <div>{pres.down} ◂ ▸ {pres.up}</div>
+      {textureOf(layer.variable_id) && <div>{textureWords[textureOf(layer.variable_id)!]}</div>}
     </div>
   </div>;
 }
