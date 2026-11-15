@@ -107,7 +107,7 @@ test('prefix statistics have exact values, period context and their own one-clic
 
 test('missing observations, rising p-values and genuine zero retain their meanings', async ({ page }) => {
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   const result = structuredClone(heat);
   result.series[5].value = null;
   result.detection_history.points.forEach((point, i) => {

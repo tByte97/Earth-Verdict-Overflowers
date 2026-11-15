@@ -23,7 +23,7 @@ async function open(path = '/', { blockImagery = false } = {}) {
   // Provenance/state assertions can run offline; globe screenshots still load imagery.
   if (blockImagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   // Live mode lists /api/cases; an empty list keeps these tests on the form path.
   await page.route('**/api/cases', route => route.fulfill({ json: [] }));
   await page.goto(baseURL + path);

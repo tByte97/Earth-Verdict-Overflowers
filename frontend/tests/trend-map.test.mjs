@@ -27,7 +27,7 @@ async function open({ live = false, index = true, counts = true, pair = false, i
   if (!imagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
   const errors = [];
   const checks = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push(error.stack || error.message));
   if (live) {
     // Live mode lists /api/cases; an empty list keeps these tests on the form path.
     await page.route('**/api/cases', route => route.fulfill({ json: [] }));
