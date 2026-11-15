@@ -44,8 +44,16 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 Each `steps[]` item has `fields` (dot paths into the result that the step summarises) and step-specific fields: `raw` → `n_months`, `monthly`; `season` → `months`, `aggregation`, `years_dropped`; `random_check` → `alpha`, `methods_agree`, `methods_reason`. They are `null` on the other steps.
 
 Errors always look like `{"error": {"code": "...", "message": "..."}}` with codes
-`unknown_variable`, `short_series`, `bad_request` (400), `place_not_found` (404),
-`source_unavailable` (503).
+`unknown_variable`, `short_series`, `no_data` (the product has no data at this point: ocean, ice,
+outside coverage), `bad_request` (400), `place_not_found` (404), `rate_limited` (429),
+`internal` (500, details only in the server log), `source_unavailable`, `busy` (503).
+Request bodies over 256 KB get 413 with `bad_request`.
+
+Robustness: the check is repeated on up to 5 periods with the start and/or end shifted by
+3–6 years; a window with fewer than 15 valid years does not count. A robust verdict needs
+80% of the tested windows, rounded up (5→4, 3→3, 2→2). A 15–17-year period has one window, the
+period itself, so stability is reported as "not tested". A series that never changes
+(e.g. snow depth in summer) is `not_proven` with reason `no_variation`.
 
 ```bash
 curl -s localhost:8000/api/check -H 'Content-Type: application/json' -d '{

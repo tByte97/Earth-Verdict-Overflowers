@@ -64,7 +64,7 @@ def build(city_key, variable_id, season, direction, claim, start=1981, end=2025,
             url=(f"https://www.ncei.noaa.gov/access/services/data/v1?dataset={dataset}&stations={st['id']}"
                  f"&dataTypes={var.witness}&units=metric&format=json"),
             retrieved_at=city["retrieved"])
-    r = assemble_result(spec, var, main, station, scenarios=scenarios, stub=True)
+    r = assemble_result(spec, var, main, station, scenarios=scenarios, stub=False)
     return r.model_dump(mode="json"), r
 
 
@@ -120,8 +120,7 @@ def main():
         spec = CaseSpec(claim_text=claim, variable_id="global_temp",
                         place=dict(place_id=f"region:{region}", name=name, lat=0.0, lon=0.0),
                         season=s, start_year=start, end_year=2025, claim_direction=dr)
-        res = run_check(spec)
-        r = res.model_copy(update={"meta": res.meta.model_copy(update={"stub": True})}).model_dump(mode="json")
+        r = run_check(spec).model_dump(mode="json")
         (CASES / f"{fname}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
         print(f"{fname}: {r['verdict']} ({r['reason']}), {r['sen']['slope_per_decade']:+.3f} {r['variable']['units']}/10 р.")
 

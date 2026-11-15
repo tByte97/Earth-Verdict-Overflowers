@@ -66,7 +66,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
           <div><dt>Sen 95% confidence interval</dt><dd>{number(r.sen.ci_low)} to {number(r.sen.ci_high)} · {r.variable.units} / decade</dd></div>
           <div><dt>Residual autocorrelation r₁ · dimensionless</dt><dd>{number(r.detection?.phi)}</dd></div>
           <div><dt>Autocorrelation correction</dt><dd>{r.mk.correction ?? 'Not supplied'}</dd></div>
-          <div><dt>Period robustness</dt><dd>{r.robustness_summary.significant} of {r.robustness_summary.total} windows significant</dd></div>
+          <div><dt>Period robustness</dt><dd>{r.robustness_summary.total <= 1 ? `Not tested. ${r.steps.find(step => step.id === 'robustness')?.detail ?? ''}` : `${r.robustness_summary.significant} of ${r.robustness_summary.total} windows significant`}</dd></div>
           <div><dt>Additional waiting · years</dt><dd>{r.years_to_wait === null ? r.verdict === 'not_proven' ? 'Not determined' : 'Not applicable' : number(r.years_to_wait)}</dd></div>
         </dl>
         <p className="help-text">{waitingExplanation(r)}</p>

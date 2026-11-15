@@ -1,6 +1,6 @@
 # Saved backend cases
 
-These files are `CheckResult` responses shared by the API and frontend. Observations are real NASA/NOAA data. Statistics use `backend.app.stats v2`; `meta.stub: true` still marks the supplied snapshots as provisional, not wholly synthetic data. Use the metadata of each response instead of inferring its origin from the file name.
+These files are `CheckResult` responses shared by the API and frontend. Observations are real NASA/NOAA data. Statistics use `backend.app.stats v2`, the same code as live checks (`meta.stub: false`). Use the metadata of each response instead of inferring its origin from the file name.
 
 | File | Current verdict | Additional waiting at the observed rate |
 |---|---|---|
