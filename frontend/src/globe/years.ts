@@ -14,9 +14,12 @@ const YearMapSchema = z.object({
   years: z.array(z.number().int()).min(2), lat: z.array(z.number()).min(1), lon: z.array(z.number()).min(1),
   anomaly: z.array(values), mean: values, rank: z.array(z.number().int().nullable()),
   window: z.number().int().positive(), anomaly_smooth: z.array(values), mean_smooth: values,
-  // Rows of cells fetched around Ukraine: the map fades out across them; `mean` and `rank` never include them.
+  // Per-cell opacity weight (1 inside Ukraine, smoothstep to 0 at fade_km outside); `mean` and `rank` never include halo cells.
+  fade: z.array(z.number().min(0).max(1)).optional(),
+  fade_km: z.number().positive().optional(),
   halo_cells: z.number().int().nonnegative().optional(),
-}).refine(m => m.lat.length === m.lon.length && [m.anomaly, m.anomaly_smooth].every(rows => rows.length === m.years.length && rows.every(row => row.length === m.lat.length))
+}).refine(m => m.lat.length === m.lon.length && (!m.fade || m.fade.length === m.lat.length)
+  && [m.anomaly, m.anomaly_smooth].every(rows => rows.length === m.years.length && rows.every(row => row.length === m.lat.length))
   && [m.mean, m.mean_smooth, m.rank].every(row => row.length === m.years.length), 'Year map arrays do not line up.');
 export type YearMap = z.infer<typeof YearMapSchema>;
 
@@ -40,13 +43,13 @@ export async function loadYearMap(variableId: string, season: string, signal: Ab
   return parsed.data.variable_id === variableId && parsed.data.season === season ? parsed.data : null;
 }
 
-export interface YearCell { lat: number; lon: number; i: number }
+export interface YearCell { lat: number; lon: number; i: number; fade: number }
 // Everything the globe and the timeline need, prepared once per map. `lim` is a display scale shared by all
 // years, so a colour means the same thing in 1985 and in 2024.
 export interface YearView { map: YearMap; grid: Grid<YearCell>; lim: number; pres: Presentation; most: string }
 export function yearView(map: YearMap): YearView {
   const sorted = map.anomaly.flat().filter((v): v is number => v !== null).map(Math.abs).sort((a, b) => a - b);
-  return { map, grid: gridOf(map.lat.map((lat, i) => ({ lat, lon: map.lon[i], i })), map.halo_cells), lim: niceStep(sorted[Math.floor(0.95 * (sorted.length - 1))] || 1),
+  return { map, grid: gridOf(map.lat.map((lat, i) => ({ lat, lon: map.lon[i], i, fade: map.fade?.[i] ?? 1 }))), lim: niceStep(sorted[Math.floor(0.95 * (sorted.length - 1))] || 1),
     pres: presentationOf(map.variable_id), most: coloursOf(map.variable_id).most };
 }
 

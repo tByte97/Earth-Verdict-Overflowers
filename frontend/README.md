@@ -231,8 +231,8 @@ Every number it shows is in the file; the browser only draws.
   buttons come from `GET /api/grid/index`; when the index is missing (404) only the current case's layer is shown.
   Saved mode reads the same precomputed files from `data/layers/`, so the deployed app shows the map without a backend.
 - **Rendering.** `paint.ts` paints one smooth image on an `image` source: bilinear blend between cell centres,
-  faded next to missing cells and at the data edge, resampled to Web Mercator rows. The blend is colour only.
-  Dots mark `significant_fdr` cells; "Fade trends that could be chance" fades the others.
+  multiplied by each cell's precomputed `fade` weight (1 inside Ukraine's Natural Earth Ukraine-POV outline in `tools/ukraine_outline.json`, smoothstep to 0 at 460 km outside, with `fade == 0` cells omitted so the painted region follows Ukraine rather than a rectangle) and faded next to missing cells, resampled to Web Mercator rows. The blend is colour only.
+  Dots mark `significant_fdr` cells inside Ukraine; "Fade trends that could be chance" fades the others.
 - **Colour scale.** Diverging OKLab ramps per variable. The limit is the 95th percentile of |slope| rounded to a
   nice step: a display scale, not a statistic.
 - **Legend and caption.** The caption share is printed only when the layer carries `n_cells` and

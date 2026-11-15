@@ -167,8 +167,10 @@ def test_grid_layer_counts_match_features():
         gj = client.get("/api/grid", params={"variable_id": "precip", "season": season}).json()
         halo = [f["properties"] for f in gj["features"] if f["properties"].get("halo")]
         props = [f["properties"] for f in gj["features"] if not f["properties"].get("halo")]
-        # The halo is drawn around the tested area and stays out of every count.
-        assert len(halo) > 100 and gj["halo_cells"] >= 3 and all(f["geometry"] is None for f in gj["features"] if f["properties"].get("halo"))
+        # The halo fades out around Ukraine and stays out of every count; fade==0 cells are not stored.
+        assert len(halo) > 100 and gj["fade_km"] > 0 and all(f["geometry"] is None for f in gj["features"] if f["properties"].get("halo"))
+        assert all(0 < p["fade"] <= 1.0 for p in props + halo)
+        assert all(p["fade"] < 1.0 for p in halo)
         assert gj["n_cells"] == sum(p["p"] is not None for p in props)
         assert gj["n_significant_fdr"] == sum(p["significant_fdr"] for p in props)
         assert gj["n_significant_raw"] == sum(p["significant_raw"] for p in props)
@@ -183,7 +185,8 @@ def test_grid_years_serves_year_by_year_maps(monkeypatch, tmp_path):
     assert (m["variable_id"], m["season"], m["units"], m["baseline"]) == ("air_temp", "DJF", "°C", [1991, 2020])
     assert m["years"][0] == 1982 and m["years"][-1] == 2025          # a winter is named by its January
     n_years, n_cells = len(m["years"]), len(m["lat"])
-    assert n_cells == len(m["lon"]) > 100
+    assert n_cells == len(m["lon"]) == len(m["fade"]) > 100
+    assert m["fade_km"] > 0 and all(0 < f <= 1.0 for f in m["fade"])
     for rows in (m["anomaly"], m["anomaly_smooth"]):
         assert len(rows) == n_years and all(len(row) == n_cells for row in rows)
     assert len(m["mean"]) == len(m["mean_smooth"]) == len(m["rank"]) == n_years
