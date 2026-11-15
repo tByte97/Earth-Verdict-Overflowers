@@ -5,6 +5,9 @@ import { readFile } from 'node:fs/promises';
 const load = async id => JSON.parse(await readFile(new URL(`../../data/cases/${id}.json`, import.meta.url), 'utf8'));
 const heat = await load('kyiv-summer-heat');
 const dry = await load('lviv-drier');
+const u = heat.variable.units;
+// Expected file name, from the case's own fields.
+const heatName = `earth-verdict-${heat.case.place.place_id}-${heat.variable.id}-${heat.case.season}-${heat.case.start_year}-${heat.case.end_year}.csv`.replace(/[^\w.-]+/g, '-');
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
@@ -44,11 +47,11 @@ function split(text) {
 
 test('CSV header rows copy slope, interval, p, correction and sources from the result', async ({ page }) => {
   const { text, name } = await csvOf(page, heat);
-  assert.equal(name, 'earth-verdict-city-kyiv-air_temp-JJA-1981-2025.csv');
+  assert.equal(name, heatName);
   const { fields } = split(text);
-  assert.deepEqual(fields['sen.slope_per_decade'], [String(heat.sen.slope_per_decade), '°C / decade']);
-  assert.deepEqual(fields['sen.ci_low'], [String(heat.sen.ci_low), '°C / decade']);
-  assert.deepEqual(fields['sen.ci_high'], [String(heat.sen.ci_high), '°C / decade']);
+  assert.deepEqual(fields['sen.slope_per_decade'], [String(heat.sen.slope_per_decade), `${u} / decade`]);
+  assert.deepEqual(fields['sen.ci_low'], [String(heat.sen.ci_low), `${u} / decade`]);
+  assert.deepEqual(fields['sen.ci_high'], [String(heat.sen.ci_high), `${u} / decade`]);
   assert.deepEqual(fields['mk.p'], [String(heat.mk.p), 'dimensionless']);
   assert.equal(fields['mk.correction'][0], heat.mk.correction);
   assert.equal(fields['verdict'][0], heat.verdict);
@@ -63,7 +66,7 @@ test('CSV header rows copy slope, interval, p, correction and sources from the r
 test('CSV table: series, trend line from sen.band and station, with gaps as empty cells', async ({ page }) => {
   const { text } = await csvOf(page, heat);
   const { table } = split(text);
-  assert.deepEqual(table[0], ['year', 'series.value (°C)', 'sen.band.mid (°C)', 'sen.band.low (°C)', 'sen.band.high (°C)', 'witness.series.value (°C)']);
+  assert.deepEqual(table[0], ['year', ...['series.value', 'sen.band.mid', 'sen.band.low', 'sen.band.high', 'witness.series.value'].map(c => `${c} (${u})`)]);
   const band = new Map(heat.sen.band.map(p => [p.year, p]));
   const station = new Map(heat.witness.series.map(p => [p.year, p.value]));
   assert.deepEqual(table.slice(1), heat.series.map(p => {
@@ -71,7 +74,9 @@ test('CSV table: series, trend line from sen.band and station, with gaps as empt
     return [String(p.year), show(p.value), show(b?.mid), show(b?.low), show(b?.high), show(station.get(p.year))];
   }));
   // Station gaps are empty, never zero.
-  assert.equal(table.find(r => r[0] === '2008')[5], '');
+  const gap = heat.witness.series.find(p => p.value === null && heat.series.some(s => s.year === p.year));
+  assert.ok(gap, 'the fixture has a station gap inside the record');
+  assert.equal(table.find(r => r[0] === String(gap.year))[5], '');
 });
 
 test('no station: empty station cells and fields, not zero', async ({ page }) => {
@@ -96,7 +101,7 @@ test('the Download CSV button saves the case file built from the shown result', 
   const file = page.getByTestId('case-file');
   await expect(file).toBeVisible();
   const [download] = await Promise.all([page.waitForEvent('download'), file.getByRole('button', { name: 'Download CSV' }).click()]);
-  assert.equal(download.suggestedFilename(), 'earth-verdict-city-kyiv-air_temp-JJA-1981-2025.csv');
+  assert.equal(download.suggestedFilename(), heatName);
   const saved = await readFile(await download.path(), 'utf8');
   assert.equal(saved, (await csvOf(page, heat)).text);
 });

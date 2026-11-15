@@ -9,7 +9,9 @@ test('the panel explains how the detective decides with the same text for every 
   await page.goto('/?source=saved#case=kyiv-summer-heat');
   const method = page.getByTestId('method');
   await expect(method.getByRole('heading', { name: 'How the detective decides' })).toBeVisible();
-  await expect(method.locator('[data-method]')).toHaveCount(8);
+  const steps = await page.evaluate(async () => (await import('/src/method/text.ts')).methodSteps.map(step => step.id));
+  await expect(method.locator('[data-method]')).toHaveCount(steps.length);
+  assert.deepEqual(await method.locator('[data-method]').evaluateAll(els => els.map(el => el.dataset.method)), steps);
   const text = await method.innerText();
   await page.locator('[data-case="lviv-drier"]').click();
   await expect(page.locator('[data-case="lviv-drier"]')).toHaveAttribute('aria-pressed', 'true');
