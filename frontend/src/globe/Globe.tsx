@@ -149,6 +149,9 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
 
   useEffect(() => {
     let instance: maplibregl.Map;
+    // Start fetching the local Earth before the map exists; it is laid on once the style is ready.
+    const earth = new Image();
+    earth.src = LOCAL_EARTH;
     try {
       instance = new maplibregl.Map({ container: container.current!, style, ...GLOBE_VIEW, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
         // On touch screens one finger scrolls the page; two fingers move the globe.
@@ -164,10 +167,8 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     instance.once('style.load', () => {
       instance.resize();
       setStyleReady(true);
-      const earth = new Image();
-      // The map may be gone by the time the image arrives.
-      earth.onload = () => { if (map.current === instance) (instance.getSource('earth') as maplibregl.ImageSource).updateImage({ url: mercatorWorld(earth) }); };
-      earth.src = LOCAL_EARTH;
+      // The map may be gone by the time the image arrives; a failed load leaves the plain background.
+      earth.decode().then(() => { if (map.current === instance) (instance.getSource('earth') as maplibregl.ImageSource).updateImage({ url: mercatorWorld(earth) }); }, () => {});
     });
     // MapLibre expands compact attribution when its text first arrives with the source data;
     // collapse it at that moment so it stays one icon on phones and never covers the stage title.
