@@ -753,7 +753,8 @@
     "correction": "hamed_rao",
     "status": "ok"
    }
-  ]
+  ],
+  "emerged_year": 2012
  },
  "extrapolation": {
   "note": "What-if line, not a forecast: it only shows where the trend would go at this pace. For physically based futures see the climate-model scenarios.",
@@ -1153,13 +1154,13 @@
    "source": "NOAA Climate at a Glance",
    "product": "NOAAGlobalTemp land+ocean anomalies (Climate at a Glance)",
    "url": "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/time-series/globe/land_ocean/12/12/1850-2026/data.json",
-   "retrieved_at": "2026-11-14T22:10:53Z",
+   "retrieved_at": "2026-11-15T08:44:48Z",
    "license": "Public domain (NOAA)"
   }
  ],
  "meta": {
   "stub": true,
   "stats_engine": "backend.app.stats v2",
-  "generated_at": "2026-11-14T22:10:55Z"
+  "generated_at": "2026-11-15T08:44:53Z"
  }
 }
