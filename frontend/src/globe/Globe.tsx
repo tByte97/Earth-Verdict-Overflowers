@@ -3,6 +3,9 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CheckResult, Place } from '../types';
 import { roundCoord, type PickedPoint } from './place';
+import { paintGrid, cellAt } from './paint';
+import { CellTip, type TrendView } from './TrendMap';
+import type { TrendCell } from './trends';
 import './globe.css';
 
 export type Station = NonNullable<CheckResult['witness']>['station'];
@@ -18,6 +21,10 @@ const COASTLINES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Coastline
 // Zoom band in which the globe unrolls into a flat Web Mercator map.
 const GLOBE_UNTIL = 3.2, FLAT_FROM = 4.8;
 const byZoom = (...stops: (number | string)[]) => ['interpolate', ['linear'], ['zoom'], ...stops] as maplibregl.ExpressionSpecification;
+type GeoData = Parameters<maplibregl.GeoJSONSource['setData']>[0];
+const EMPTY: GeoData = { type: 'FeatureCollection', features: [] };
+const BLANK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+const CREAM = '#efe6d2';
 
 // The background layer stays visible when tiles fail, so the globe and markers work offline.
 const style: maplibregl.StyleSpecification = {
@@ -32,6 +39,11 @@ const style: maplibregl.StyleSpecification = {
     },
     blackmarble: { type: 'raster', tiles: [BLACK_MARBLE], tileSize: 256, maxzoom: 8 },
     coastlines: { type: 'raster', tiles: [COASTLINES], tileSize: 256, maxzoom: 9 },
+    // The trend layer is one painted image; dots mark the cells that stay significant after FDR.
+    trend: { type: 'image', url: BLANK, coordinates: [[0, 1], [1, 1], [1, 0], [0, 0]] },
+    sig: { type: 'geojson', data: EMPTY },
+    pair: { type: 'geojson', data: EMPTY },
+    pick: { type: 'geojson', data: EMPTY },
   },
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#1c3a4a' } },
@@ -39,7 +51,15 @@ const style: maplibregl.StyleSpecification = {
     { id: 'bluemarble', type: 'raster', source: 'bluemarble', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.7 } },
     // Night lights only from far away; they fade out before the map flattens.
     { id: 'blackmarble', type: 'raster', source: 'blackmarble', paint: { 'raster-opacity': byZoom(2.4, 0.8, 3.8, 0) } },
+    { id: 'trend', type: 'raster', source: 'trend', paint: { 'raster-opacity': 0.8, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } },
+    // Stippling marks significance, the convention of climate trend maps.
+    { id: 'sig', type: 'circle', source: 'sig', minzoom: 2.6, paint: {
+      'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 2.6, 0.6, 5, 1.3, 8, 3],
+      'circle-color': '#07080b', 'circle-opacity': 0.55, 'circle-pitch-alignment': 'map' } },
     { id: 'coastlines', type: 'raster', source: 'coastlines' },
+    { id: 'pair-line', type: 'line', source: 'pair', paint: { 'line-color': CREAM, 'line-width': 1.5, 'line-opacity': 0.8, 'line-dasharray': [2, 2] } },
+    { id: 'pick-ring', type: 'circle', source: 'pick', paint: { 'circle-radius': 9, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': CREAM, 'circle-stroke-width': 2 } },
+    { id: 'pick-dot', type: 'circle', source: 'pick', paint: { 'circle-radius': 2.5, 'circle-color': CREAM } },
   ],
 };
 
@@ -100,13 +120,41 @@ function markerElement(kind: 'place' | 'station', lines: string[]) {
   return element;
 }
 
-export function Globe({ place, station, onPick }: { place: Place | null; station: Station | null; onPick?: (point: PickedPoint) => void }) {
+const point = (lon: number, lat: number) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: [lon, lat] } });
+
+function chip(word: string, down: boolean) {
+  const element = document.createElement('div');
+  element.className = down ? 'lead down' : 'lead';
+  element.textContent = word;
+  return element;
+}
+
+// Draws the layer: painted colour, FDR stipple and, when the backend found one, the opposite pair.
+function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): maplibregl.Marker[] {
+  map.setLayoutProperty('trend', 'visibility', view ? 'visible' : 'none');
+  (map.getSource('sig') as maplibregl.GeoJSONSource).setData(view ? { type: 'FeatureCollection', features: view.cells.filter(cell => cell.significant_fdr).map(cell => point(cell.lon, cell.lat)) } : EMPTY);
+  const pair = view?.layer.pair;
+  (map.getSource('pair') as maplibregl.GeoJSONSource).setData(pair ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[pair.a.lon, pair.a.lat], [pair.b.lon, pair.b.lat]] } } : EMPTY);
+  if (!view) return [];
+  const { grid, lim, pres } = view;
+  (map.getSource('trend') as maplibregl.ImageSource).updateImage(paintGrid(grid,
+    cell => Math.max(-1, Math.min(1, cell.slope_per_decade / lim)), cell => (!fade || cell.significant_fdr ? 0.88 : 0.3), t => pres.palette((t + 1) / 2)));
+  return pair ? [pair.a, pair.b].map(end => new maplibregl.Marker({ element: chip(end.slope_per_decade > 0 ? `▲ ${pres.up}` : `▼ ${pres.down}`, end.slope_per_decade <= 0) })
+    .setLngLat([end.lon, end.lat]).addTo(map)) : [];
+}
+
+export function Globe({ place, station, onPick, trend = null, fade = true }: { place: Place | null; station: Station | null; onPick?: (point: PickedPoint) => void; trend?: TrendView | null; fade?: boolean }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [flying, setFlying] = useState(false);
   const [proj, setProj] = useState(projection(1.4));
+  // True once sources can be updated; `ready` also waits for the imagery.
+  const [styleReady, setStyleReady] = useState(false);
+  const [tip, setTip] = useState<{ cell: TrendCell; x: number; y: number } | null>(null);
+  const trendView = useRef(trend);
+  trendView.current = trend;
   const activePlace = useRef(place);
   activePlace.current = place;
   const pick = useRef(onPick);
@@ -122,24 +170,35 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
     try {
       instance = new maplibregl.Map({ container: container.current!, style, center: [20, 30], zoom: 1.4, attributionControl: { compact: window.matchMedia('(max-width: 640px)').matches },
         // On touch screens one finger scrolls the page; two fingers move the globe.
-        cooperativeGestures: window.matchMedia('(pointer: coarse)').matches });
+        cooperativeGestures: window.matchMedia('(pointer: coarse)').matches, maxZoom: 9, maxPitch: 50 });
     } catch {
       setUnavailable(true);
       return;
     }
+    instance.touchPitch.disable();
     const resize = new ResizeObserver(() => instance.resize());
     resize.observe(container.current!);
-    instance.once('load', () => {
+    // Sources can take data once the style is parsed; 'load' waits for the first tiles, which may never arrive offline.
+    instance.once('style.load', () => {
       instance.resize();
       // MapLibre opens compact attribution expanded; start collapsed so it stays one icon on phones.
       const attribution = container.current?.querySelector('.maplibregl-compact');
       attribution?.classList.remove('maplibregl-compact-show');
       attribution?.removeAttribute('open');
       if (activePlace.current) instance.setCenter([activePlace.current.lon, activePlace.current.lat]);
+      setStyleReady(true);
     });
     instance.once('idle', () => setReady(true));
-    instance.on('movestart', event => { if (event.originalEvent) takeOver(); });
+    instance.on('movestart', event => { if (event.originalEvent) takeOver(); setTip(null); });
     instance.on('zoom', () => setProj(current => { const next = projection(instance.getZoom()); return next.mode === current.mode ? current : next; }));
+    // Hover shows the exact values of the cell under the pointer, never the blended colour.
+    instance.on('mousemove', event => {
+      const view = trendView.current;
+      const overMarker = event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker');
+      const cell = view && !overMarker ? cellAt(view.grid, event.lngLat.wrap().lng, event.lngLat.lat) : undefined;
+      setTip(cell ? { cell, x: event.originalEvent.clientX, y: event.originalEvent.clientY } : null);
+    });
+    instance.getCanvas().addEventListener('mouseleave', () => setTip(null));
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
     instance.on('click', event => {
       if (event.originalEvent.target instanceof Element && event.originalEvent.target.closest('.globe-marker')) return;
@@ -151,10 +210,6 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
 
   useEffect(() => {
     if (!place || !map.current) return;
-    // A picked point's name already is its coordinates.
-    const lines = place.place_id.startsWith('pt:') ? [place.name] : [place.name, coords(place.lat, place.lon)];
-    const marker = new maplibregl.Marker({ element: markerElement('place', lines) })
-      .setLngLat([place.lon, place.lat]).addTo(map.current);
     // A picked point keeps the camera where the user clicked; a new case flies there.
     if (place.place_id !== shownPlace.current && !place.place_id.startsWith('pt:')) {
       const id = ++flight.current;
@@ -162,8 +217,19 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
       void flyToCase(map.current, [place.lon, place.lat], () => flight.current === id).finally(() => { if (flight.current === id) setFlying(false); });
     }
     shownPlace.current = place.place_id;
-    return () => { marker.remove(); };
   }, [place]);
+
+  // The picked spot is a ring on the map; the station stays a separate marker.
+  useEffect(() => {
+    if (styleReady) (map.current!.getSource('pick') as maplibregl.GeoJSONSource).setData(place ? point(place.lon, place.lat) : EMPTY);
+  }, [styleReady, place]);
+
+  useEffect(() => {
+    if (!styleReady) return;
+    setTip(null);
+    const chips = showTrend(map.current!, trend, fade);
+    return () => { for (const marker of chips) marker.remove(); };
+  }, [styleReady, trend, fade]);
 
   useEffect(() => {
     if (!station || !map.current) return;
@@ -183,7 +249,8 @@ export function Globe({ place, station, onPick }: { place: Place | null; station
         {onPick && <button type="button" onClick={() => { const { lat, lng } = map.current!.getCenter().wrap(); onPick(pickPoint(lat, lng)); }}>Use map centre</button>}
         <button type="button" disabled={!place} onClick={() => { takeOver(); if (place) map.current?.flyTo({ center: [place.lon, place.lat], zoom: LOCAL_ZOOM, duration: 600 }); }}>Local view</button>
       </div>
-      {onPick && <p className="globe-hint">{ready ? 'Click the globe to pick coordinates' : 'Loading imagery…'}</p>}
+      {onPick && <p className="globe-hint">{ready ? 'Click the map to check a spot' : 'Loading imagery…'}</p>}
     </div>}
+    {tip && trend && <CellTip view={trend} {...tip} />}
   </div>;
 }

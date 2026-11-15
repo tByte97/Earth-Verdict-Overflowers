@@ -297,10 +297,9 @@ a {
   height:9px;
 }
 .stage-legend .legend-place {
-  border:2px solid #e4572e;
+  border:2px solid var(--cream);
   border-radius:50%;
-  background:radial-gradient(circle,#e4572e 0 1.5px,transparent 2px);
-  box-shadow:0 0 0 1px #fff;
+  background:radial-gradient(circle,var(--cream) 0 1.5px,transparent 2px);
 }
 .stage-legend .legend-station {
   border:2px solid #2f80ed;
