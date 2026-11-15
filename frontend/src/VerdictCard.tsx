@@ -5,17 +5,9 @@ import { DetectionSimulator } from './DetectionSimulator';
 import { UncertaintyPanel } from './UncertaintyPanel';
 import { waitingExplanation } from './detection';
 import { StepPipeline } from './steps/StepPipeline';
+import { VerdictHero } from './VerdictHero';
 import { RecordChart } from './chart/RecordChart';
 
-const verdicts = { confirmed: ['Confirmed', '✓'], refuted: ['Refuted', '×'], not_proven: ['Not proven', '?'] };
-const reasons: Record<string, string> = {
-  significant_trend: 'The evidence supports the direction of change in your claim.',
-  opposite_trend: 'The evidence shows a trend in the opposite direction to your claim.',
-  not_significant: 'The trend is not clear enough to distinguish from year-to-year variation.',
-  short_series: 'There are too few observations to establish a reliable trend.',
-  sources_disagree: 'The two data sources disagree about the direction of change.',
-  not_robust: 'The conclusion depends too much on which years are selected.',
-};
 const agreements = {
   agree: ['Sources agree', 'The ground station supports the result.'],
   one_source: ['One source', 'Only one source provides evidence for the trend.'],
@@ -29,7 +21,6 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
   const methodLabels: Record<MethodKind, string> = { statistics: 'Backend statistics', detection: 'Detection simulation', history: 'Prefix trend analysis', extrapolation: 'Trend extrapolation', scenario: r.scenarios?.synthetic ? 'Stylised scenario' : 'Model scenario' };
   const sourceDetails = useRef<HTMLDetailsElement>(null);
   const agreement = agreements[r.witness?.agreement ?? 'no_station'];
-  const [label, icon] = verdicts[r.verdict];
   // The raw monthly record (hundreds of values) is shown by the raw step's mini chart, not as table rows.
   const fields = numericFields(r).filter(([path]) => !/^steps\.\d+\.monthly\./.test(path));
   const historical = fields.filter(([path]) => !/^(scenarios|extrapolation)\./.test(path));
@@ -54,17 +45,9 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     <div className="card-top"><span className="eyebrow">Past observations · Verdict</span><span className="tag">{r.meta?.stub ? 'Provisional statistics' : saved ? 'Saved backend response' : 'Backend response'}</span></div>
     <h2 id={headingId} className="claim">{r.case.claim_text}</h2>
     <p className="context">{r.case.place.name} <span>·</span> {r.variable.label} <span>·</span> {period(r)}</p>
-    <section className={`verdict verdict-${r.verdict}`} aria-label="Verdict">
-      <span className="verdict-symbol" aria-hidden="true">{icon}</span>
-      <div><h3>{label}</h3><p>{reasons[r.reason] ?? 'The backend returned an unrecognised reason. Inspect the response details.'}</p></div>
-    </section>
+    <VerdictHero result={r} />
     <UncertaintyPanel result={r} onSource={() => openSources('detection')} />
-    <div className="headline-metric">
-      <span className="eyebrow">Rate of change · Sen’s slope</span>
-      <div className="metric-value">{number(r.sen.slope_per_decade, true)} <span>{r.variable.units} / decade</span></div>
-      <p>Estimated over {period(r)}</p>
-      <button type="button" className="text-button" aria-controls={sourceId} onClick={() => openSources()}>Data sources <span aria-hidden="true">↗</span></button>
-    </div>
+    <div className="card-links"><button type="button" className="text-button" aria-controls={sourceId} onClick={() => openSources()}>Data sources <span aria-hidden="true">↗</span></button></div>
     <div className={`witness witness-${r.witness?.agreement ?? 'no_station'}`}><span className="witness-dot" aria-hidden="true" /><div><strong>{agreement[0]}</strong><p>{agreement[1]}{r.witness ? ` Station: ${r.witness.station.name}.` : ''}</p></div></div>
     {r.variable.caveat && <p className="data-note">{r.variable.caveat}</p>}
     {r.meta?.stub && <p className="data-note"><strong>Provisional statistics.</strong> Supplied by the team’s backend snapshot; results may change when the final statistics engine is ready.</p>}
