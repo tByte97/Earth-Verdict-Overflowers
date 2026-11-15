@@ -25,13 +25,17 @@ const Globe = lazy(() => import('./globe/Globe').then(module => ({ default: modu
 
 
 const hashCase = () => { const state = parseHash(window.location.hash); return state?.kind === 'case' ? state.id : null; };
+const hashSpot = () => { const state = parseHash(window.location.hash); return state?.kind === 'spot' ? state : null; };
 const savedResults = (): Record<string, CheckResult | 'error'> => isLive ? {} : Object.fromEntries(demoCases.map(item => [item.id, item.result]));
 
 function App() {
   const initial = demoCases.find(item => item.id === hashCase()) ?? demoCases[0];
+  // A picked-spot link is restored once the variables are known; until then no case opens.
+  const linkedSpot = useRef(hashSpot());
+  const startWithCase = !isLive && !linkedSpot.current;
   const [demoId, setDemoId] = useState(initial.id);
   const [spec, setSpec] = useState<CaseSpec>(isLive ? { claim_text: '', variable_id: '', place: { place_id: '', name: '', lat: 0, lon: 0 }, season: 'year', start_year: 1981, end_year: 2025, claim_direction: 'change' } : initial.result.case);
-  const [result, setResult] = useState<CheckResult | null>(isLive ? null : initial.result);
+  const [result, setResult] = useState<CheckResult | null>(startWithCase ? initial.result : null);
   const [variables, setVariables] = useState<Variable[]>(isLive ? [] : [initial.result.variable]);
   const [query, setQuery] = useState(isLive ? '' : initial.result.case.place.name);
   const [places, setPlaces] = useState<Place[]>([]);
@@ -39,7 +43,7 @@ function App() {
   const [searchStatus, setSearchStatus] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [phase, setPhase] = useState<'initial' | 'edited' | 'loading' | 'success' | 'error'>(isLive ? 'initial' : 'success');
+  const [phase, setPhase] = useState<'initial' | 'edited' | 'loading' | 'success' | 'error'>(startWithCase ? 'success' : 'initial');
   const [catalogueLoading, setCatalogueLoading] = useState(true);
   const [help, setHelp] = useState(false);
   const [picked, setPicked] = useState<PickedPoint | null>(null);
@@ -54,9 +58,9 @@ function App() {
   // Full responses per case id; 'error' keeps the button working without its subtitle.
   const [caseResults, setCaseResults] = useState(savedResults);
   const [casesError, setCasesError] = useState('');
-  const [caseId, setCaseId] = useState<string | null>(isLive ? null : initial.id);
+  const [caseId, setCaseId] = useState<string | null>(startWithCase ? initial.id : null);
   const flightKey = useRef(1);
-  const [destination, setDestination] = useState<Destination | null>(isLive ? null : { key: 1, title: initial.result.case.claim_text, view: caseView(initial.result) });
+  const [destination, setDestination] = useState<Destination | null>(!startWithCase ? null : { key: 1, title: initial.result.case.claim_text, view: caseView(initial.result) });
   // In live mode the first case (or the linked one) opens as soon as it arrives, unless the user acted first.
   const autoOpen = useRef<string | null>(null);
 
@@ -87,7 +91,7 @@ function App() {
     getCases(controller.signal).then(items => {
       if (controller.signal.aborted) return;
       setCases(items);
-      autoOpen.current = items.find(item => item.id === hashCase())?.id ?? items[0]?.id ?? null;
+      autoOpen.current = linkedSpot.current ? null : items.find(item => item.id === hashCase())?.id ?? items[0]?.id ?? null;
       // All cases load in parallel; each button gets its subtitle when its response arrives.
       for (const item of items) getCase(item.id, controller.signal).then(next => {
         setCaseResults(current => ({ ...current, [item.id]: next }));
@@ -151,7 +155,7 @@ function App() {
 
   function edit(next: Partial<CaseSpec>) {
     autoOpen.current = null;
-    if (caseIdRef.current) { setCaseId(null); writeHash(null); }
+    setCaseId(null); writeHash(null);
     request.current?.abort(); setBusy(false); setError(''); setResult(null); setPhase('edited'); setSpec(current => ({ ...current, ...next }));
   }
   useEffect(() => {
@@ -191,18 +195,31 @@ function App() {
     if (!isLive) { setPickNote('Checking a new spot needs the backend. Saved mode covers the saved cases only.'); return; }
     const entry = (layer && key && layer.variable_id === key.variable_id && layer.season === key.season ? layer : null)
       ?? layerIndex?.find(item => key && item.variable_id === key.variable_id && item.season === key.season);
-    const variableId = entry?.variable_id ?? spec.variable_id;
-    const season = CaseSpecSchema.shape.season.parse(entry?.season ?? spec.season);
+    checkSpot(point, entry?.variable_id ?? spec.variable_id, CaseSpecSchema.shape.season.parse(entry?.season ?? spec.season), entry?.start_year ?? spec.start_year, entry?.end_year ?? spec.end_year);
+  }
+
+  // Checks one spot and writes it to the URL. A restored link also flies there; saved mode only shows the spot.
+  function checkSpot(point: PickedPoint, variableId: string, season: CaseSpec['season'], start: number, end: number, restored = false) {
     if (!variables.some(variable => variable.id === variableId)) { setPhase('error'); setError('Select an available backend variable.'); return; }
     const place = pointPlace(point);
     const subject = season === 'year' ? labelOf(variableId).toLowerCase() : `${layerSeason(String(season)).toLowerCase()} ${labelOf(variableId).toLowerCase()}`;
-    const next: CaseSpec = {
-      claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season,
-      start_year: entry?.start_year ?? spec.start_year, end_year: entry?.end_year ?? spec.end_year, claim_direction: 'change',
-    };
-    setPicked(point); setSelectedPlace(true); setQuery(place.name); setPlaces([]); setPickNote(''); setSpec(next);
+    const next: CaseSpec = { claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season, start_year: start, end_year: end, claim_direction: 'change' };
+    autoOpen.current = null; setCaseId(null);
+    setPicked(point); setSelectedPlace(true); setQuery(place.name); setPlaces([]); setSpec(next);
+    if (restored) { setLayerKey({ variable_id: variableId, season: String(season) }); flyTo('', placeView(place)); }
+    writeHash({ kind: 'spot', variable: variableId, season, start, end, lon: point.lon, lat: point.lat });
+    if (!isLive) { setResult(null); setPhase('initial'); setPickNote('Checking a new spot needs the backend. Saved mode covers the saved cases only.'); return; }
+    setPickNote('');
     void check(next);
   }
+  const checkSpotRef = useRef(checkSpot);
+  checkSpotRef.current = checkSpot;
+  useEffect(() => {
+    const spot = linkedSpot.current;
+    if (catalogueLoading || !spot) return;
+    linkedSpot.current = null;
+    checkSpotRef.current({ lat: spot.lat, lon: spot.lon }, spot.variable, spot.season, spot.start, spot.end, true);
+  }, [catalogueLoading]);
 
   // Changing the layer keeps the picked spot and checks it again with the new layer.
   function chooseLayer(key: LayerKey) {

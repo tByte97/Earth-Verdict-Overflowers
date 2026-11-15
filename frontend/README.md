@@ -208,8 +208,9 @@ the page scrolls; there is no horizontal scroll at 390 px.
   `years_to_wait` when supplied, three facts (`mk.p`, `sen.ci_low … ci_high`,
   `detection_history.emerged_year` or "—") and warnings from `reason` / `witness.agreement` only.
 - **Links:** `src/url.ts` reads and writes `#case={id}` and
-  `#v={variable}&s={season}&p={start}-{end}&pt={lon},{lat}`. Opening a case writes `#case=`;
-  editing the parameters removes it. The picked-spot format is not yet connected to globe clicks.
+  `#v={variable}&s={season}&p={start}-{end}&pt={lon},{lat}`. Opening a case writes `#case=`, a map
+  click writes the spot, and editing the parameters removes either. Opening a spot link restores the
+  spot and its layer and runs the check; saved mode shows the spot and says it needs the backend.
 
 ### Globe notes
 

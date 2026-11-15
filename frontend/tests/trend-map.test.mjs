@@ -16,7 +16,7 @@ test.beforeAll(async ({ browser: sharedBrowser }) => { browser = sharedBrowser; 
 const withCounts = layer => ({ ...layer, n_cells: layer.features.length, n_significant_fdr: layer.features.filter(f => f.properties.significant_fdr).length, n_significant_raw: 0 });
 const entry = ({ variable_id, season, start_year, end_year, units_per_decade }) => ({ variable_id, season, start_year, end_year, units_per_decade });
 
-async function open({ live = false, index = true, counts = true, imagery = false, viewport = { width: 1440, height: 1000 } } = {}) {
+async function open({ live = false, index = true, counts = true, imagery = false, viewport = { width: 1440, height: 1000 }, hash = '' } = {}) {
   const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
   // Assertions run offline; review screenshots load the imagery.
   if (!imagery) await page.route('https://gibs.earthdata.nasa.gov/**', route => route.abort());
@@ -36,7 +36,7 @@ async function open({ live = false, index = true, counts = true, imagery = false
     await page.route('**/api/places?*', route => route.fulfill({ json: [heat.case.place] }));
     await page.route('**/api/check', route => { checks.push(route.request().postDataJSON()); return route.fulfill({ json: heat }); });
   }
-  await page.goto(baseURL + (live ? '/?source=live' : '/'));
+  await page.goto(baseURL + (live ? '/?source=live' : '/') + hash);
   await expect(page.locator('.globe-map canvas')).toBeVisible({ timeout: 20_000 });
   return { page, errors, checks };
 }
@@ -129,10 +129,36 @@ test('a map click checks that spot with the layer variable, season and period', 
     assert.deepEqual([checks[0].variable_id, checks[0].season, checks[0].start_year, checks[0].end_year], [layer.variable_id, layer.season, layer.start_year, layer.end_year]);
     assert.equal(checks[0].claim_text, `Is winter air temperature changing at ${checks[0].place.name}?`);
     await expect(page.locator('#result-status')).toHaveText('Result: confirmed.');
+    const spotHash = check => `#v=${check.variable_id}&s=${check.season}&p=${check.start_year}-${check.end_year}&pt=${check.place.lon}%2C${check.place.lat}`;
+    expect(new URL(page.url()).hash).toBe(spotHash(checks[0]));
     // Changing the layer keeps the picked spot and checks it again.
     await page.getByRole('group', { name: 'Trend map variable' }).getByRole('button', { name: 'Precipitation' }).click();
     await expect.poll(() => checks.length).toBe(2);
     assert.deepEqual([checks[1].place, checks[1].variable_id, checks[1].season], [checks[0].place, 'precip', 'DJF']);
+    await expect.poll(() => new URL(page.url()).hash).toBe(spotHash(checks[1]));
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('a picked-spot link restores the spot and checks it in live mode', async () => {
+  const { page, errors, checks } = await open({ live: true, hash: '#v=precip&s=DJF&p=1990-2020&pt=30.52,50.45' });
+  try {
+    await expect.poll(() => checks.length).toBe(1);
+    assert.deepEqual([checks[0].variable_id, checks[0].season, checks[0].start_year, checks[0].end_year, checks[0].place.place_id, checks[0].claim_direction], ['precip', 'DJF', 1990, 2020, 'pt:50.45,30.52', 'change']);
+    await expect(page.locator('#result-status')).toHaveText('Result: confirmed.');
+    await expect(page.locator('.case[aria-pressed="true"]')).toHaveCount(0);
+    await expect(page.getByTestId('trend-legend')).toContainText('Winter precipitation trend');
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('a picked-spot link in saved mode shows the spot and says it needs the backend', async () => {
+  const { page, errors } = await open({ hash: '#v=precip&s=DJF&p=1981-2025&pt=30.52,50.45' });
+  try {
+    await expect(page.getByRole('status').filter({ hasText: 'Checking a new spot needs the backend.' })).toBeVisible();
+    await expect(page.locator('.hero')).toHaveCount(0);
+    await expect(page.locator('.case[aria-pressed="true"]')).toHaveCount(0);
+    await expect(page.locator('.stage-title .src')).toHaveText('50.45° N, 30.52° E');
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
