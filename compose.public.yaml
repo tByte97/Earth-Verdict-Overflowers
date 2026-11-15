@@ -1,0 +1,16 @@
+# Public site on myhaven.fun:  EV_PORT=8791 docker compose -f compose.yaml -f compose.public.yaml up -d
+# The front proxy (TLS) forwards to port 80 here. nginx shares the app container's network,
+# so the app trusts the X-Forwarded-For it sets (per-visitor rate limits).
+services:
+  app:
+    ports:
+      - "80:80"
+
+  proxy:
+    image: nginx:stable-alpine
+    network_mode: "service:app"
+    depends_on: [app]
+    volumes:
+      - ./public/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /home/user/MyHavenDock/myhaven/certbot/www:/var/www/certbot:ro
+    restart: unless-stopped
