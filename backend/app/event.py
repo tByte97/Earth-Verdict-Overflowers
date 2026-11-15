@@ -377,8 +377,9 @@ def fetch_event_series(
     )
 
 
+SERIES_LOCK_COUNT = 64
 _series_cache: dict[tuple, EventSeriesInput] = {}
-_series_locks: dict[tuple, threading.Lock] = {}
+_series_locks: tuple[threading.Lock, ...] = tuple(threading.Lock() for _ in range(SERIES_LOCK_COUNT))
 _series_guard = threading.Lock()
 SERIES_CACHE_SIZE = 64
 
@@ -391,10 +392,11 @@ def _series(compound: CompoundDef, lat: float, lon: float, use_control: bool) ->
     with _series_guard:
         if key in _series_cache:
             return _series_cache[key]
-        lock = _series_locks.setdefault(key, threading.Lock())
+    lock = _series_locks[hash(key) % SERIES_LOCK_COUNT]
     with lock:                              # one Giovanni download per place, even under parallel requests
-        if key in _series_cache:
-            return _series_cache[key]
+        with _series_guard:
+            if key in _series_cache:
+                return _series_cache[key]
         try:
             series = fetch_event_series(compound, lat, lon, use_control=use_control)
         except SourceUnavailable as exc:

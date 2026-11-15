@@ -13,7 +13,7 @@ const agreements = {
   agree: ['Sources agree', 'The ground station supports the result.'],
   one_source: ['One source', 'Only one source provides evidence for the trend.'],
   disagree: ['Sources disagree', 'The ground station and primary source disagree.'],
-  no_station: ['No station', 'No suitable ground station is available.'],
+  no_station: ['No station', 'No suitable ground station is available. A station is used when its records cover at least 60% of the years in the period (monthly summaries, rebuilt from daily records when fewer than 90% of months are present).'],
 };
 
 export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: boolean }) {
@@ -58,7 +58,7 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
     <details className="technical">
       <summary>How we checked this <span>Methods, uncertainty & full precision</span></summary>
       <div className="detail-body">
-        <p className="section-context">{period(r)} · Absolute observations; no anomaly baseline applies to this historical trend.</p>
+        <p className="section-context">{period(r)} · {r.case.variable_id === 'global_temp' ? 'Anomalies relative to the 1901–2000 average.' : 'Absolute observations; no anomaly baseline applies to this historical trend.'}</p>
         <h4>Methods & uncertainty</h4>
         <div className="table-scroll"><table><thead><tr><th>Method</th><th>Change per year</th><th>p · dimensionless</th></tr></thead><tbody>
           <tr><th>Sen / Mann–Kendall</th><td>{number(r.sen.slope_per_year)} {r.variable.units} / year</td><td>{number(r.mk.p)}</td></tr>
@@ -67,8 +67,8 @@ export function VerdictCard({ result: r, saved }: { result: CheckResult; saved: 
         <dl className="statistics">
           <div><dt>Sen 95% confidence interval</dt><dd>{number(r.sen.ci_low)} to {number(r.sen.ci_high)} · {r.variable.units} / decade</dd></div>
           <div><dt>Residual autocorrelation r₁ · dimensionless</dt><dd>{number(r.detection?.phi)}</dd></div>
-          <div><dt>Autocorrelation correction</dt><dd>{r.mk.correction ?? 'Not supplied'}</dd></div>
-          <div><dt>Period robustness</dt><dd>{r.robustness_summary.significant} of {r.robustness_summary.total} windows significant</dd></div>
+          <div><dt>Autocorrelation correction</dt><dd>{r.mk.correction === 'hamed_rao' ? 'Hamed–Rao, with an AR(1) floor' : r.mk.correction === 'none' ? 'None' : 'Not supplied'}</dd></div>
+          <div><dt>Period robustness</dt><dd>{r.robustness_summary.total <= 1 ? `Not tested. ${r.steps.find(step => step.id === 'robustness')?.detail ?? ''}` : `${r.robustness_summary.significant} of ${r.robustness_summary.total} windows significant`}</dd></div>
           <div><dt>Additional waiting · years</dt><dd>{r.years_to_wait === null ? r.verdict === 'not_proven' ? 'Not determined' : 'Not applicable' : number(r.years_to_wait)}</dd></div>
         </dl>
         <p className="help-text">{waitingExplanation(r)}</p>

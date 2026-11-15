@@ -938,5 +938,131 @@
         }
       ]
     }
+  },
+  {
+    "id": "no-variation",
+    "label": "Not proven · value never changes",
+    "result": {
+      "case": {
+        "claim_text": "Summers in Kyiv are getting hotter",
+        "variable_id": "air_temp",
+        "place": {
+          "place_id": "om:703448",
+          "name": "Kyiv, Ukraine",
+          "lat": 50.45,
+          "lon": 30.52
+        },
+        "season": "JJA",
+        "start_year": 1981,
+        "end_year": 2025,
+        "claim_direction": "increase"
+      },
+      "variable": {
+        "id": "air_temp",
+        "label": "Air temperature",
+        "units": "°C",
+        "definition": "How warm the air is about 2 m above the ground.",
+        "caveat": "Reanalysis is a weather model guided by observations, not a ground thermometer."
+      },
+      "series": [
+        {
+          "year": 1981,
+          "value": 19.1
+        },
+        {
+          "year": 1982,
+          "value": 18.7
+        },
+        {
+          "year": 1983,
+          "value": null
+        }
+      ],
+      "sen": {
+        "slope_per_year": 0.008,
+        "slope_per_decade": 0.08,
+        "ci_low": -0.021,
+        "ci_high": 0.036,
+        "intercept": 18.9
+      },
+      "mk": {
+        "p": 0.37,
+        "tau": 0.06,
+        "z": 0.9,
+        "correction": "hamed_rao",
+        "r1": null
+      },
+      "ols": {
+        "slope_per_year": 0.006,
+        "p": 0.42,
+        "r2": 0.01,
+        "n_eff": 28.7
+      },
+      "robustness": [
+        {
+          "start_year": 1981,
+          "end_year": 2025,
+          "p": 0.37,
+          "slope_per_decade": 0.08,
+          "significant": false
+        }
+      ],
+      "robustness_summary": {
+        "significant": 0,
+        "total": 1
+      },
+      "witness": {
+        "station": {
+          "id": "UPM00033345",
+          "name": "KYIV",
+          "lat": 50.4,
+          "lon": 30.57,
+          "distance_km": 6
+        },
+        "series": [
+          {
+            "year": 1981,
+            "value": 19.5
+          }
+        ],
+        "sen": {
+          "slope_per_decade": 0.47,
+          "ci_low": 0.25,
+          "ci_high": 0.68
+        },
+        "mk": {
+          "p": 0.28
+        },
+        "agreement": "one_source"
+      },
+      "verdict": "not_proven",
+      "reason": "no_variation",
+      "years_to_wait": null,
+      "provenance": [
+        {
+          "what": "Synthetic primary-source fixture; all main statistics and period checks",
+          "source": "Demo fixture · intended provider: NASA POWER (MERRA-2)",
+          "product": "T2M · synthetic sample",
+          "url": "https://power.larc.nasa.gov/",
+          "retrieved_at": "2026-11-14T00:00:00Z",
+          "license": "Synthetic fixture; not a retrieved NASA product"
+        },
+        {
+          "what": "Synthetic ground-station fixture; witness fields",
+          "source": "Demo fixture · intended provider: NOAA NCEI",
+          "product": "GSOM TAVG · synthetic sample",
+          "url": "https://www.ncei.noaa.gov/cdo-web/",
+          "retrieved_at": "2026-11-14T00:00:00Z",
+          "license": "Synthetic fixture; not a retrieved NOAA product"
+        }
+      ],
+      "presentation": {
+        "baseline": null,
+        "ci_units": {
+          "sen": "°C / year",
+          "witness": "°C / decade"
+        }
+      }
+    }
   }
 ]

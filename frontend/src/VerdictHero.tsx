@@ -9,6 +9,7 @@ const reasons: Record<string, string> = {
   short_series: 'There are too few observations to establish a reliable trend.',
   sources_disagree: 'The two data sources disagree about the direction of change.',
   not_robust: 'The conclusion depends too much on which years are selected.',
+  no_variation: 'The value never changes here in this season, so there is no trend to test.',
 };
 
 // Warnings come from backend fields only. Source disagreement is one warning, whether it

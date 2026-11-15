@@ -4,17 +4,37 @@ import { ErrorResponseSchema, PlaceSchema, VariableSchema, parseCheckResult } fr
 import { matchesPlace } from './places';
 import type { CaseSpec, CheckResult, Place, Variable } from './types';
 
-export { demoCases } from './data';
+export { demoCases, nearestCase } from './data';
+// A new place downloads satellite data and the nearest station's records (up to a minute).
+const CHECK_TIMEOUT_MS = 90_000;
 // Explicit opt-in; connection failure never silently falls back to synthetic data.
 // A deployment built with VITE_DEFAULT_SOURCE=live talks to its backend unless ?source=saved is given.
 export const isLive = (new URLSearchParams(window.location.search).get('source') ?? import.meta.env.VITE_DEFAULT_SOURCE) === 'live';
 
+/** An error from the backend: `code` is ErrorBody.code, or 'timeout' / 'network' when no answer came. */
+export class ApiError extends Error {
+  constructor(message: string, readonly code: string, readonly status?: number) { super(message); this.name = 'ApiError'; }
+}
+
+/** The live service could not answer now; a saved snapshot is a fair stand-in. */
+export const isTransient = (e: unknown) => e instanceof ApiError && ['busy', 'rate_limited', 'timeout', 'network'].includes(e.code);
+
 export async function request(path: string, init?: RequestInit, signal?: AbortSignal, timeoutMs = 20_000): Promise<unknown> {
   const timeout = AbortSignal.timeout(timeoutMs);
-  const response = await fetch(`/api${path}`, { ...init, signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, { ...init, signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    if (timeout.aborted) throw new ApiError('The live service took too long to answer.', 'timeout');
+    throw new ApiError('Cannot reach the live service.', 'network');
+  }
   const data: unknown = await response.json().catch(() => null);
   const error = ErrorResponseSchema.safeParse(data);
-  if (!response.ok || error.success) throw new Error(error.success ? error.data.error.message : `Request failed (${response.status}). Try again.`);
+  if (!response.ok || error.success) {
+    throw error.success ? new ApiError(error.data.error.message, error.data.error.code, response.status)
+      : new ApiError(`Request failed (${response.status}). Try again.`, 'http', response.status);
+  }
   if (data === null) throw new Error('The server returned no readable JSON.');
   return data;
 }
@@ -40,7 +60,7 @@ export async function runCheck(spec: CaseSpec, _demoId: string, signal?: AbortSi
   if (isLive) {
     const result = await request('/check', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec),
-    }, signal);
+    }, signal, CHECK_TIMEOUT_MS);
     return parseCheckResult(result);
   }
   if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');

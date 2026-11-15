@@ -39,8 +39,8 @@ def monthly(slope_per_year, seed, start=1980, end=2025, base=8.0, amp=12.0, sd=0
 def fake_sources(monkeypatch):
     calls = {}
 
-    def main_series(var, lat, lon, start, end):
-        calls["main"] = (var.id, lat, lon, start, end)
+    def main_series(var, lat, lon):
+        calls["main"] = (var.id, lat, lon)
         return MainSeries(monthly=monthly(0.06, 1), start="1980-01", url="https://power.example/test",
                           retrieved_at="2026-11-14T00:00:00Z")
 
@@ -149,8 +149,12 @@ def test_grid_layer():
     gj = r.json()
     assert gj["type"] == "FeatureCollection" and len(gj["features"]) > 100
     assert gj["variable_id"] == "precip" and gj["start_year"] == 1981 and gj["end_year"] == 2025
-    a, b = gj["pair"]["a"], gj["pair"]["b"]
-    assert a["slope_per_decade"] > 0 > b["slope_per_decade"] and gj["pair"]["significance"] in ("fdr", "raw")
+    assert gj["stats_engine"] and gj["n_cells"] >= gj["n_significant_raw"] >= gj["n_significant_fdr"]
+    pairs = [client.get("/api/grid", params={"variable_id": "precip", "season": s}).json()["pair"]
+             for s in ("JJA", "DJF", "year")]
+    for pair in filter(None, pairs):
+        assert pair["a"]["slope_per_decade"] > 0 > pair["b"]["slope_per_decade"]
+        assert pair["significance"] in ("fdr", "raw")
     djf = client.get("/api/grid", params={"variable_id": "air_temp", "season": "DJF"}).json()
     assert djf["start_year"] == 1982 and djf["variable_id"] == "air_temp"
 
@@ -159,7 +163,7 @@ def test_grid_layer_counts_match_features():
     for season in ("year", "JJA", "DJF"):
         gj = client.get("/api/grid", params={"variable_id": "precip", "season": season}).json()
         props = [f["properties"] for f in gj["features"]]
-        assert gj["n_cells"] == len(props)
+        assert gj["n_cells"] == sum(p["p"] is not None for p in props)
         assert gj["n_significant_fdr"] == sum(p["significant_fdr"] for p in props)
         assert gj["n_significant_raw"] == sum(p["significant_raw"] for p in props)
         assert gj["n_significant_fdr"] <= gj["n_significant_raw"] <= gj["n_cells"]

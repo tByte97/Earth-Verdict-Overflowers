@@ -469,7 +469,7 @@ test('null caveat and missing station do not leave empty or dangling description
     await page.getByRole('button', { name: 'Check claim', exact: true }).click();
     await page.locator('.verdict').waitFor();
     assert.equal(await page.locator('p.data-note:empty').count(), 0);
-    await expect(page.locator('.witness p')).toHaveText('No suitable ground station is available.');
+    await expect(page.locator('.witness p')).toContainText('No suitable ground station is available.');
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

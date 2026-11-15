@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
-const ids = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow', 'kyiv-colder', 'kyiv-summer-rain', 'global-warming-stopped'];
+// Every saved case in data/cases is on the grid; the first six keep their order.
+const first = ['kyiv-summer-heat', 'lviv-drier', 'kyiv-winter-snow', 'kyiv-colder', 'kyiv-summer-rain', 'global-warming-stopped'];
+const others = (await readdir(new URL('../../data/cases/', import.meta.url))).filter(f => f.endsWith('.json') && f !== 'mock.json').map(f => f.replace(/\.json$/, '')).filter(id => !first.includes(id)).sort();
+const ids = [...first, ...others];
 const cases = Object.fromEntries(await Promise.all(ids.map(async id => [id, JSON.parse(await readFile(new URL(`../../data/cases/${id}.json`, import.meta.url), 'utf8'))])));
 
 // The UI shows numbers with up to five significant digits; the exact values stay in the exact-value table.

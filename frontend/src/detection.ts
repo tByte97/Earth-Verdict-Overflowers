@@ -13,6 +13,7 @@ export function waitingExplanation(result: CheckResult): string {
   }
   if (result.verdict !== 'not_proven') return 'No additional waiting estimate applies to this resolved claim.';
   if (result.reason === 'sources_disagree') return 'An additional waiting estimate is not determined when the sources disagree.';
+  if (result.reason === 'no_variation') return 'No waiting estimate applies: the value does not change here in this season.';
   const needed = baselineDetection(result);
   if (needed != null && result.detection && needed <= result.detection.n_years) {
     return 'The simulated detection duration has already been reached, but the observed trend remains unproven. More waiting cannot be inferred from this estimate.';

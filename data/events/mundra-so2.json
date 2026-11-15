@@ -2081,50 +2081,50 @@
   "start": "2012-03",
   "end": "2015-02",
   "mean": 0.17,
-  "n": 30
+  "n": 34
  },
- "effect": 0.1428,
- "ci_low": 0.0492,
- "ci_high": 0.2365,
- "bootstrap_ci_low": 0.0481,
- "bootstrap_ci_high": 0.2094,
- "p": 0.00409,
+ "effect": 0.135,
+ "ci_low": 0.0536,
+ "ci_high": 0.2163,
+ "bootstrap_ci_low": 0.0498,
+ "bootstrap_ci_high": 0.1901,
+ "p": 0.00177,
  "relative_change": null,
  "placebo": [
   {
    "event_month": "2008-03",
-   "effect": 0.0081,
-   "p": 0.696
+   "effect": 0.0029,
+   "p": 0.915
   },
   {
    "event_month": "2009-03",
-   "effect": 0.0029,
-   "p": 0.91
+   "effect": -0.0119,
+   "p": 0.698
   },
   {
    "event_month": "2018-03",
-   "effect": -0.0618,
-   "p": 0.0324
+   "effect": -0.0606,
+   "p": 0.0325
   },
   {
    "event_month": "2019-03",
-   "effect": -0.0392,
+   "effect": -0.0375,
    "p": 0.326
   },
   {
    "event_month": "2020-03",
-   "effect": -0.0088,
-   "p": 0.781
+   "effect": -0.0071,
+   "p": 0.835
   },
   {
    "event_month": "2021-03",
-   "effect": -0.0121,
-   "p": 0.697
+   "effect": -0.0105,
+   "p": 0.733
   },
   {
    "event_month": "2022-03",
-   "effect": 0.0331,
-   "p": 0.451
+   "effect": 0.0309,
+   "p": 0.442
   }
  ],
  "placebo_larger": 0,
@@ -2163,13 +2163,13 @@
   {
    "id": "before_after",
    "title": "Before vs after",
-   "value": "+0.143 DU",
-   "detail": "Comparing 2012-03–2015-02 (n=30) against 2009-03–2012-02 (n=30) relative to surroundings."
+   "value": "+0.135 DU",
+   "detail": "Comparing 2012-03–2015-02 (n=34) against 2009-03–2012-02 (n=30) relative to surroundings."
   },
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.004, 95% CI [+0.049, +0.236]",
+   "value": "p = 0.002, 95% CI [+0.054, +0.216]",
    "detail": "Autocorrelation-adjusted Welch t-test shows this shift is unlikely by random month-to-month swings."
   },
   {
@@ -2191,13 +2191,13 @@
    "source": "NASA Giovanni",
    "product": "OMSO2e v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMSO2e_003_ColumnAmountSO2&location=%5B22.823%2C69.553%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T20:20:00Z",
+   "retrieved_at": "2026-11-15T09:46:35Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T20:20:00Z"
+  "generated_at": "2026-11-15T09:46:35Z"
  }
 }

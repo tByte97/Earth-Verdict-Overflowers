@@ -2081,50 +2081,50 @@
   "start": "2013-08",
   "end": "2016-07",
   "mean": 8.23,
-  "n": 29
+  "n": 31
  },
- "effect": 1.366,
- "ci_low": 0.471,
- "ci_high": 2.262,
- "bootstrap_ci_low": 0.61,
- "bootstrap_ci_high": 2.284,
- "p": 0.00409,
- "relative_change": 0.2023,
+ "effect": 1.295,
+ "ci_low": 0.392,
+ "ci_high": 2.199,
+ "bootstrap_ci_low": 0.525,
+ "bootstrap_ci_high": 2.201,
+ "p": 0.00615,
+ "relative_change": 0.1918,
  "placebo": [
   {
    "event_month": "2008-08",
-   "effect": -0.259,
-   "p": 0.522
+   "effect": -0.232,
+   "p": 0.551
   },
   {
    "event_month": "2009-08",
-   "effect": -1.051,
-   "p": 0.00976
+   "effect": -1.017,
+   "p": 0.006
   },
   {
    "event_month": "2010-08",
-   "effect": -0.458,
-   "p": 0.364
+   "effect": -0.519,
+   "p": 0.197
   },
   {
    "event_month": "2019-08",
-   "effect": -0.714,
-   "p": 0.0418
+   "effect": -0.661,
+   "p": 0.14
   },
   {
    "event_month": "2020-08",
-   "effect": -0.523,
-   "p": 0.187
+   "effect": -0.451,
+   "p": 0.384
   },
   {
    "event_month": "2021-08",
-   "effect": 0.802,
-   "p": 0.406
+   "effect": 0.769,
+   "p": 0.375
   },
   {
    "event_month": "2022-08",
-   "effect": 1.548,
-   "p": 0.0545
+   "effect": 1.571,
+   "p": 0.0478
   }
  ],
  "placebo_larger": 1,
@@ -2163,13 +2163,13 @@
   {
    "id": "before_after",
    "title": "Before vs after",
-   "value": "+1.37 10¹⁵ molecules/cm² (+20.2%)",
-   "detail": "Comparing 2013-08–2016-07 (n=29) against 2010-08–2013-07 (n=28) relative to surroundings."
+   "value": "+1.30 10¹⁵ molecules/cm² (+19.2%)",
+   "detail": "Comparing 2013-08–2016-07 (n=31) against 2010-08–2013-07 (n=28) relative to surroundings."
   },
   {
    "id": "chance",
    "title": "Could it be chance?",
-   "value": "p = 0.004, 95% CI [+0.47, +2.26]",
+   "value": "p = 0.006, 95% CI [+0.39, +2.20]",
    "detail": "Autocorrelation-adjusted Welch t-test shows this shift is unlikely by random month-to-month swings."
   },
   {
@@ -2191,13 +2191,13 @@
    "source": "NASA Giovanni",
    "product": "OMNO2d v003 (Aura OMI, 0.25°)",
    "url": "https://api.giovanni.earthdata.nasa.gov/timeseries?data=OMNO2d_003_ColumnAmountNO2TropCloudScreened&location=%5B23.978%2C82.628%5D&time=2005-01-01T00%3A00%3A00%2F2025-12-31T23%3A59%3A59",
-   "retrieved_at": "2026-11-14T20:20:00Z",
+   "retrieved_at": "2026-11-15T09:46:44Z",
    "license": "Public domain (NASA)"
   }
  ],
  "meta": {
   "stub": false,
   "stats_engine": "backend.app.stats.event v1",
-  "generated_at": "2026-11-14T20:20:00Z"
+  "generated_at": "2026-11-15T09:46:44Z"
  }
 }

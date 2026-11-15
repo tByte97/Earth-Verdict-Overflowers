@@ -6,13 +6,12 @@ from dataclasses import dataclass
 import math
 from typing import Literal, Optional
 
-from .stats.robustness import RobustnessResult, assess_robustness
+from .stats.robustness import MIN_WINDOW_YEARS, RobustnessResult, assess_robustness, required_windows
 from .stats.trend import TrendResult, analyze_trend
 from .stats.wait import DetectionResult, compute_detection, estimate_years_to_wait
 
 ALPHA = 0.05
-MIN_YEARS = 15
-ROBUST_NEED = 4
+MIN_YEARS = MIN_WINDOW_YEARS  # one constant: the verdict and every shifted window need 15 years
 MIN_WITNESS_COVERAGE = 0.6
 
 ClaimDirection = Literal["increase", "decrease", "change"]
@@ -24,6 +23,7 @@ VerdictReason = Literal[
     "short_series",
     "sources_disagree",
     "not_robust",
+    "no_variation",
 ]
 WitnessAgreement = Literal["agree", "one_source", "disagree", "no_station"]
 
@@ -83,16 +83,25 @@ def decide_verdict(
     direction: ClaimDirection,
     robust_significant: int,
     witness_agree: WitnessAgreement,
+    robust_total: int = 5,
+    constant: bool = False,
     alpha: float = ALPHA,
     min_years: int = MIN_YEARS,
-    robust_need: int = ROBUST_NEED,
+    robust_need: Optional[int] = None,
 ) -> tuple[VerdictKind, VerdictReason]:
-    """Determine claim verdict and reason from trend, robustness, and witness evidence."""
+    """Determine claim verdict and reason from trend, robustness, and witness evidence.
+
+    robust_need=None takes the rule from required_windows(robust_total); an explicit number
+    overrides it (threshold experiments in tools/experiments/robust_threshold.py).
+    """
     if n_years < min_years:
         return "not_proven", "short_series"
+    if constant:
+        return "not_proven", "no_variation"
     if mk_p >= alpha or slope_per_year == 0.0:
         return "not_proven", "not_significant"
-    if robust_significant < robust_need:
+    need = required_windows(robust_total) if robust_need is None else robust_need
+    if robust_significant < need:
         return "not_proven", "not_robust"
     if witness_agree == "disagree":
         return "not_proven", "sources_disagree"
@@ -112,7 +121,7 @@ def evaluate_verdict(
     witness_values: Optional[Sequence[Optional[float]]] = None,
     alpha: float = ALPHA,
     min_years: int = MIN_YEARS,
-    robust_need: int = ROBUST_NEED,
+    robust_need: Optional[int] = None,
     min_witness_coverage: float = MIN_WITNESS_COVERAGE,
     compute_wait: bool = True,
 ) -> VerdictEvaluation:
@@ -126,15 +135,21 @@ def evaluate_verdict(
     if main is None:
         raise ValueError("Need at least 3 valid observations to evaluate verdict")
 
-    rob = assess_robustness(
-        years,
-        values,
-        main.sen.slope_per_year,
-        start_year=y0,
-        end_year=y1,
-        alpha=alpha,
-        min_years=min_years,
-    )
+    # Too short a record is "short_series" before any shifted window is tried.
+    if main.n < min_years:
+        rob = RobustnessResult(windows=[], significant=0, total=0)
+    else:
+        rob = assess_robustness(
+            years,
+            values,
+            main.sen.slope_per_year,
+            start_year=y0,
+            end_year=y1,
+            alpha=alpha,
+            min_years=min_years,
+        )
+    finite = [float(v) for v in values if v is not None and math.isfinite(float(v))]
+    constant = len(finite) >= min_years and max(finite) == min(finite)
 
     witness_trend: Optional[TrendResult] = None
     cov: Optional[float] = None
@@ -165,6 +180,8 @@ def evaluate_verdict(
         direction=direction,
         robust_significant=rob.significant,
         witness_agree=w_agree,
+        robust_total=rob.total,
+        constant=constant,
         alpha=alpha,
         min_years=min_years,
         robust_need=robust_need,
