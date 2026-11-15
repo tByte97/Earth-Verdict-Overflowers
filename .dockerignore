@@ -1,0 +1,15 @@
+.git
+**/.DS_Store
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+frontend/review
+data/cache
+data/grid
+.env
+env
+*.log

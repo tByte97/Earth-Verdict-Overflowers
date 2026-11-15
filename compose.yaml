@@ -1,0 +1,32 @@
+# Earth Verdict. Secrets (GEMINI_API_KEY, EARTHDATA_TOKEN) go in .env next to this file.
+# EV_BIND is the host address to publish on (default: this machine only).
+name: earth-verdict
+
+services:
+  app:
+    build: { context: ., target: app }
+    image: earth-verdict:latest
+    env_file:
+      - { path: .env, required: false }
+    environment:
+      EV_LLM_MODEL: ${EV_LLM_MODEL:-gemini-3.5-flash-lite}
+    ports:
+      - "${EV_BIND:-127.0.0.1}:${EV_PORT:-8790}:8790"
+    volumes:
+      - cache:/app/data/cache
+    restart: unless-stopped
+
+  backend-tests:
+    profiles: [test]
+    build: { context: ., target: backend-tests }
+    image: earth-verdict:backend-tests
+
+  e2e:
+    profiles: [test]
+    build: { context: ., target: e2e }
+    image: earth-verdict:e2e
+    ipc: host
+    init: true
+
+volumes:
+  cache:

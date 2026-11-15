@@ -22,6 +22,18 @@ The frontend dev server (`frontend/`, Vite) proxies `/api` to `http://127.0.0.1:
 | `EV_CORS_ORIGINS` | Comma-separated origins allowed to call the API (default: Vite dev server) |
 | `EV_RATE_LIMIT_EXEMPT_LOCAL` | Set to `1` to exempt unproxied loopback requests (`127.0.0.1` / `::1` with no forwarding headers) from per-client rate limits (for local cache warm-up) |
 
+## Docker
+
+One image serves the API and the built frontend (`VITE_DEFAULT_SOURCE=live`). Put `GEMINI_API_KEY` and
+`EARTHDATA_TOKEN` in `.env` at the repo root; the disk cache lives in the `cache` volume.
+
+```bash
+docker compose up -d --build                               # http://127.0.0.1:8790
+EV_BIND=100.x.y.z EV_PORT=8790 docker compose up -d        # publish on another host address/port
+docker compose --profile test run --rm backend-tests       # pytest
+docker compose --profile test run --rm e2e                 # Playwright (Vite dev server inside)
+```
+
 ## Deploy
 
 Run with a single worker (`--workers 1`) because rate limits and in-memory event caches live in process memory:
