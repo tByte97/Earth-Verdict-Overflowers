@@ -31,6 +31,34 @@
 .globe[data-flight] .globe-vignette {
   background:radial-gradient(ellipse at 50% 50%,transparent 35%,rgb(0 0 0 / 78%) 100%);
 }
+.flight-title {
+  position:absolute;
+  z-index:3;
+  top:44%;
+  left:50%;
+  max-width:80%;
+  transform:translate(-50%,-50%) scale(.96);
+  color:var(--cream);
+  font:italic 400 46px/1.1 var(--serif);
+  letter-spacing:.02em;
+  text-align:center;
+  text-shadow:0 2px 24px rgb(0 0 0 / 90%);
+  opacity:0;
+  transition:opacity .45s ease,transform 1.2s ease;
+  pointer-events:none;
+}
+.flight-title small {
+  display:block;
+  margin-bottom:10px;
+  color:var(--ink-2);
+  font:normal 10px var(--mono);
+  letter-spacing:.3em;
+  text-transform:uppercase;
+}
+.globe[data-flight] .flight-title:not(:has(span:empty)) {
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1);
+}
 .globe-controls {
   position:absolute;
   z-index:2;
@@ -125,4 +153,5 @@
 @media (max-width:900px) {
   .globe-controls { top:16px; left:16px; right:136px; }
   .globe-proj { display:none; }
+  .flight-title { font-size:28px; }
 }
