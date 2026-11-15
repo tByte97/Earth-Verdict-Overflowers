@@ -87,6 +87,8 @@ The API picks the tile that contains a point (`app.scenarios.nearby_scenarios`) 
 | `region-europe-east.json` | [44.0, 20.0, 53.0, 41.0] | 4 | ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6 | 2026-11-14 |
 | `region-europe-france-w.json` | [44.0, -5.0, 55.0, -0.1] | 5 | ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
 | `region-europe-iberia.json` | [36.0, -10.0, 44.0, -0.1] | 4 | GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
+| `region-europe-italy.json` | [36.0, 0.0, 44.0, 19.0] | 5 | ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
 | `region-us-midwest.json` | [38.0, -93.0, 44.0, -80.0] | 5 | ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
 | `region-us-northeast.json` | [38.0, -80.0, 45.0, -69.0] | 4 | ACCESS-CM2, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
+| `region-us-south.json` | [29.0, -98.0, 35.0, -80.0] | 5 | ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
 | `region-us-southwest.json` | [31.25, -120.0, 41.25, -103.0] | 5 | ACCESS-CM2, GFDL-ESM4, IPSL-CM6A-LR, MIROC6, MPI-ESM1-2-HR | 2026-11-15 |
