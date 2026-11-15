@@ -158,12 +158,18 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
     // Sources can take data once the style is parsed; 'load' waits for the first tiles, which may never arrive offline.
     instance.once('style.load', () => {
       instance.resize();
-      // MapLibre opens compact attribution expanded; start collapsed so it stays one icon on phones.
-      const attribution = container.current?.querySelector('.maplibregl-compact');
-      attribution?.classList.remove('maplibregl-compact-show');
-      attribution?.removeAttribute('open');
       setStyleReady(true);
     });
+    // MapLibre expands compact attribution when its text first arrives with the source data;
+    // collapse it at that moment so it stays one icon on phones and never covers the stage title.
+    const collapseAttribution = () => {
+      const attribution = container.current?.querySelector('.maplibregl-compact');
+      if (!attribution?.textContent) return;
+      attribution.classList.remove('maplibregl-compact-show');
+      attribution.removeAttribute('open');
+      instance.off('sourcedata', collapseAttribution);
+    };
+    instance.on('sourcedata', collapseAttribution);
     instance.once('idle', () => setReady(true));
     instance.on('movestart', event => { if (event.originalEvent) takeOver(); setTip(null); });
     instance.on('zoom', () => setProj(current => { const next = projection(instance.getZoom()); return next.mode === current.mode ? current : next; }));
