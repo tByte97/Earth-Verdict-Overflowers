@@ -115,6 +115,28 @@ function chip(word: string, down: boolean) {
   return element;
 }
 
+// MapLibre's ImageSource loses its abort controller when updateImage lands while the previous image is
+// still loading: the aborted load clears the new controller and the image queue later reads `null.signal`.
+// Hold the newest image until the current load has finished.
+const queuedImage = new WeakMap<maplibregl.ImageSource, maplibregl.UpdateImageOptions>();
+function queueImage(map: maplibregl.Map, id: string, image: maplibregl.UpdateImageOptions) {
+  const source = map.getSource(id) as maplibregl.ImageSource;
+  const waiting = queuedImage.has(source);
+  queuedImage.set(source, image);
+  if (waiting) return;
+  let removed = false;
+  const onRemove = () => { removed = true; };
+  map.once('remove', onRemove);
+  const apply = () => {
+    if (removed) return;
+    if (!source.loaded()) { requestAnimationFrame(apply); return; }
+    map.off('remove', onRemove);
+    source.updateImage(queuedImage.get(source)!);
+    queuedImage.delete(source);
+  };
+  apply();
+}
+
 // Draws the layer: painted colour, FDR stipple and, when the backend found one, the opposite pair.
 function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): maplibregl.Marker[] {
   map.setLayoutProperty('trend', 'visibility', view ? 'visible' : 'none');
@@ -123,7 +145,7 @@ function showTrend(map: maplibregl.Map, view: TrendView | null, fade: boolean): 
   (map.getSource('pair') as maplibregl.GeoJSONSource).setData(pair ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[pair.a.lon, pair.a.lat], [pair.b.lon, pair.b.lat]] } } : EMPTY);
   if (!view) return [];
   const { grid, lim, pres } = view;
-  (map.getSource('trend') as maplibregl.ImageSource).updateImage(paintGrid(grid,
+  queueImage(map, 'trend', paintGrid(grid,
     cell => Math.max(-1, Math.min(1, cell.slope_per_decade / lim)), cell => (!fade || cell.significant_fdr ? 0.88 : 0.3), t => pres.palette((t + 1) / 2)));
   return pair ? [pair.a, pair.b].map(end => new maplibregl.Marker({ element: chip(end.slope_per_decade > 0 ? `▲ ${pres.up}` : `▼ ${pres.down}`, end.slope_per_decade <= 0) })
     .setLngLat([end.lon, end.lat]).addTo(map)) : [];
@@ -168,7 +190,7 @@ export function Globe({ place, station, destination, onPick, trend = null, fade 
       instance.resize();
       setStyleReady(true);
       // The map may be gone by the time the image arrives; a failed load leaves the plain background.
-      earth.decode().then(() => { if (map.current === instance) (instance.getSource('earth') as maplibregl.ImageSource).updateImage({ url: mercatorWorld(earth) }); }, () => {});
+      earth.decode().then(() => { if (map.current === instance) queueImage(instance, 'earth', { url: mercatorWorld(earth) }); }, () => {});
     });
     // MapLibre expands compact attribution when its text first arrives with the source data;
     // collapse it at that moment so it stays one icon on phones and never covers the stage title.
