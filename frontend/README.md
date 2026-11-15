@@ -113,7 +113,7 @@ external server. The normal path needs neither. Screenshots go to gitignored `te
 The reviewed build configuration uses `pnpm.onlyBuiltDependencies: ["esbuild"]` in
 `package.json` instead of a frontend workspace root. Vite explicitly allows this repository
 root so canonical `../../data/cases` imports work independently of workspace detection.
-Google Fonts use HTML preconnect links and `display=swap`, with system-font fallbacks;
+Google Fonts (Cormorant Garamond, IBM Plex Sans, IBM Plex Mono) use HTML preconnect links and `display=swap`, with system-font fallbacks;
 there is no stylesheet `@import` chain.
 
 Browser tests cover canonical snapshots, numeric preservation, manual requests, errors
@@ -168,23 +168,24 @@ validated backend catalogue. Unknown or empty catalogues cannot submit a demo de
 witness object is rejected. Invalid payloads produce a contract error, not a blank page.
 
 
-## Globe-left workspace
+## Layout and theme
 
-The user subsequently requested integration of the contributor's `feat/globe-case-station`
-branch. The desktop workspace now uses a 3:2 grid: globe on the left (approximately 60%),
-and one stacked investigation panel on the right (approximately 40%). Tablets/phones stack
-the map above the panel without horizontal overflow.
+The page follows the Trend Detective layout from issue #41: a dark full-screen page with the
+evidence panel fixed on the left (500 px, 440 px at ≤1100 px, scrolls on its own) and the stage
+with the globe filling the rest. At ≤900 px the stage becomes a 58vh block above the panel and
+the page scrolls; there is no horizontal scroll at 390 px.
 
-The saved-case selector remains visible. Saved cases initially collapse **Edit parameters**
-so the verdict stays in view; live/new checks open the form automatically. A successful
-check collapses the parameters and shows the result. The globe is sticky while the panel
-is explored, and loads separately from the core form/card bundle.
-
-The contributor's MapLibre globe keeps point/station markers and NASA GIBS Blue Marble
-imagery. **Globe view** shows planetary context; **Local view** zooms to the selected place.
-Clicking a point updates the case coordinates and clears the old result. Unsupported
-browsers get a map-only fallback while the form and evidence remain usable. External
-imagery still depends on NASA GIBS availability.
+- Colours and fonts are tokens on `:root` in `src/styles.css` (Cormorant Garamond for titles,
+  IBM Plex Sans for text, IBM Plex Mono for numbers and eyebrows, loaded from Google Fonts with
+  system fallbacks).
+- The panel header holds the wordmark, the one-line promise (its period comes from the open
+  case) and the mode tabs. The footer lists the data and imagery credits.
+- Stage chrome: a seeded procedural star field, a vignette that deepens during case flights,
+  the projection badge (3D globe / globe → 2D / 2D map · Web Mercator), the marker legend and
+  the stage title built from the result (season, period, series provider, variable).
+- Pollution events and the CO₂ calculator open in the stage with their own scroll; the globe
+  stays mounted (only hidden), so returning to Climate claims does not reload the map. They
+  keep the previous light styling through `.legacy-light` until they get the dark theme.
 
 ### Globe notes
 
