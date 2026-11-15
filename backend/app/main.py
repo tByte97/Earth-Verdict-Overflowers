@@ -109,8 +109,38 @@ class BodyLimit:
         await JSONResponse(body.model_dump(), status_code=413)(scope, receive, send)
 
 
+class InternalErrorMiddleware:
+    """Catch unhandled HTTP exceptions inside CORSMiddleware so 500s still carry CORS headers."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        response_started = False
+
+        async def _send(message):
+            nonlocal response_started
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, receive, _send)
+        except Exception:
+            logger.exception("Unhandled error on %s %s", scope.get("method", "?"), scope.get("path", "?"))
+            if response_started:
+                raise
+            await error("internal", "Something went wrong on our side. Try again or open a saved case.")(
+                scope, receive, send
+            )
+
+
 app = FastAPI(title="Earth Verdict API", version="0.1.0")
-app.add_middleware(BodyLimit)   # added first, so CORS wraps it and a 413 still carries CORS headers
+app.add_middleware(BodyLimit)   # added before CORS, so a 413 still carries CORS headers
+app.add_middleware(InternalErrorMiddleware)   # also inside CORS, so a 500 still carries CORS headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o for o in os.environ.get("EV_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if o],
@@ -127,13 +157,6 @@ def error(code: str, message: str) -> JSONResponse:
 @app.exception_handler(CheckError)
 async def _check_error(_: Request, exc: CheckError):
     return error(exc.code, exc.message)
-
-
-@app.exception_handler(Exception)
-async def _internal_error(request: Request, exc: Exception):
-    # Log the stack on the server; the client gets JSON without internals.
-    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
-    return error("internal", "Something went wrong on our side. Try again or open a saved case.")
 
 
 @app.exception_handler(RequestValidationError)

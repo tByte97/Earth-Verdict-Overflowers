@@ -136,6 +136,20 @@ def test_unhandled_error_is_json_internal(monkeypatch):
                                   "message": "Something went wrong on our side. Try again or open a saved case."}}
 
 
+def test_unhandled_error_carries_cors_headers(monkeypatch, caplog):
+    def boom(spec):
+        raise KeyError("unexpected")
+    monkeypatch.setattr("app.main.run_check", boom)
+    c = TestClient(app, raise_server_exceptions=False)
+    with caplog.at_level("ERROR", logger="ev"):
+        r = c.post("/api/check", json=spec(), headers={"Origin": "http://localhost:5173"})
+    assert r.status_code == 500
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"
+    assert r.json() == {"error": {"code": "internal",
+                                  "message": "Something went wrong on our side. Try again or open a saved case."}}
+    assert "Unhandled error on POST /api/check" in caplog.text
+
+
 @pytest.mark.parametrize("over", [
     {"season": True}, {"season": "7"}, {"start_year": "1981"}, {"start_year": 1981.0},
     {"claim_text": "x" * 301}, {"place": {**KYIV, "name": "x" * 201}},

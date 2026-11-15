@@ -178,6 +178,38 @@ def test_event_error_handling(monkeypatch: pytest.MonkeyPatch):
     assert r_503.status_code == 503 and r_503.json()["error"]["code"] == "source_unavailable"
 
 
+@pytest.mark.parametrize("over", [
+    {"window_years": True},
+    {"window_years": "3"},
+    {"window_years": 3.0},
+    {"compound_id": "x" * 65},
+    {"event_label": "x" * 121},
+])
+def test_event_strict_spec_fields(over):
+    payload = {
+        "compound_id": "no2",
+        "place": SASAN,
+        "event_month": "2015-01",
+        "event_label": "Test",
+        **over,
+    }
+    r = client.post("/api/event", json=payload)
+    assert r.status_code == 400, r.text
+    assert r.json()["error"]["code"] == "bad_request"
+
+
+@pytest.mark.parametrize("over", [
+    {"window_years": True},
+    {"window_years": "3"},
+    {"compound_id": "x" * 65},
+])
+def test_event_profile_strict_spec_fields(over):
+    payload = {"compound_id": "no2", "place": SASAN, **over}
+    r = client.post("/api/event/profile", json=payload)
+    assert r.status_code == 400, r.text
+    assert r.json()["error"]["code"] == "bad_request"
+
+
 def test_co2_endpoints(fake_event_sources):
     rg = client.get("/api/co2/global")
     assert rg.status_code == 200, rg.text

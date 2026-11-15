@@ -376,11 +376,11 @@ class MonthValue(Strict):
 
 
 class EventSpec(Strict):
-    compound_id: str
+    compound_id: str = Field(max_length=64)
     place: Place
     event_month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     event_label: str = Field(max_length=120)
-    window_years: int = Field(default=3, ge=1, le=5)
+    window_years: StrictInt = Field(default=3, ge=1, le=5)
     use_control: bool = True
 
 
@@ -450,9 +450,9 @@ class EventSite(Strict):
 
 
 class EventProfileSpec(Strict):
-    compound_id: str
+    compound_id: str = Field(max_length=64)
     place: Place
-    window_years: int = Field(default=3, ge=1, le=5)
+    window_years: StrictInt = Field(default=3, ge=1, le=5)
     use_control: bool = True
 
 
