@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { demoCases, findPlaces, getCase, getCases, getVariables, isLive, isTransient, nearestCase, runCheck, type CaseItem } from './api';
+import { demoCases, findPlaces, getCase, getCases, getVariables, isLive, isTransient, nearestCase, parseClaim, runCheck, type CaseItem } from './api';
 import { VerdictCard } from './VerdictCard';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CaseSpecSchema } from './schema';
@@ -21,6 +21,8 @@ const Co2Calculator = lazy(() => import('./events/Co2Calculator').then(m => ({ d
 type Mode = 'claims' | 'events' | 'co2';
 const modes: [Mode, string][] = [['claims', 'Climate claims'], ['events', 'Pollution events'], ['co2', 'CO₂ calculator']];
 const initialMode = (): Mode => { const m = new URLSearchParams(window.location.search).get('mode'); return m === 'events' || m === 'co2' ? m : 'claims'; };
+
+const DIRECTION_WORD: Record<CaseSpec['claim_direction'], string> = { increase: 'is it increasing?', decrease: 'is it decreasing?', change: 'is it changing either way?' };
 
 const Globe = lazy(() => import('./globe/Globe').then(module => ({ default: module.Globe })));
 
@@ -49,6 +51,12 @@ function App() {
   const [phase, setPhase] = useState<'initial' | 'edited' | 'loading' | 'success' | 'error'>(startWithCase ? 'success' : 'initial');
   const [catalogueLoading, setCatalogueLoading] = useState(true);
   const [help, setHelp] = useState(false);
+  // The claim text the current parameters were built for (a case, a map spot or a reading of the claim).
+  // New text with untouched parameters is read first, so a verdict never sits under a claim it did not test.
+  const [paramsFor, setParamsFor] = useState(isLive ? '' : initial.result.case.claim_text);
+  const [manual, setManual] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [readNotes, setReadNotes] = useState<string[]>([]);
   const [picked, setPicked] = useState<PickedPoint | null>(null);
   const [mode, setModeState] = useState<Mode>(initialMode);
   function setMode(m: Mode) {
@@ -70,7 +78,7 @@ function App() {
   function flyTo(title: string, view: Destination['view']) { setDestination({ key: ++flightKey.current, title, view }); }
   function openCase(id: string, next: CheckResult) {
     autoOpen.current = null; request.current?.abort(); setBusy(false);
-    setDemoId(id); setCaseId(id); setSpec(next.case); setQuery(next.case.place.name); setSelectedPlace(true); setPicked(null);
+    setDemoId(id); setCaseId(id); setSpec(next.case); setParamsFor(next.case.claim_text); setManual(false); setReadNotes([]); setQuery(next.case.place.name); setSelectedPlace(true); setPicked(null);
     setPickNote(''); setError(''); setNotice(''); setResult(next); setResultSaved(!isLive); setPhase('success');
     setLayerKey({ variable_id: next.case.variable_id, season: String(next.case.season) });
     flyTo(next.case.claim_text, caseView(next));
@@ -161,6 +169,25 @@ function App() {
     setCaseId(null); writeHash(null);
     request.current?.abort(); setBusy(false); setError(''); setNotice(''); setResult(null); setPhase('edited'); setSpec(current => ({ ...current, ...next }));
   }
+  function editParams(next: Partial<CaseSpec>) { edit(next); setManual(true); }
+  const needsReading = isLive && spec.claim_text.trim().length >= 3 && spec.claim_text !== paramsFor && !manual;
+
+  async function readClaim() {
+    autoOpen.current = null; setCaseId(null); writeHash(null); request.current?.abort();
+    const text = spec.claim_text;
+    setReading(true); setError(''); setNotice(''); setResult(null); setPhase('edited'); setReadNotes([]);
+    try {
+      const parsed = await parseClaim(text);
+      setSpec(parsed.spec); setParamsFor(text); setManual(false); setReadNotes(parsed.notes); setPicked(null); setPlaces([]);
+      if (parsed.place_found) { setQuery(parsed.spec.place.name); setSelectedPlace(true); flyTo('', placeView(parsed.spec.place)); }
+      else { setQuery(parsed.place_query ?? ''); setSelectedPlace(false); }
+    } catch (e) {
+      // The fields stay as they are; the next press checks them as set.
+      setManual(true);
+      setError(`${e instanceof Error ? e.message : 'Could not read the claim.'} Set the parameters below by hand, then select “Check claim”.`); setPhase('error');
+    } finally { setReading(false); }
+  }
+
   useEffect(() => {
     if (selectedPlace || query.trim().length < 2) { setPlaces([]); setSearchStatus(''); return; }
     const controller = new AbortController();
@@ -215,7 +242,7 @@ function App() {
     const place = pointPlace(point);
     const subject = season === 'year' ? labelOf(variableId).toLowerCase() : `${layerSeason(String(season)).toLowerCase()} ${labelOf(variableId).toLowerCase()}`;
     const next: CaseSpec = { claim_text: `Is ${subject} changing at ${place.name}?`, variable_id: variableId, place, season, start_year: start, end_year: end, claim_direction: 'change' };
-    autoOpen.current = null; setCaseId(null);
+    autoOpen.current = null; setCaseId(null); setParamsFor(next.claim_text); setManual(false); setReadNotes([]);
     setPicked(point); setSelectedPlace(true); setQuery(place.name); setPlaces([]); setSpec(next);
     if (restored) { setLayerKey({ variable_id: variableId, season: String(season) }); flyTo('', placeView(place)); }
     writeHash({ kind: 'spot', variable: variableId, season, start, end, lon: point.lon, lat: point.lat });
@@ -271,19 +298,22 @@ function App() {
           {notice && <p className="data-note notice" role="status">{notice}</p>}
           <details className="case-parameters" open={!result}><summary>Check your own claim</summary>
           <form onSubmit={submit}>
-            <label>Claim<input required maxLength={300} value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} /></label>
-            <p className="field-help">The structured parameters below define the actual check. Saved wording comes from the backend response.</p>
-            <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); edit({}); }} aria-describedby="place-status" /></label>
+            <label>Claim<input required maxLength={300} value={spec.claim_text} onChange={e => edit({ claim_text: e.target.value })} onKeyDown={e => { if (e.key === 'Enter' && needsReading) { e.preventDefault(); void readClaim(); } }} /></label>
+            <p className="field-help">{isLive ? 'Write the claim in any language and select “Read claim”: the fields below fill in, and you confirm them before the check.' : 'The structured parameters below define the actual check. Saved wording comes from the backend response.'}</p>
+            {isLive && !needsReading && spec.claim_text.trim().length >= 3 && <button type="button" className="text-button" disabled={reading || busy} onClick={() => void readClaim()}>Read the claim again</button>}
+            {readNotes.length > 0 && <ul className="field-help read-notes" aria-label="What was assumed">{readNotes.map(note => <li key={note}>{note}</li>)}</ul>}
+            <label>Place<input required value={query} autoComplete="off" onChange={e => { setQuery(e.target.value); setSelectedPlace(false); editParams({}); }} aria-describedby="place-status" /></label>
             <p className="field-help" id="place-status" role="status">{selectedPlace ? 'Place selected. Type to search for another.' : searchStatus || 'Type at least two characters, then select a result.'}</p>
             {picked && <p className="field-help" role="status">Picked coordinates: {picked.lat.toFixed(2)}, {picked.lon.toFixed(2)}</p>}
-            {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { edit({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); flyTo('', placeView(place)); }}>{place.name}</button></li>)}</ul>}
-            <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => edit({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
+            {places.length > 0 && <ul className="place-results" aria-label="Place search results">{places.map(place => <li key={place.place_id}><button type="button" onClick={() => { editParams({ place }); setQuery(place.name); setSelectedPlace(true); setPlaces([]); setPicked(null); flyTo('', placeView(place)); }}>{place.name}</button></li>)}</ul>}
+            <label>Variable<select required value={spec.variable_id} disabled={catalogueLoading || !variables.length} onChange={e => editParams({ variable_id: e.target.value })}>{!variables.length && <option value="">{catalogueLoading ? 'Loading variables…' : 'No variables available'}</option>}{variables.map(v => <option key={v.id} value={v.id}>{v.label} · {v.units}</option>)}</select></label>
             {variables.find(v => v.id === spec.variable_id)?.definition && <p className="field-help">{variables.find(v => v.id === spec.variable_id)!.definition}</p>}
-            <label>Season<select value={spec.season} onChange={e => edit({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <fieldset><legend>Observation period</legend><div className="year-fields"><label>From<input type="number" required min="1" max="9999" value={Number.isNaN(spec.start_year) ? '' : spec.start_year} onChange={e => edit({ start_year: e.target.valueAsNumber })} /></label><span aria-hidden="true">—</span><label>To<input type="number" required min="1" max="9999" value={Number.isNaN(spec.end_year) ? '' : spec.end_year} onChange={e => edit({ end_year: e.target.valueAsNumber })} /></label></div></fieldset>
-            <label>Claim direction<select value={spec.claim_direction} onChange={e => edit({ claim_direction: e.target.value as CaseSpec['claim_direction'] })}><option value="increase">Increasing</option><option value="decrease">Decreasing</option><option value="change">Changing in either direction</option></select></label>
+            <label>Season<select value={spec.season} onChange={e => editParams({ season: CaseSpecSchema.shape.season.parse(/^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value) })}>{seasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <fieldset><legend>Observation period</legend><div className="year-fields"><label>From<input type="number" required min="1" max="9999" value={Number.isNaN(spec.start_year) ? '' : spec.start_year} onChange={e => editParams({ start_year: e.target.valueAsNumber })} /></label><span aria-hidden="true">—</span><label>To<input type="number" required min="1" max="9999" value={Number.isNaN(spec.end_year) ? '' : spec.end_year} onChange={e => editParams({ end_year: e.target.valueAsNumber })} /></label></div></fieldset>
+            <label>Claim direction<select value={spec.claim_direction} onChange={e => editParams({ claim_direction: e.target.value as CaseSpec['claim_direction'] })}><option value="increase">Increasing</option><option value="decrease">Decreasing</option><option value="change">Changing in either direction</option></select></label>
+            {!needsReading && selectedPlace && variables.some(v => v.id === spec.variable_id) && <p className="will-test" role="status"><b>This check will test:</b> {labelOf(spec.variable_id).toLowerCase()} · {spec.place.name} · {seasonName(spec.season).toLowerCase()} · {spec.start_year}–{spec.end_year} · {DIRECTION_WORD[spec.claim_direction]}</p>}
             {error && <div className="error" role="alert">{error}</div>}
-            <button className="primary-button" type="submit" disabled={busy || catalogueLoading || !variables.length}>{busy ? 'Checking…' : 'Check claim'} <span aria-hidden="true">→</span></button>
+            <button className="primary-button" type={needsReading ? 'button' : 'submit'} onClick={needsReading ? () => void readClaim() : undefined} disabled={busy || reading || catalogueLoading || !variables.length}>{reading ? 'Reading the claim…' : busy ? 'Checking…' : needsReading ? 'Read claim' : 'Check claim'} <span aria-hidden="true">→</span></button>
             <p className="field-help">{isLive ? 'Your backend performs the calculations.' : 'Saved cases return the team’s JSON unchanged. Custom periods require the calculation API.'}</p>
           </form>
           </details>

@@ -45,7 +45,8 @@ backend/.venv/bin/python tools/warm_cache.py http://127.0.0.1:8790
 | Rate limit (per client) | `POST /api/check` | 10 / 60 s | `429` (`rate_limited`, `Retry-After`) |
 | Rate limit (per client) | `POST /api/event`, `POST /api/event/profile` | 4 / 60 s combined | `429` (`rate_limited`, `Retry-After`) |
 | Rate limit (per client) | `POST /api/chat` | 5 / 60 s | `429` (`rate_limited`, `Retry-After`) |
-| Shared LLM quota | `/api/chat` → Gemini (retries count separately) | 20 / 60 s server-wide | `503` (`llm_unavailable`) |
+| Rate limit (per client) | `POST /api/parse-claim` | 10 / 60 s | `429` (`rate_limited`, `Retry-After`) |
+| Shared LLM quota | `/api/chat`, `/api/parse-claim` → Gemini (retries count separately) | 20 / 60 s server-wide | `503` (`llm_unavailable`) |
 
 **Trusted-proxy rule:** `CF-Connecting-IP` (cloudflared) or the right-most `X-Forwarded-For` entry (Tailscale Funnel) is used as the client IP **only** when the TCP peer (`request.client.host`) is loopback (`127.0.0.1` / `::1`); otherwise `request.client.host` is used directly and forwarding headers are ignored. Requests carrying forwarding headers are never exempted by `EV_RATE_LIMIT_EXEMPT_LOCAL`.
 
@@ -66,6 +67,7 @@ backend/.venv/bin/python tools/warm_cache.py http://127.0.0.1:8790
 | POST | `/api/co2-impact` | Body `Co2ImpactSpec` → cumulative CO₂ forcing & warming `Co2ImpactResult` |
 | GET | `/api/co2/global` | Latest NOAA GML global monthly CO₂, YoY growth, and 1980+ Sen slope |
 | POST | `/api/chat` | `{kind: check\|event\|co2, result, question?, lang?}` → plain-language explanation from Gemini (`GEMINI_API_KEY` or `~/.config/gemini/api_key`, model `EV_LLM_MODEL`); numbers are checked against the result |
+| POST | `/api/parse-claim` | `{text}` → `{spec, place_found, place_query, notes, model}`: Gemini picks the variable, season, region and direction from fixed lists, the code checks them against the catalog and geocodes the place; no check runs, the user confirms the fields first. `422` `cannot_parse` when no variable fits |
 | GET | `/api/grid?variable_id=air_temp&season=JJA` | GeoJSON trend layer for the globe (FDR-corrected); top level has `variable_id`, `start_year`, `end_year`, `pair` (nearest cells with opposite significant trends, or null) and the cell counts `n_cells`, `n_significant_fdr`, `n_significant_raw` (counted from the features when served) |
 | GET | `/api/grid/index` | Built trend layers: `[{variable_id, season, start_year, end_year, units_per_decade}]`, read from `data/layers/` |
 

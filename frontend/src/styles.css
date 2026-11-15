@@ -439,6 +439,16 @@ legend {
   line-height:1.6;
   color:var(--muted);
 }
+.read-notes {
+  padding-left:16px;
+}
+.will-test {
+  margin:18px 0 0;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  font-size:12px;
+  line-height:1.5;
+}
 .primary-button {
   display:flex;
   align-items:center;

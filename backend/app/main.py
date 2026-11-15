@@ -27,6 +27,7 @@ from .check import REGIONS, CheckError, run_check
 from .event import get_global_co2_summary, list_event_sites, run_co2_impact, run_event, run_event_profile
 from .limits import BusyError, RateLimitError, check_gate, concurrency_guard, event_gate, rate_guard
 from .llm import explain
+from .parse import parse_claim
 from .sources.cache import track_network_fetches
 from .models import (
     CaseSpec,
@@ -43,6 +44,8 @@ from .models import (
     EventResult,
     EventSite,
     EventSpec,
+    ParsedClaim,
+    ParseRequest,
     Place,
     Variable,
 )
@@ -54,7 +57,7 @@ EVENTS_DIR = DATA_DIR / "events"
 LAYERS_DIR = DATA_DIR / "layers"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 
-STATUS = {"bad_request": 400, "short_series": 400, "unknown_variable": 400, "no_data": 400,
+STATUS = {"bad_request": 400, "cannot_parse": 422, "short_series": 400, "unknown_variable": 400, "no_data": 400,
           "place_not_found": 404, "rate_limited": 429, "internal": 500,
           "source_unavailable": 503, "llm_unavailable": 503, "busy": 503}
 
@@ -366,6 +369,14 @@ async def chat(req: ChatRequest):
         return await anyio.to_thread.run_sync(explain, req.kind, req.result, req.question, req.lang)
     except ValidationError as exc:
         return error("bad_request", f"'result' is not a valid {req.kind} result: {exc.errors()[0]['msg']}.")
+
+
+@app.post("/api/parse-claim", response_model=ParsedClaim,
+          dependencies=[Depends(rate_guard("parse"))],
+          responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+async def parse(req: ParseRequest):
+    """Free text -> check parameters for the user to confirm. No check runs here."""
+    return await anyio.to_thread.run_sync(parse_claim, req.text)
 
 
 # ---------- trend layers for the globe (precomputed, FDR-corrected) ----------

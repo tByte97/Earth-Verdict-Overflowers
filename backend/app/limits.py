@@ -17,6 +17,7 @@ RATE_LIMITS: dict[str, tuple[int, float]] = {
     "check": (10, 60.0),
     "event": (4, 60.0),
     "chat": (5, 60.0),
+    "parse": (10, 60.0),
 }
 
 
