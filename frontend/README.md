@@ -71,7 +71,7 @@ No optional `presentation` extension is invented or required.
   `detection`, `extrapolation`, `scenarios` and `meta` remain available in the original JSON.
   Every numeric/null leaf also appears with full received precision in a context table.
 - Future numbers have their own visually distinct disclosure and cannot alter the verdict.
-  Implementing interactive scenario charts remains in issue #7.
+  The scenario paths are drawn on the record chart (see below).
 
 ## Presentation review (issue #1)
 
@@ -235,3 +235,20 @@ the source links and a response with a missing step.
 The evidence history (`DetectionHistoryChart`) is a block timeline: one block per end year, filled when
 `status == ok` and `p < alpha`, with the exact p in each block's title. "Signal emerged" shows `emerged_year`,
 or "—" while the backend does not supply it. The end-year slider and the exact-values table are unchanged.
+
+## Future scenarios on the record chart (issue #41, section 4f)
+
+When `scenarios` is present, the record chart's time axis runs on to the last node year (2100), as in the team's
+scenarios prototype. Right of a "now" divider at `case.end_year`:
+
+- each path's median is drawn at its node years from `scenarios.paths[].median_value`; the selected path also gets
+  its low–high fan from `low_value` / `high_value`. Lines only join nodes; there are no values in between.
+- three path buttons show the plain `label` with the SSP code beside it; node buttons (2030 / 2050 / 2070 / 2100)
+  are labelled with `windows[i]` ("2050 = average of 2041–2060").
+- the analog sentence is worded from `analogs[i]` (`analog_rank` 1 = highest on record); `beyond_record` reads
+  "would be beyond anything in the {start}–{end} record".
+- the disclaimer, `scenarios.source`, `baseline_period`, `baseline_value` and `note` sit under the controls.
+  Choosing a path or node never changes the verdict.
+- `scenarios: null` hides the future zone and the controls and shows one line explaining why.
+
+All scenario values also stay in **Future illustrations** with their exact precision.

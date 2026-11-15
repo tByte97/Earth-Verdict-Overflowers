@@ -36,8 +36,10 @@ async function hoverYear(page, result, year) {
   const svg = page.getByTestId('record-chart').locator('svg').first();
   const box = await svg.boundingBox();
   const width = Number((await svg.getAttribute('viewBox')).split(' ')[2]);
-  const first = result.series[0].year, last = result.series.at(-1).year;
-  const x = 44 + (year - first) / (last - first) * (width - 56);
+  // With scenarios the axis runs on to their last node year.
+  const first = result.series[0].year;
+  const end = Math.max(result.series.at(-1).year, ...(result.scenarios?.paths.flatMap(path => path.years) ?? []));
+  const x = 44 + (year - first) / (end - first) * (width - 56);
   await page.mouse.move(box.x + x * box.width / width, box.y + box.height / 3);
   return page.getByTestId('chart-tooltip').innerText();
 }

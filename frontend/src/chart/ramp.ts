@@ -33,15 +33,15 @@ function ramp(stops: string[]) {
 }
 
 // Two hues meeting at a neutral grey ("no change"), the same ramps as the trend map.
-const warm = { pal: ramp(['#72a9ee', '#36629e', '#3b3a37', '#b1483d', '#f28466']), down: 'cooler', up: 'warmer' };
-const wet = { pal: ramp(['#c9914f', '#7d5b31', '#3b3a37', '#2c7b73', '#63c7b8']), down: 'drier', up: 'wetter' };
+const warm = { pal: ramp(['#72a9ee', '#36629e', '#3b3a37', '#b1483d', '#f28466']), down: 'cooler', up: 'warmer', most: 'warmest' };
+const wet = { pal: ramp(['#c9914f', '#7d5b31', '#3b3a37', '#2c7b73', '#63c7b8']), down: 'drier', up: 'wetter', most: 'wettest' };
 const palettes: Record<string, typeof warm> = {
   air_temp: warm,
   global_temp: warm,
   precip: wet,
-  snow_depth: { pal: ramp(['#b9824a', '#6e4f2f', '#3b3a37', '#4a7fac', '#c4e3f6']), down: 'less snow', up: 'more snow' },
+  snow_depth: { pal: ramp(['#b9824a', '#6e4f2f', '#3b3a37', '#4a7fac', '#c4e3f6']), down: 'less snow', up: 'more snow', most: 'snowiest' },
 };
-const fallback = { pal: ramp(['#958ce4', '#514c8e', '#3b3a37', '#a8792b', '#f3c24f']), down: 'lower', up: 'higher' };
+const fallback = { pal: ramp(['#958ce4', '#514c8e', '#3b3a37', '#a8792b', '#f3c24f']), down: 'lower', up: 'higher', most: 'highest' };
 export const palette = (variableId: string) => palettes[variableId] ?? fallback;
 
 // Display step for axis grid lines (1, 2, 2.5, 5 × 10ⁿ). A display scale, not a statistic.
